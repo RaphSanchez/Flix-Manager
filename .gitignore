@@ -7,6 +7,11 @@
 ## https://youtu.be/qSnjgEU6VwQ
 Miscellaneous/
 
+## Excludes the appsettings.json files from tracking.
+## https://stackoverflow.com/questions/936249/how-to-stop-tracking-and-ignore-changes-to-a-file-in-git
+BlazorMovies/Server/appsettings.json
+BlazorMovies/Server/appsettings.Development.json
+
 # User-specific files
 *.rsuser
 *.suo
