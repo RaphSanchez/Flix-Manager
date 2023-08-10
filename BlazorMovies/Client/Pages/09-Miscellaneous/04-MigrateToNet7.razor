@@ -1,0 +1,706 @@
+﻿@page "/04-migrate-dot-net-seven"
+<PageTitle>Migrate to .Net 7</PageTitle>
+
+<h2>Miscellaneous - Migrate to .Net 7</h2>
+<p>
+    The .Net 7 major release is available as of November 2022. According to
+    Microsoft, before migrating your application from .Net 6, you should
+    consider that:
+</p>
+<ul>
+    <li>
+        If you are building a service and expect to continue updating it on
+        a regular basis, a <a href="https://learn.microsoft.com/en-us/dotnet/core/releases-and-support#release-tracks">
+            Short Term Support (STS) release
+        </a> such as .Net 7 may be the best option to stay up to date with
+        the latest features .Net has to offer.
+    </li>
+    <li>
+        If you are building a client application that will be distributed to
+        consumers, stability may be more important than access to the latest
+        features. The application might need to be supported for a certain
+        period before the consumer can upgrade to the next version of the
+        application. In this case, a <a href="https://learn.microsoft.com/en-us/dotnet/core/releases-and-support#release-tracks">
+            Long Term Support (LTS) release
+        </a> such as .Net 6 may be the best option.
+    </li>
+</ul>
+<p>
+    Since we are building a web application (hosted in the cloud), we can opt for
+    the STS release and migrate it to .Net 7.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Download the latest .Net runtime and SDK's.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the MSDN <a href="https://learn.microsoft.com/en-us/dotnet/core/install/how-to-detect-installed-versions?pivots=os-windows">
+        documentation
+    </a> to check which version of the .Net runtime and
+    SDK are installed on your computer.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Open a Windows terminal and run the <strong><code>dotnet --list-runtimes</code></strong>
+    command to see which versions of the .Net runtime are currently installed:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/33-migrate-net-7/01-runtime-versions.png"
+         alt="Check runtime versions." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/install/how-to-detect-installed-versions?pivots=os-windows#check-runtime-versions">
+            .Net runtime versions.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Open a Windows terminal and run the <strong><code>dotnet --list-sdks</code></strong>
+    command to see which versions of the .Net SDK are currently installed:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/33-migrate-net-7/02-sdk-versions.png"
+         alt="Check SDK versions." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/install/how-to-detect-installed-versions?pivots=os-windows#check-runtime-versions">
+            .Net SDK versions.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Download and install the .Net 7 Runtime and SDK.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On Windows, it is recommended to <a href="https://dotnet.microsoft.com/en-us/download/dotnet/7.0">
+            download and install
+        </a> the ASP.Net Core Runtime <strong>Hosting Bundle</strong> because it
+        includes the .Net Runtime and IIS support.
+    </p>
+</div>
+<p>
+    There are multiple ways to <a href="https://learn.microsoft.com/en-us/dotnet/core/install/windows?tabs=net70">
+        install .Net on Windows
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Follow the instructions to <a href="https://dotnet.microsoft.com/en-us/download/dotnet/7.0">
+        download the ASP.Net Core Runtime Hosting Bundle
+    </a>. Consider that there are three different <a href="https://learn.microsoft.com/en-us/dotnet/core/install/windows?tabs=net70#runtime-information">
+        runtimes
+    </a> you can install on Windows:
+</p>
+<ul>
+    <li>
+        <em>ASP.Net Core runtime</em> runs ASP.Net Core app. Includes the <em>.Net runtime</em>.
+    </li>
+    <li>
+        <em>Desktop runtime</em> runs .Net WPF and Windows Forms desktop apps for Windows.
+        Includes the <em>.Net runtime</em>.
+    </li>
+    <li>
+        <em>.Net runtime</em> is the simplest runtime and does not include any other
+        runtime. It is highly recommended that you install both <em>ASP.Net Core runtime</em>
+        and <em>Desktop runtime</em> for the best compatibility with .Net Apps.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Follow the instructions to <a href="https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-7.0.102-windows-x64-installer">
+        download .Net 7.0 SDK
+    </a> on Windows x64.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Open the terminal and use the <strong><code>dotnet --list-runtimes</code></strong> and
+    <strong><code>dotnet --list-sdks</code></strong> commands to confirm the installation
+    process was successful.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow ASP.Net Core <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio">
+        documentation
+    </a> to migrate the Flix-Manager web app from .Net 6 to .Net 7. Ensure that any breaking changes
+    are handled appropriately.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Update the <a href="03-Routing">project file</a>'s <em>Target Framework Moniker (TFM)</em>
+    to <code>net7.0</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/03-project-file.png"
+         alt="Project file." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Update the project file of each and <strong>every project</strong> in the solution. For
+    example, in our application, you should update the project file of the
+    BlazorMovies.Client, BlazorMovies.Server, BlazorMovies.Shared, and Weather projects:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/04-projects.png"
+         alt="Projects in the solution." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Update package references.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Use Visual Studio Solution Explorer to right click each project in the solution,
+    select "Manage NuGet packages...", Updates, Update:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/05-nuget-packages-update.png"
+         alt="NuGet packages dialog box for Application/Client project." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Update the NuGet packages of each and <strong>every project</strong> in the solution. For
+    example, in our application, you should update the NuGet packages of the
+    BlazorMovies.Client, BlazorMovies.Server, BlazorMovies.Shared, and Weather projects.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Run the application in debug mode (<code>F5</code>) to make sure it is working as
+    expected. It may be necessary to update the <code>using Ganss.Xss;</code> directive
+    in the Application/Client/Shared RenderMarkdown.razor.cs component.
+</p>
+<h4>.Net 7 Breaking Changes</h4>
+<p>
+    You might recall from "Step Six: Add the <dfn>RedirectToLogin</dfn> component" of the
+    <a href="04-security-config-client">Configure Client</a> lesson in the Security module,
+    that we added a RedirectToLogin component to the Application/Client/Shared folder.
+</p>
+<p>
+    The <em>RedirectToLogin</em> component is responsible for redirecting unauthorized
+    users to the login page and for preserving the current URL that the user is attempting
+    to access so that he can be returned to that page if authentication is successful:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/07-redirect-login-code-logic.png"
+         style="max-width: 105%;"
+         alt="RedirectToLogin component." />
+</div>
+<p>
+    As you can see, the redirection approach for Blazor apps that target .Net 6 or earlier
+    is based on a redirect URL: "<strong><code>?returnUrl=</code></strong>" with the <code>
+        NavigateTo
+    </code> method that navigates to the specified URI.
+</p>
+<p>
+    The support for authentication in Blazor WebAssembly apps changed to rely on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+        navigation history state
+    </a> instead of query strings in the URL. As a result, <strong>
+        passing the return URL through the query string fails to redirect back
+        to the original page
+    </strong> after a successful login in .Net 7.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Modify the Application/Client/Shared RedirectToLogin component:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/26-redirect-to-login-net-7-markup.png"
+         style="max-width: 105%;"
+         alt="RedirectToLogin component in .Net 7 - markup section." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/27-redirect-to-login-net-7-code.png"
+         alt="RedirectToLogin component in .Net 7 - code logic section." />
+</div>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+        new redirection approach for apps that target .Net 7
+    </a> is based on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+        navigation history state
+    </a> and <em>
+        NavigationManagerExtensions.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologin?view=aspnetcore-7.0">
+            NavigateToLogin
+        </a>
+    </em> method.
+</p>
+<p>
+    We also created a LoginDisplay component in "Step Seven: Add the <em>LoginDisplay</em>
+    component" of the <a href="04-security-config-client">Configure Client</a> lesson in
+    the Security module:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/08-login-display-markup.png"
+         alt="Markup for the LoginDisplay component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/09-login-display-code-logic.png"
+         alt="Code logic for the LoginDisplay component." />
+</div>
+<p>
+    The <em>LoginDisplay</em> component is consumed by the Application/Client/Shared
+    <a href="02-components-part-two">MainLayout</a> component to display a menu to
+    the user with the following behaviors:
+</p>
+<ul>
+    <li>
+        <p>For authenticated users:</p>
+        <ul>
+            <li>
+                Displays the current user name.
+            </li>
+            <li>
+                Offers a link to the user profile page in ASP.Net Core Identity.
+            </li>
+            <li>
+                Offers a button to log out of the app.
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>For anonymous users:</p>
+        <ul>
+            <li>Offers the option to register.</li>
+            <li>Offers the option to login.</li>
+        </ul>
+    </li>
+</ul>
+<p>
+    The change that .Net 7 introduced for authentication in Blazor WebAssembly apps
+    to rely on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+        navigation history state
+    </a> also involves the Application/Client/Shared LoginDisplay component. As part of
+    this change, the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+        SignOutSessionStateManager
+    </a> becomes obsolete in .Net 7 or later and is replaced with <em>
+        NavigationManagerExtensions.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologout?view=aspnetcore-7.0">
+            NavigateToLogout
+        </a>
+    </em> method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Modify the Application/Client/Shared LoginDisplay component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/28-login-display-net-7-markup.png"
+         alt="Markup for the LoginDisplay component in .Net 7." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/29-login-display-net-7-code.png"
+         alt="Code logic for the LoginDisplay component in .Net 7." />
+</div>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+        new redirection approach for apps that target .Net 7
+    </a> calls the <em>
+        NavigationManagerExtensions.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologout?view=aspnetcore-7.0">
+            NavigateToLogout
+        </a>
+    </em> method and the injection (<strong><code>@@inject</code></strong>) of
+    the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+        SignOutSessionStateManager
+    </a> is removed from the component's directives at the top of the file.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Test the RedirectToLogin and LoginDisplay components. Ensure that unauthenticated
+    users trying to access a secured API Resource are redirected to the login page
+    and if authentication is successful, they are brought back to the URL that
+    originated the login process.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Run the application and type the URL of a protected resource directly into the
+    web browser's address bar; e.g., https://localhost:7077/users
+</p>
+<p>
+    You should be redirected to the Login Page. Log in with the "admin" user created
+    in the <a href="04-secure-user-manager">Secure User Manager</a> lesson. This user
+    has valid credentials (claims) to access the Api resource. If authentication is
+    successful, you should be returned back to the URL that you were attempting to
+    access in the first place; e.g., the URL that points to the routable component
+    with the application users.
+</p>
+<p>
+    The lesson on the <a href="01-movie-sccore">Movie Score System</a> implements
+    a <code>RedirectToLoginView()</code> method in the <dfn>MovieBulletin.razor.cs</dfn>
+    component to redirect unauthorized users, that want to vote (or score a movie),
+    to the login page and preserve the current URL that the user is attempting to
+    access so he can be returned if authentication is successful:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/33-migrate-net-7/11-movie-bulletin-code-file-one.png"
+         alt="Extract from the code file of the MovieBulletin component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Call the <code>@@using Microsoft.Extensions.Options</code> directive, inject the
+    <code>@@inject IOptionsSnapshot&lt;RemoteAuthenticationOptions&lt;ApiAuthorizationProviderOptions&gt;&gt; Options</code>,
+    and modify the RedirectToLoginView() method of the MovieBulletin
+    component with the
+    <em>
+        NavigationManagerExtensions.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologin?view=aspnetcore-7.0">
+            NavigateToLogin
+        </a>
+    </em> method:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/24-ranking-system/55-extension-options.png"
+         style="max-width: 102%"
+         alt="Extension options in MovieBulletin component markup file." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/24-ranking-system/56-navigate-to-login.png"
+         alt="NavigateToLogin call in MovieBulletin component code file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Test the MovieBulletin routable component to ensure that it redirects
+    unauthenticated users to the login page when they try to score a Movie object
+    and that it returns to the routable component if authentication is successful.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1:</span>
+    Run the application, do not login, navigate to the Flix Manager routable
+    component, click on a Movie object to navigate to the MovieBulletin with the
+    details of the selected Movie, and try to "score" the current movie by clicking
+    any of the stars of the Score:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/08-movie-bulletin-score.png"
+         alt="MovieBulletin page." />
+</div>
+<p>
+    You will be redirected to the Login Page. Log in with the "admin" user created
+    in the <a href="04-secure-user-manager">Secure User Manager</a> lesson. This user
+    has valid credentials (claims) to access the Api resource. If authentication is
+    successful, you are sent back to the URL that points to the MovieBulletin
+    component. This time you should be able to pass your score for the current movie
+    object.
+</p>
+<p>
+    In the lesson for <a href="10-external-id-providers">External ID Providers</a> of
+    the security module, we implemented an automatic logout if the application user
+    is inactive for a certain amount of time.
+</p>
+<p>
+    The JS functions responsible for monitoring the activity of the application user
+    are initialized by the Application/Client/Shared MainLayout component which defines
+    a LogOutTask method if and when the timer expires before the application user
+    performs any kind of activity:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/44-main-layout-one.png"
+         alt="Obsolete MainLayout code file part one." />
+    <img src="Images/21-external-providers/45-main-layout-three.png"
+         alt="Obsolete MainLayout code file part two." />
+</div>
+<p>
+    As mentioned above, the support for authentication in Blazor WebAssembly apps
+    changed to rely on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+        navigation history state
+    </a>. As part of this change, the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+        SignOutSessionStateManager
+    </a> becomes obsolete in .Net 7 or later and is replaced with
+    <dfn>NavigationManagerExtensions</dfn>.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologout?view=aspnetcore-7.0">
+        NavigateToLogout
+    </a> method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Refactor the Application/Client/Share MainLayout code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/47-main-layout-updated-one.png"
+         alt="Updated MainLayout code file part one." />
+    <img src="Images/21-external-providers/48-main-layout-updated-two.png"
+         alt="Updated MainLayout code file part two." />
+</div>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+        new redirection approach for apps that target .Net 7
+    </a> calls the <dfn>NavigationManagerExtensions</dfn>.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologout?view=aspnetcore-7.0">
+        NavigateToLogout
+    </a> method and the injection (<strong><code>[Inject]</code></strong>) of the
+    <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+        SignOutSessionStateManager
+    </a> is removed.
+</p>
+<p>
+    <span class="badge bg-dark">Step Nine:</span>
+    Test the automatic logout. Run the application, login with a valid application user,
+    and ensure that the current user is logged out if no activity is registered within
+    the value passed as argument to the SetTimeOut function in the
+    Application/Client/wwwroot/js MainLayout.js file (currently 600,000 millisecond or
+    10 minutes).
+</p>
+<h4>Loading Progress Indicators</h4>
+<p>
+    .Net 7 introduced a new loading UI in Blazor that shows the progress of loading
+    the app. The Blazor WebAssembly project template now contains a Scalable Vector
+    Graphics (SVG) and text indications that show the loading progress of the app.
+</p>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/startup?view=aspnetcore-7.0#loading-progress-indicators">
+        loading progress indicators
+    </a> are implemented with HTML and CSS using two CSS custom properties (variables)
+    provided by Blazor WebAssembly:
+</p>
+<ul>
+    <li><strong><code>--blazor-load-percentage</code></strong></li>
+    <li><strong><code>--blazor-load-percentage-text</code></strong></li>
+</ul>
+<p>
+    Using the preceding CSS variables, you can create custom progress indicators
+    that match the styling of your app.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Implement the default round progress indicator in your web app.
+</p>
+<p>
+    The default round progress indicator is implemented in HTML in the application's
+    <a href="02-components-part-two">host page</a> that resides in the
+    Application/Client/wwwroot/index.html file:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/33-migrate-net-7/06-round-progress-indicator-html.png"
+         alt="Html for round progress indicator." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/startup?view=aspnetcore-7.0#loading-progress-indicators">
+            HTML for ASP.Net Core default round progress indicator
+        </a>
+    </figcaption>
+</figure>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the host page of the app and define the HTML for the default round
+    progress indicator:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/07-host-page-progress-indicator.png"
+         alt="Html in host page for loading progress indicator." />
+</div>
+<p>
+    The <code>loading-progress</code> and <code>loading-progress-text</code> CSS
+    classes are unknown because we have not defined the CSS rules.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the application's <a href="02-components-part-two">global CSS styling file</a>,
+    which resides in the Application/Client/wwwroot/css directory, and define the
+    styling for the default round progress indicator. You can create a new .Net 7
+    Blazor WASM application to retrieve the default styling and paste it in your
+    current application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/09-round-progress-indicator-css.png"
+         alt="CSS styling for default round progress indicator." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application to confirm that the default round progress indicator is
+    working as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/10-round-progress-indicator.png"
+         alt="Default round progress indicator." />
+</div>
+<p>
+    You can follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/startup?view=aspnetcore-7.0#loading-progress-indicators">
+        Loading progress indicators
+    </a> documentation to implement a linear progress indicator as opposed to the round
+    progress indicator and YouTube video <a href="https://youtu.be/Y67tBfUEs5o">
+        .Net 7 Blazor Loading Screen / Animation / Progress Bar
+    </a> by Patrick God for multiple progress indicator options.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly suggested</strong> to go through the documentation on
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-7.0?view=aspnetcore-7.0">
+            What's new in ASP.Net Core 7.0
+        </a> which contains the most significant changes and links to additional
+        info if required. It includes relevant changes that are specific to Blazor
+        WASM apps.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/releases-and-support#release-tracks">
+            Releases and support for .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/install/how-to-detect-installed-versions?pivots=os-windows">
+            How to check that .Net is already installed
+        </a>
+    </li>
+    <li>
+        <a href="https://dotnet.microsoft.com/en-us/download/dotnet/7.0">
+            Download .Net 7.0
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio">
+            Migrate from ASP.Net Core 6.0 to 7.0
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+            Blazor WebAssembly authentication uses history state for redirects
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-7.0?view=aspnetcore-7.0">
+            What's new in ASP.Net Core 7.0'
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-7.0?view=aspnetcore-7.0#new-blazor-loading-page">
+            New Blazor loading page
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/startup?view=aspnetcore-7.0#loading-progress-indicators">
+            Loading progress indicators
+        </a>
+    </li>
+    <li>
+        YouTube video <a href="https://youtu.be/Y67tBfUEs5o">
+            .Net 7 Blazor Loading Screen / Animation / Progress Bar
+        </a> by Patrick God.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/startup?view=aspnetcore-7.0">
+            ASP.Net Core Blazor startup
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    <a href="07-dynamic-website">Publish and redeploy</a> the web application to the
+    Azure App Service. Make sure you configure the appropriate .Net version in Azure
+    and that everything is working after deployment.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Azure portal to update the configuration for the App Service to be compatible
+    with .Net 7.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Go to the "Configuration" blade of the App Service, select the "General Settings" option,
+    and:
+</p>
+<ul>
+    <li>Select the correct .Net version; e.g., .Net 7</li>
+    <li>
+        Select an appropriate platform; e.g., 64 Bit.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/12-net-version-platform.png"
+         alt="General Settings for Azure App Service." />
+</div>
+<p>
+    Do <strong>not</strong> forget to save the changes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Visual Studio Solution Explorer to right click on the solution, select
+    "Clean Solution" and "Rebuild Solution" to ensure all settings are up to date.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the Visual Studio Solution Explorer to right click the startup project (e.g.,
+    BlazorMovies.Server-Api), select "Publish" to open the publish summary, and click
+    the "Publish" button element.
+</p>
+<p>
+    It is likely that with the current publish profile configuration, the publishing
+    process failed with the following description:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/13-assets-file-error.png"
+         alt="Publish error description." />
+</div>
+<p>
+    As we explained in the <a href="07-dynamic-website">Dynamic Website</a>
+    lesson of the Deployment module, the Application/Server-Api/Properties/PublishProfiles
+    publish profile files (.pubxml) have the publishing configuration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/14-publish-profile-net-6.png"
+         alt="Publish profile file." />
+</div>
+<p>
+    The problem originates because the current <strong><code>TargetFramework</code></strong>
+    in the publish profile is (net6.0). You have two options:
+</p>
+<ul>
+    <li>
+        Create a new profile which will include the current target framework for the
+        application (e.g., net7.0).
+    </li>
+    <li>
+        Modify the <strong><code>TargetFramework</code></strong> property value directly
+        in the publish profile file to .Net 7.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Modify the publish profile file to
+    <strong><code>&lt;TargetFramework&gt;net7.0&lt;/TargetFramework&gt;</code></strong>
+    and repeat step three to try to publish the application again:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/33-migrate-net-7/15-publish-summary.png"
+         alt="Publish summary." />
+</div>
+<p>
+    This time the publishing process succeeds with "net7.0" as the target framework. It is
+    time to test the new features.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Open a web browser and type in the application URL: <a href="https://app.flix-manager.com">
+        https://app.flix-manager.com
+    </a> in the address bar to navigate to the Flix-Manager web app. If the default loading
+    progress indicator is not displayed, you can:
+</p>
+<ul>
+    <li>
+        Go to the "Overview" blade of the Azure App Service and select "Restart" to restart
+        the App Service web app.
+    </li>
+    <li>
+        Open the web browser and clear the browsing data. Especially the "Cookies" and the
+        "Cached Images and files". You can clear the browsing data in most browsers with
+        the keyboard shortcut: <strong><code>Ctrl</code></strong> + <strong><code></code>Shift</strong>
+        + <strong><code>delete</code></strong>.
+    </li>
+</ul>
+<p>
+    At this point, the new loading progress indicator should be rendered as expected.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Test the RedirectToLogin and LoginDisplay components. Ensure that unauthenticated
+    users trying to access a secured API Resource are redirected to the login page and
+    if authentication is successful, they are brought back to the URL that originated
+    the login process.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Test the MovieBulletin routable component to ensure that it redirects unauthenticated
+    users to the login page when they try to score a Movie object and that it returns
+    to the routable component if authentication is accomplished.
+</p>
+<p>
+    Success!! We have migrated our application to .Net 7 Framework.
+</p>

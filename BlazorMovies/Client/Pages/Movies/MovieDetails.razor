@@ -1,0 +1,49 @@
+﻿
+<!-- Replaced by the MovieBulletin component -->
+@page "/MovieDetails/{MovieTitle}"
+@page "/MovieDetails/{MovieId:int}/{MovieTitle}"
+@inject IRepository _movieRepository
+<PageTitle>Movie Details</PageTitle>
+
+<div class="form-control">
+    <h5>MovieDetails</h5>
+
+    <div class="d-flex justify-content-center mb-3">
+        <img src="@_movie?.PosterPath"
+             style="width: 300px; height: 450px" />
+    </div>
+
+    <p class="mb-0"><strong>Title:</strong></p>
+    <p>@_movie?.Title</p>
+
+    <p class="mb-0"><strong>Release Date:</strong></p>
+    <p>@_movie?.ReleaseDate?.ToString("dddd, MMM-dd-yyyy")</p>
+</div>
+
+@code {
+    /// <summary>
+    /// Route parameter with a constraint of type Int32.
+    /// </summary>
+    [Parameter]
+    public int MovieId { get; set; }
+
+    /// <summary>
+    /// Route parameter.
+    /// </summary>
+    [Parameter]
+    public string? MovieTitle { get; set; }
+
+    /// <summary>
+    /// Movie item obtained with the value of the route parameter.
+    /// </summary>
+    private Movie? _movie = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _movie = await Task.FromResult(
+                        _movieRepository
+                        .GetMovies()
+                        .SingleOrDefault(m => m.Id == MovieId));
+    }
+}
+

@@ -1,0 +1,70 @@
+﻿<!-- Type of the collection of items to search from. -->
+@typeparam TSelectedItem
+
+<!-- Field Name. -->
+<div class="row">
+    <div class="col-6">
+        <label class="col-form-label-sm">@FieldName</label>
+    </div>
+</div>
+
+<!-- Typeahead component provides suggestions based on text typed by the user.  -->
+<div class="row">
+    <div class="col-6">
+
+        <!-- OnItemSelected EventCallback requires an explicit expression with  -->
+        <!-- the type to assign to generic type parameter TItem of the Typeahead-->
+        <!-- generic component. Another option is to declare an attribute that  -->
+        <!-- matches the name of the type parameter; e.g., TItem="TSelectedItem"-->
+        <!-- and the final consumer component in turn can assign a concrete type;-->
+        <!-- e.g., MovieForm component defines explicit type "Person".          -->
+        <Typeahead TItem="TSelectedItem"
+                   OnItemSelected="AddSelectedItem"
+                   Placeholder="Type text to search"
+                   SearchMethod="SearchMethodFunc">
+
+            <!-- Styling provided in Typeahead component. -->
+            <ResultItemTemplate Context="suggestionItem">
+                @SuggestionTemplate(suggestionItem)
+            </ResultItemTemplate>
+
+            <!-- Styling provided in Typeahead component. -->
+            <ShowNotFoundTemplate>
+                @NotFoundTemplate
+            </ShowNotFoundTemplate>
+        </Typeahead>
+    </div>
+
+    <!-- Draggable items selected by the user from the Typeahead above. -->
+    <div class="col-6">
+        @if (SelectedItems is not null)
+        {
+            @foreach (TSelectedItem sItem in SelectedItems)
+            {
+                <div class="toast align-items-center border-success
+                    mb-1 shadow-none" role="status"
+             style="display: inline-block;">
+
+                    <div class="d-inline-flex">
+                        <div class="toast-body" draggable="true"
+                     @key="sItem"
+                     @ondragstart="@(() => HandleDragStart(sItem))"
+                     @ondragover="@(() => HandleDragOver(sItem))">
+                            @SelectedItemTemplate(sItem)
+                        </div>
+                        <button type="button" class="btn-close me-2 m-auto"
+                        @onclick="@(() => RemoveSelectedItem(sItem))">
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+
+
+}
+
+

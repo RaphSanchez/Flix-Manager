@@ -1,0 +1,63 @@
+﻿
+@page "/users"
+@attribute [Authorize(Policy = AuthZPolicies.ApiReadUser)]
+
+<PageTitle>Users</PageTitle>
+
+<h3 class="mb-4">Application Users</h3>
+
+<!-- Application users table. -->
+<div>
+    <TestCollectionNullOrEmpty TItem="UserDto" ItemsList="_dbUsersPaginated">
+        <WholeListTemplate>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Email</th>
+                    <AuthorizeView Policy="@AuthZPolicies.ApiEditUser">
+                        <Authorized>
+                            <th scope="col">Edit</th>
+                        </Authorized>
+                    </AuthorizeView>
+                </tr>
+                </thead>
+
+                <tbody>
+                @foreach(UserDto user in _dbUsersPaginated)
+                {
+                    <tr class="align-middle">
+                        <td>
+                            @user.Id
+                        </td>
+                        <td>
+                            @user.Email
+                        </td>
+                        <AuthorizeView Policy="@AuthZPolicies.ApiEditUser">
+                            <Authorized>
+                                <td>
+                                    <a class="btn btn-outline-primary btn-sm"
+                                       id="edit-user"
+                                       href="users/edit/@user.Id">
+                                        Edit
+                                    </a>
+                                </td>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </WholeListTemplate>
+    </TestCollectionNullOrEmpty>
+</div>
+
+<!-- Pagination Control: -->
+@if (_paginatedResponseDto is not null)
+{
+    <Pagination CurrentPage="@_paginatedResponseDto.PaginationMetadata.PageNumber"
+                TotalPages="@_paginatedResponseDto.PaginationMetadata.TotalPages"
+                Radius="1"
+                OnSelectedPageValidated="@((pageNumber) =>
+                                             LoadSelectedPageAsync(pageNumber))" />
+}

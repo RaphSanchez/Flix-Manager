@@ -1,0 +1,121 @@
+﻿
+@page "/people/details/{PersonId:int}/{PersonName}"
+
+<PageTitle>Actor Details</PageTitle>
+
+@if (_dbActor is null)
+{
+    <!-- Loading spinner. -->
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border text-info" role="status">
+        </div>
+    </div>
+}
+else
+{
+    <!-- Header: Actor Name and Date of Birth. -->
+    <h2 style="margin-bottom: 0;">
+        @_dbActor.Name (@(_dbActor.DateOfBirth.HasValue
+        ? _dbActor.DateOfBirth.Value.Year
+        : "---"))
+    </h2>
+
+    <!-- Hyperlinks of Movies where actor has participated. -->
+    if (_actorMovies?.Count > 0)
+    {
+        <p style="font-size: .95rem; font-family: Arial Narrow; 
+                    padding-left: 3px;">
+            <!-- Only first 5 movie items. -->
+            @for (int i = 0; i < _actorMovies?.Count() && i < 5; i++)
+            {
+                Movie movie = _actorMovies[i];
+
+                if (i < _actorMovies.Count - 1)
+                {
+                    /// Employs the current Movie item to build the route
+                    /// to the MovieBulletin component. 
+                    <a href="movies/bulletin/@movie.Id/@movie.Title"
+                    style="text-decoration-line: none">
+                        @movie.TitleSummary
+                    </a> 
+                    
+                    /// Includes a comma and an empty space after each Movie
+                    /// item.
+                    <text>  |  </text>
+                }
+                else
+                {
+                    /// Employs the current Movie item to build the route
+                    /// to the MovieBulletin component. 
+                    <a href="movies/bulletin/@movie.Id/@movie.Title"
+                    style="text-decoration-line: none">
+                        @movie.TitleSummary
+                    </a>
+
+                    /// If current Movie is the last in the collection,
+                    /// no comma is added to the text.
+                }
+            }
+        </p>
+    }
+
+    <!-- Actor's Picture and Biography. -->
+    <div class="actor-container">
+
+        <!-- Actor's Picture. -->
+        <div class="picture-container">
+            <img src="@_dbActor?.PictureUrl" 
+            alt="Picture of the actor." />
+        </div>
+
+        <!-- Actor's Biography. -->
+        <div class="biogaraphy-container">
+            
+            <div class="title">
+                <span class="title-span">Biography:</span>
+            </div>
+
+            <div class="biography-content">
+                <RenderMarkdown MarkdownContent="@_dbActor?.Biography" />
+            </div>
+        </div>
+    
+    </div><!-- /actor's picture and bio.-->
+
+    <!-- Table with Movies where Person has participated. -->
+    <div>
+        <p>
+            <span class="title-span">Movies:</span>
+        </p>
+        <TestCollectionNullOrEmpty TItem="Movie" ItemsList="@_actorMovies">
+            <WholeListTemplate>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Picture</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (Movie? m in _actorMovies!)
+                        {
+                            <tr class="align-middle">
+                                <th>@(_actorMovies.IndexOf(m) + 1)</th>
+                                <td>@m.TitleSummary</td>
+                                <td>
+                                    <a href="@($"movies/bulletin/{m.Id}/{m.Title}")">
+                                        <img src="@m.PosterPath"
+                                     style="width: 50px; height: 50px"
+                                     class="border border-secondary rounded"
+                                     alt="Movie poster." />
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </WholeListTemplate>
+        </TestCollectionNullOrEmpty>
+    </div>
+}

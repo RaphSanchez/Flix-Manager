@@ -1,0 +1,86 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+		<ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
+		<IsPublishable>True</IsPublishable>
+		<ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Pages\08-UserManagement\03-UserManager.razor~RF4134f18.TMP" />
+	</ItemGroup>
+
+	<!--<PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>-->
+
+	<ItemGroup>
+		<PackageReference Include="Blazored.Video" Version="1.0.1" />
+		<PackageReference Include="HtmlSanitizer" Version="8.0.645" />
+		<PackageReference Include="Markdig" Version="0.31.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components" Version="7.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="7.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.7" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.37" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Localization" Version="7.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\Weather\Weather.csproj" />
+		<ProjectReference Include="..\Shared\BlazorMovies.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="wwwroot\Images\11-Filters\" />
+		<Folder Include="wwwroot\Images\12-update-complex-data\" />
+		<Folder Include="wwwroot\Images\13-delete-data\" />
+		<Folder Include="wwwroot\Images\14-pagination\" />
+		<Folder Include="wwwroot\Images\16-securing-client\" />
+		<Folder Include="wwwroot\Images\17-protect-api\" />
+		<Folder Include="wwwroot\Images\18-claims-authz\" />
+		<Folder Include="wwwroot\Images\19-acc-confirmation\" />
+		<Folder Include="wwwroot\Images\20-mfa\" />
+		<Folder Include="wwwroot\Images\21-external-providers\" />
+		<Folder Include="wwwroot\Images\24-ranking-system\" />
+		<Folder Include="wwwroot\Images\25-sweet-alert\" />
+		<Folder Include="wwwroot\Images\26-deployment\" />
+		<Folder Include="wwwroot\Images\28-production-key\" />
+		<Folder Include="wwwroot\Images\30-https-web-app\" />
+		<Folder Include="wwwroot\Images\34-api-rate-limiting\" />
+		<Folder Include="wwwroot\Images\35-api-caching\" />
+		<Folder Include="wwwroot\Images\36-internationalization\" />
+		<Folder Include="wwwroot\Images\37-html-metadata\" />
+		<Folder Include="wwwroot\Images\39-exception-handling\" />
+		<Folder Include="wwwroot\Images\40-reset-db\" />
+		<Folder Include="wwwroot\Images\41-pwa\" />
+		<Folder Include="wwwroot\Images\42-mutator-requests\" />
+		<Folder Include="wwwroot\Images\43-sync-component\" />
+		<Folder Include="wwwroot\Images\44-custom-events\" />
+		<Folder Include="wwwroot\Images\45-ex-handlers\" />
+		<Folder Include="wwwroot\Images\46-push-intro\" />
+		<Folder Include="wwwroot\Images\47-push-front-end\" />
+		<Folder Include="wwwroot\Images\48-compliance\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<BlazorWebAssemblyLazyLoad Include="Weather.dll" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\.editorconfig" Link=".editorconfig" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+	</ItemGroup>
+
+</Project>
+

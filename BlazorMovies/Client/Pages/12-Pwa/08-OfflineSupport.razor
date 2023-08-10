@@ -1,0 +1,518 @@
+﻿@page "/08-pwa-offline-support"
+
+<PageTitle>PWAs - Offline Support</PageTitle>
+
+<h2>Progressive Web Apps - Offline Support</h2>
+<p>
+    Recall from the lesson on <a href="03-api-caching">Api Caching</a> that controller
+    actions decorated with the <code>GET</code> HTTP verb are known as <dfn>accessors</dfn>
+    and controller actions decorated with the <code>POST</code>, <code>PUT</code>, or
+    <code>DELETE</code> HTTP verbs are known as <dfn>mutators</dfn> because they are
+    used to change or mutate data.
+</p>
+<p>
+    Let's recapitulate what we have learned in the past lectures:
+</p>
+<ul>
+    <li>
+        <p>
+            <a href="02-pwa-creation">Creating a PWA</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a new Blazor WebAssembly app that adheres to the PWA standard.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Convert an existing Blazor WebAssembly app into a PWA.
+                </p>
+            </li>
+        </ul>
+        <p>
+            By default, apps created using the PWA template have support for HTTP GET
+            requests that provide static content; i.e., that do not require
+            Application/Server-Api resources.
+
+        </p>
+        <p>
+            Users must first access the application while they are online to allow the
+            <dfn>service worker</dfn> to automatically download and store into the
+            cache (offline-cache) all of the <strong>static resources</strong> required
+            to operate offline.
+        </p>
+        <p>
+            Support for dynamic resources; i.e., for Application/Server-Api resources
+            other than HTML is not provided by default.
+        </p>
+        <p>
+            Publish and deployment of the application to Azure app service typically
+            requires project clean up and rebuild to reset the computed SHAs that
+            verify the integrity of the cached resources.
+        </p>
+    </li>
+    <li>
+        <p>
+            <a href="03-pwa-accessor-requests">Accessor Requests</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Provide offline support for HTTP <strong>GET</strong> requests that
+                    require Application/Server-Api resources (dynamic resources).
+                </p>
+                <p>
+                    Refactor the <dfn>service worker</dfn> to create a 'dynamic-cache' to
+                    store (or cache) the dynamic assets that must be fetched with HTTP
+                    <strong>GET</strong> requests, process the HTTP GET request, and if
+                    successful, clone and store the response in the dynamic cache.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Content of Http responses that include HTML is excluded because that
+                    content is stored in the offline-cache.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            <a href="04-pwa-mutator-requests">Mutator Requests</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Provide offline support for HTTP <strong>PUT, POST,</strong> and
+                    <strong>DELETE</strong> requests that require Application/Server-Api
+                    resources (dynamic resources).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Evaluate exceptions to determine if produced as a result of the application
+                    being offline and not having any matching content in its 'dynamic-cache'.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Setup a custom IndexedDB database to store locally (in the end user's
+                    web browser) the parameters required to build Http requests to POST,
+                    PUT, and/or DELETE that can later be used to synchronize pending operations
+                    when a connection to the web server is reestablished.
+                </p>
+                <p>
+                    Use JSInterop to store in the corresponding object store of our custom
+                    IndexedDB, the parameters that contain the data required to build the
+                    Http mutator request (POST, PUT or DELETE).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Create a Genre object in offline mode.
+                </p>
+            </li>
+
+        </ul>
+    </li>
+    <li>
+        <p>
+            <a href="05-pwa-sync-component">Synchronization Component</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a PwaSync component responsible for:
+                </p>
+                <ul>
+                    <li>
+                        <p>
+                            Using the previously stored IndexedDB records to build the
+                            Http requests and process them when an available connection
+                            to the web server is reestablished.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Keeping track of the number of pending operations that need
+                            to be synchronized or updated with the web server and display
+                            that value to the user.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            Removing, from the IndexedDB, any records that have been
+                            transformed into Http requests that were successfully processed.
+                        </p>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            <a href="06-pwa-custom-events">Custom Events</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Implement an <em>UpdateNumberOfPendingOperationsAsync</em> event
+                    to notify any subscribers when a new record bas been persisted into
+                    an object store of our IndexedDB as a result of attempting to
+                    perform an Http mutator request while the application is offline.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Subscribe the PwaSync component to the
+                    <em>UpdateNumberOfPendingOperationsAsync</em> event, assign its
+                    event handler method to update the number of pending synchronizations
+                    displayed in its bell icon when notified, and implement the IDisposable
+                    interface to assure that the PwaSync component unsubscribes from the
+                    event when it is no longer needed.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Utilize the Application/Client/Pages/Genres GenreCreate routable
+                    component to publish the event immediately after a record has
+                    been inserted into an object store of our custom IndexedDB.
+                </p>
+            </li>
+
+        </ul>
+    </li>
+    <li>
+        <p>
+            <a href="07-exception-handlers">Exception Handlers</a>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    IExceptionHandlers interface and its implementation that enables
+                    offline support for Http accessor and mutator requests because
+                    it encapsulates the code logic for the <code>catch</code> block
+                    of their exception handlers responsible for figuring out it the
+                    exception is thrown as a result of the application being offline.
+                </p>
+                <p>
+                    It also centralizes string messages to convey clear and meaningful
+                    messages to the user relating offline support operations.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    So far, offline support for HTTP GET requests that require Application/Server-Api
+    resources (dynamic assets) has only been configured with the IndexGenres routable
+    component.
+</p>
+<p>
+    Offline support for HTTP POST, PUT, and DELETE requests that perform some type
+    of modification to the data stored in the database has only been configured for a
+    single mutator operation to create a new Genre object. We still have to configure
+    the offline support for the rest of the mutator operations performed by our multiple
+    routable components; e.g., PeopleEdit or MovieCreate.
+</p>
+<p>
+    We can use the IndexGenres routable component as an example to enable offline support
+    for the rest of the database queries that require dynamic assets; e.g., almost
+    all of the OnInitializedAsync lifecycle methods of our components send and HTTP
+    GET request.
+</p>
+<p>
+    And we can use the GenreCreate routable component as a guide to enable offline support
+    for HTTP POST, PUT, or DELETE requests that perform some type of operation with the
+    data persisted in our database. Recall that both components were enabled with offline
+    support in the <a href="07-exception-handlers">Exception Handlers</a> lesson.
+</p>
+<p>
+    IndexGenres routable component with offline support for HTTP GET request in its
+    OnInitializedAsync lifecycle method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/17-index-genres-catch-block.png"
+         alt="IndexGenres routable component." />
+</div>
+<p>
+    GenreCreate routable component with offline support for HTTP POST request in its
+    CreateGenre method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/23-genre-create-one.png"
+         alt="GenreCreate routable component part one." />
+    <img src="Images/45-ex-handlers/13-genre-create-ex-handler-method-two.png"
+         alt="GenreCreate routable component part two." />
+</div>
+<h4>Offline Support for HTTP GET requests</h4>
+<p>
+    In this section, we will enable offline support for HTTP GET requests that require
+    Application/Server-Api resources (dynamic assets).
+</p>
+<p>
+    Offline support consists of establishing an exception handling mechanism capable
+    of determining the type of exception and, if applicable, store (or cache) the
+    dynamic assets that must be fetched with Http GET requests, process the Http GET
+    request, and if successful, clone and store the response in the dynamic-cache. If
+    unsuccessful (web server unavailable), it should attempt to return the response
+    content from the data currently stored in our custom 'dynamic-cache'.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Enable offline support for all the HTTP GET requests that require Application/Server-Api
+    resources.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    We will only illustrate how to enable offline support for HTTP GET requests that do not
+    repeat over and over. For example, GenreEdit and PersonEdit are fundamentally identical;
+    therefore, we will only demonstrate the procedure in one component. Keep in mind that
+    the images might omit some code that is not relevant to our purpose.
+</p>
+<p>
+    It is your responsibility to ensure that similar use case scenarios are configured
+    accordingly. You can examine the Http verb used to decorate each controller <dfn>action</dfn>
+    in the Application/Server-Api/Controllers directory as a guidance.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Enable offline support for the OnInitializedAsync lifecycle method of the
+    GenreEdit routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/24-genre-edit-get.png"
+         alt="GenreEdit routable component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Make any necessary adjustments to ensure that the database reset functionality is
+    only available when the application is online and inform the user accordingly.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    As explained in the <a href="07-db-reset">DbReset</a> lesson, the procedure to reset
+    the database to a initial state includes synchronizing data in Azure storage containers
+    with local directories and removing/inserting data to the database hosted in Azure.
+</p>
+<p>
+    The procedure cannot be accomplished if the application is offline. However, you
+    might recall that its controller endpoint <code>MoviesController/ResetDatabaseTask</code>
+    is decorated with an HTTP GET verb:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/40-movies-controller.png"
+         alt="MoviesController." />
+</div>
+<p>
+    When the application sends the Http GET request for the first time
+    while the application is online, the <dfn>service worker</dfn> that we configured in
+    the <a href="03-pwa-accessor-requests">Accessor Requests</a> lesson, intercepts the
+    response, clones it, stores its content in the 'dynamic-cache' store, and returns
+    the Http response to the Application/Client.
+</p>
+<p>
+    From this point forward, every time the Application/Client sends and Http request
+    to reset the database and the application is offline, it will serve the response
+    from our custom 'dynamic-cache' but we don't want that. We need to always process
+    the request all the way to the web server to perform the online operations mentioned
+    above.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Refactor the <code>getResponseAndUpdateCache(event)</code> function of the
+    Application/Client/wwwroot <em>service-worker.js</em> file to exclude from storing
+    in our custom 'dynamic-cache', the response content from any Http request whose
+    ULR includes a 'reset-db' route segment:
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This is not the final of the <code>offlineAssetsInclude</code> local reference
+        in the service worker files (<em>service-worker.js</em> and
+        <em>service-worker.published.js</em>). After some testing, it was determined
+        that any image related files should not be loaded to the 'offline-cache' during
+        initial install of service worker because the application has too many files and
+        it was taking too long for the application to start. This is unacceptable. Refer
+        to the "Loading Image Files to 'dynamic-cache'" section at the end of the
+        <a href="04-pwa-mutator-requests">Mutator Requests</a> lecture.
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/41-service-worker-one.png"
+         alt="Service worker file part one." />
+    <img src="Images/42-mutator-requests/42-service-worker-two.png"
+         alt="Service worker file part two." />
+    <img src="Images/42-mutator-requests/43-service-worker-three.png"
+         alt="Service worker file part three." />
+</div>
+<p>
+    Make sure to also update the <em>service-worker.published.js</em> file.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Verify that the 'dynamic-cache' store does not have a record with the response
+    content of an Http request with a URL that matches the
+    <code>MoviesController/ResetDatabaseTask</code> route. Otherwise, the request
+    will be served from the dynamic-cache.
+</p>
+<p>
+    Run the application and go to the 'dynamic-cache' of the "Cache Storage" section in
+    the "Application" tab of the web browser's developer tools and delete the record:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/44-dynamic-cache.png"
+         alt="dynamic-cache in Application tab." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Refactor the exception handler of the <em>ResetData</em> method in the FlixManager
+    routable component to inform the user that this feature is only available online:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/25-reset-data-method-one.png"
+         alt="ResetData method part one." />
+    <img src="Images/42-mutator-requests/26-reset-data-method-two.png"
+         alt="ResetData method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Refactor the exception handler of the <em>RequestMoviesPaginatedAsync</em> method
+    in the MoviesSearch routable component to inform the user that this feature is
+    only available online:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/27-movies-search-one.png"
+         alt="MoviesSearch component part one." />
+    <img src="Images/42-mutator-requests/28-movies-search-two.png"
+         alt="MoviesSearch component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Refactor the exception handler of the <em>RequestPeoplePaginatedAsync</em> method
+    in the IndexPeople routable component to evaluate the type of exception and act
+    accordingly. Examine all the HTTP GET requests for dynamic assets in the component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/29-index-people-one.png"
+         alt="IndexPeople part one." />
+    <img src="Images/42-mutator-requests/30-index-people-two.png"
+         alt="IndexPeople part two." />
+</div>
+<h4>Offline Support for HTTP POST, PUT and DELETE requests</h4>
+<p>
+    In this section, we will enable offline support for mutator requests that perform
+    operations to modify the data stored in our database.
+</p>
+<p>
+    Offline support consists of establishing an exception handling mechanism capable
+    of determining the type of exception and, if applicable, intercept the Http request,
+    store the parameters that contain the data required to build the Http request, and
+    inform the user that the data has been successfully stored for a later use when
+    a connection to the web server is reestablished.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    We will only illustrate how to enable offline support for HTTP mutator requests that
+    do not repeat over and over. For example, GenreEdit and PersonEdit are fundamentally
+    identical; therefore, we will only demonstrate the procedure in one component. Keep
+    in mind that the images might omit some code that is not relevant to our purpose.
+</p>
+<p>
+    It is your responsibility to ensure that similar use case scenarios are configured
+    accordingly. You can examine the Http verb used to decorate each controller <dfn>action</dfn>
+    in the Application/Server-Api/Controllers directory as a guidance.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Enable offline support for HTTP POST requests.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Enable offline support for the <em>OnScoreSelectedAsync</em> click event handler of
+    the MovieBulletin routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Examine the Application/Server-Api/Controllers MovieScores controller to determine
+    the the type of operation performed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/31-movie-scores-controller.png"
+         alt="MovieScores controller." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Refactor the exception handler of the <em>OnScoreSelectedAsync</em> method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/32-movie-bulletin-one.png"
+         alt="MovieBulletin part one." />
+    <img src="Images/42-mutator-requests/33-movie-bulletin-two.png"
+         alt="MovieBulletin part two." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Enable offline support for HTTP PUT requests.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Enable offline support for the <em>EditGenre</em> method of the GenreEdit
+    routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/34-genre-edit-one.png"
+         alt="GenreEdit routable component part one." />
+    <img src="Images/42-mutator-requests/35-genre-edit-two.png"
+         alt="GenreEdit routable component part two." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Enable offline support for HTTP DELETE requests.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Enable offline support for the <em>PerformDelete</em> method of the IndexGenres
+    routable component.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/36-index-genres-delete-one.png"
+         alt="IndexGenres component part one." />
+    <img src="Images/42-mutator-requests/37-index-genres-delete-two.png"
+         alt="IndexGenres component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Enable offline support for the <em>DeleteMovieAsync</em> method of the
+    MoviesCatalog component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/38-movies-catalog-one.png"
+         alt="MoviesCatalog component part one." />
+    <img src="Images/42-mutator-requests/39-movies-catalog-two.png"
+         alt="MoviesCatalog component part one." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Run the application and ensure that all the Http requests are configured for
+    online support. Once confirmed, <a href="07-dynamic-website">Publish and deploy</a>
+    the application to Azure app service and check that everything is still working
+    as planned.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episodes 150 to 152 of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@77hL3dHQYTjg5O7HfF3FZWDcpkxo71Azx7T227F1gJWfDmfqqGpaS5lksW3zltWq/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+</ul>

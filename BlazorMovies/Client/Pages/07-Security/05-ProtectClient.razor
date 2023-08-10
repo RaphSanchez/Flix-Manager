@@ -1,0 +1,497 @@
+﻿@page "/05-security-protect-client"
+<PageTitle>Secure Client</PageTitle>
+
+<h2>Security - Securing the Client</h2>
+<p>
+    As mentioned in the introductory lesson on <a href="01-security-fundamentals">
+        Security
+    </a>, AuthZ refers to the process that determines what a User is able to do. For
+    example, an administrative User is allowed to create a document library, add
+    documents, edit, and delete them. A non-administrative User working with the
+    library is only authorized to read the documents.
+</p>
+<p>
+    Authorization is independent from authentication but it requires an AuthN
+    mechanism. The AuthN process ascertains who a User is and it creates one or
+    more associated identities (<strong><code>ClaimsIdentity</code></strong>) with
+    the correct set of <dfn>claims</dfn> for the current User (<strong>
+        <code>
+            ClaimsPrincipal
+        </code>
+    </strong>) if AuthN is successful.
+</p>
+<p>
+    Security scenarios differ between Blazor Server and Blazor WebAssembly apps. Because
+    Blazor Server apps run on the server, authorization checks are able to determine:
+</p>
+<ul>
+    <li>
+        The UI options presented to a user (for example, which menu entries are available
+        to the user).
+    </li>
+    <li>
+        Access rules for areas of the app and components.
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In Blazor WASM apps <strong>that run exclusively on the client</strong>
+        (e.g., Application/Client), AuthZ is <strong>only</strong> used to determine
+        which UI options to show. Since client-side checks can be modified or bypassed
+        by a user, Blazor WASM apps cannot enforce authorization access rules. <strong>
+            Always perform authorization checks on the server within any API endpoints
+            accessed by your client-side app.
+        </strong>
+    </p>
+</div>
+<p>
+    The <dfn>hosted</dfn> Blazor WASM model, as is the case of our application,
+    provides a full-stack web development exprience with .Net including the ability to
+    share code between the "client" and "server" apps. Hosted Blazor WASM applications are
+    configured for security in the same manner as ASP.Net Core apps. Blazor Server uses
+    ASP.Net Core Identity for AuthN and AuthZ.
+</p>
+<h4><code>&lt;AuthorizeView&gt;</code> component</h4>
+<p>
+    The <strong><code>&lt;AuthorizeView&gt;</code></strong> component selectively displays
+    UI content depending on whether the User is authorized. This approach is useful when
+    you only need to <dfn>display</dfn> data for the User and don't need to use the User's
+    identity in procedural logic.
+</p>
+<p>
+    As mentioned at the end of last lecture, at this point we haven't protected any
+    Application/Client components nor have we protected any Application/Server-Api resources
+    (endpoints).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Index routable component and employ the
+    <code>AuthorizeView</code> component to selectively display UI content depending on
+    the current authentication state of the User.
+</p>
+<p>
+    The built-in AuthenticationStateProvider service obtains authentication state data
+    from ASP.Net Core's <code>HttpContext.User</code>; i.e., it <span class="mark">
+        <strong>
+            can provide the current user's <code>ClaimsPrincipal</code> data.
+        </strong>
+    </span> This is how authentication state integrates with existing ASP.Net Core
+    authentication mechanisms.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You <strong>do not typically</strong> use <code>AuthenticationStateProvider</code>
+        directly. <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authenticationstateprovider-service">
+            Instead
+        </a>, use the <code>AuthorizeView</code> component or the
+        <code>Task&lt;AuthenticationState&gt;</code>. The main drawback to using the
+        <dfn>AuthenticationStateProvider</dfn> directly is that the component is not
+        notified automatically if the underylying authentication state data changes.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create an instance of the <code>AuthorizeView</code> component and pass values for
+    its Authorized and NotAuthorized RenderFragments:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/13-authorize-view-example.png"
+         alt="AuthorizeView component." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <strong><code>AuthorizeView</code></strong> component exposes a
+        <strong><code>context</code></strong> variable of type <dfn>AuthenticationState</dfn>
+        which you can use to access information about the signed-in user.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Test the behaviour of the &lt;Authorized&gt; and &lt;NotAuthorized&gt; components that
+    were added to the Application/Client/Pages Index.razor routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Run the appliation and navigate to the Index component. You should get the "You are not
+    authorized" message because you are not authenticated:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/14-not-authorized.png"
+         alt="NotAuthorized message." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Login with the credentials of the User created at the end of last lecture on
+    <a href="04-security-config-client">Configuring Client</a>:
+</p>
+<ul>
+    <li>User: " varios@oficina.org.mx "</li>
+    <li>Password: " Pass123$ "</li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Navigate to the Application/Client/Pages Index routable component. This time you
+    should get the Authorized message which uses the <code>context</code> variable of
+    type <dfn>AuthenticationState</dfn> to access information about the signed-in user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/15-authorized.png"
+         alt="Authorized message." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If <strong> authorization conditions</strong> (e.g., roles or policies that control UI
+        options or access) <strong>are not specified</strong>, the <code>AuthorizeView</code>
+        uses a default policy and <strong>treats</strong> authenticated (signed-in) users as
+        authorized and <strong>unathenticated (signed-out) users as unauthorized</strong>.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <dfn>AuthorizeView</dfn> component to selectively display to the User the
+    "Edit" and "Delete" button elements of the Application/Client/Pages/Movies FlixManager
+    routable component depending on its authentication state.
+</p>
+<p>
+    Recall that each Movie object in the FlixManager component is presented to the User
+    with the Application/Client/Shared MoviesCatalog component which in turn consumes the
+    Application/Client/Shared RenderMovie component to render each Movie object.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Cut the <dfn>AuthorizeView</dfn> block of code in the Application/Client/Pages Index
+    routable component and paste it in the Application/Client/Shared RenderMovie component
+    in a way such that it only renders the button elements to authenticated Users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/16-editing-buttons.png"
+         alt="AuthorizeView for button elements." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the application, navigate to the FlixManager routable component and make sure that
+    the button elements are no longer available for unauthenticated users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/17-no-editing-buttons.png"
+         alt="No button elements for unauthenticated users." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Login and make sure that this time the button elements are available for the User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/18-editing-buttons-ok.png"
+         alt="Button elements available for authenticated users." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <dfn>AuthorizeView</dfn> component to selectively display
+    Application/Client/Shared/NavMenu navigation menu items to the user depending on its
+    authentication state. Protect the nav menu items that redirect the user to routable
+    components that permit editing; i.e., protect the Application/Client/Pages Genres and
+    People routable components.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/Shared/NavMenu and use an <dfn>AuthorizeView</dfn>
+    code block to protect the routable components:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/19-authz-nav-menu-items.png"
+         alt="Protecting nav menu items with AuthorizeView." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the app and test the logged-in and logged-out states to make sure that the nav menu
+    items are displayed accordingly.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This approach only removes the list item from the rendered output. It <strong>
+            does not prevent the User from navigating to the component
+        </strong> by manually typing the address into the address bar.
+    </p>
+</div>
+<p>
+    For example, if you manually type in the browser's address bar the URL for the
+    Application/Client/Pages/IndexGenres routable component (https://localhost:7077/genres),
+    the component will be rendered because it is not protected.
+</p>
+<h4><code>[Authorize]</code> attribute</h4>
+<p>
+    Authorization in ASP.Net Core is controlled with the <dfn>AuthorizeAttribute</dfn>
+    and its various parameters. In its most basic form, applying the <strong>
+        <code>
+            [Authorize]
+        </code>
+    </strong> attribute to a Razor component, a controller, an action, or a Razor Page,
+    limits access to that element to <strong>only</strong> authenticated users.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Only use <code>[Authorize]</code> on <code>@@page</code> (routable) components
+        reached via the Blazor Router. Authorization is only performed as an aspect
+        of routing and <strong>not</strong> for child components rendered within a
+        page. To authorize the display of specific part withing a page, use the
+        <code>AuthorizeView</code> instead.
+    </p>
+</div>
+<p>
+    If neither <dfn>roles</dfn> nor <dfn>policy</dfn> is specified, the
+    <strong><code>[Authorize]</code></strong> attribute <span class="mark">
+        <strong>
+            uses the default policy,
+        </strong>
+    </span> which by default is to treat:
+</p>
+<ul>
+    <li>Authenticated (signed-in) Users as authorized.</li>
+    <li>Unauthenticated (signed-out) Users as unauthorized.</li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <code>[Authorize]</code> attribute to protect the Application/Client/Pages
+    IndexGenres and IndexPeople routable components.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/_Imports support file and define a <dfn>using</dfn>
+    directive for <code>@@using Microsoft.AspNetCore.Authorization</code>. This will
+    enable the <dfn>[Authorize]</dfn> attribute throughout the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the IndexGenres component and define an instance of the <dfn>[Authorize]</dfn>
+    attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/20-authorize-attribute-index-genres.png"
+         alt="Protecting IndexGenres routable component at the component level." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application, navigate to the Application/Client/Pages/Genres IndexGenres
+    component by typing the URL in the browser's URL (https://localhost:7077/genres). You
+    should not be granted access because you are not authenticated. In fact, the
+    <dfn>RedirectToLogin</dfn> component should kick in and redirect you to the
+    Application/Server-Api/Areas/Identity/Pages/Account Login page
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the login credentials for the User
+    created earlier. You should be redirected to the IndexGenres component after a successful
+    login and to the application Index after a successful logout.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Do the same for every routable component
+    in the Application/Client/Pages section that needs to be protected; i.e., for every
+    routable component that should not be readily available to unauthenticated users:
+</p>
+<ul>
+    <li>GenreCreate</li>
+    <li>GenreEdit</li>
+    <li>IndexGenres</li>
+    <li>PersonCreate</li>
+    <li>PersonEdit</li>
+    <li>IndexPeople</li>
+    <li>MovieCreate</li>
+    <li>MovieEdit</li>
+</ul>
+<p>
+    Now, all of the <strong>routable</strong> components with access to sensible operations
+    (editing) are protected from unauthenticated Users.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction?view=aspnetcore-6.0">
+            Introduction to authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<h4>Reading Authentication state</h4>
+<p>
+    We have seen how to use the <dfn>AuthorizeView</dfn> component to selectively display UI
+    content depending on the authentication state of the User. This approach is useful when
+    you only need to display data for the User and don't need to use the User's identity in
+    procedural logic.
+</p>
+<p>
+    If certain functionality needs to check authorization rules as part of its procedural
+    logic, you can use a built-in <a href="02-components-part-four">cascaded parameter</a>
+    of type <strong><code>Task&lt;AuthenticationState&gt;</code></strong> to obtain the
+    User's <code>ClaimsPrincipal</code>.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <dfn>Task&lt;AuthenticationState&gt;</dfn> can be combined with other built-in
+        services such as <strong><code>IAuthorizationService</code></strong> to evaluate
+        <dfn>policies</dfn>; i.e., to check if a User meets a specific
+        <a href="06-security-protect-api">authorization policy</a> (more on policy-based
+        authorization in next lecture).
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Pages Index component and create a button element with
+    a handler that evaluates if the User is authenticated. If not, it displays a "not
+    authenticated" message, otherwise, it should display:
+</p>
+<ul>
+    <li>The <dfn>ClaimsPrincipal.Identity.Name</dfn></li>
+    <li>The User <dfn>ClaimTypes.Country</dfn> value</li>
+    <li>The User <dfn>ClaimsPrincipal.Claims</dfn></li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Define the code logic responsible for obtaining the information (<dfn>ClaimsPrincipal</dfn>)
+    for the current User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/21-authn-state-back-end.png"
+         alt="Cascaded AuthenticationState parameter." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Define the markup that displays the current User info:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/22-authn-state-front-end.png"
+         alt="AuthenticationState info markup." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application and raise the @@onclick event of the "Get User's Claims Principal"
+    button element with and without being authenticated (logged-in).
+</p>
+<p>
+    Application/Client/Pages Index UI with an authenticated User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/23-authn-state-ui.png"
+         alt="UI with authenticated user." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    As explained in last lecture on <a href="04-security-config-client">Configuring the Client</a>,
+    the <dfn>CascadingAuthenticationState</dfn> built-in component, defined in the application's
+    root component, supplies the <dfn>Task&lt;AuthenticationState&gt;</dfn> cascading parameter.
+    The <dfn>CascadingAuthenticationState</dfn> component in turn, receives the
+    <dfn>AuthenticationState</dfn> from the underlying <dfn>AuthenticationStateProvider</dfn>
+    service.
+</p>
+<p>
+    Recall that the built-in <dfn>AuthenticationStateProvider</dfn> service obtains
+    authentication state data from ASP.Net Core's <code>HttpContex.User</code>. As mentioned
+    earlier, you <strong>do not typically</strong> use <dfn>AuthenticationStateProvider</dfn>
+    directly. Instead, use the <code>AuthorizeView</code> component or the
+    <code>Task&lt;AuthenticationState&gt;</code> because the <dfn>AuthenticationStateProvider</dfn>
+    is <strogn>not notified automatically</strogn> if the underlying authentication state data
+    changes.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#procedural-logic">
+            Procedural logic
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@UiPk1VGMcHKSJdx2IPO1mED14ea5ZOoJ6hgpUDqgDdqoLge3Yg3uvFyLkD5GHK0Q/">
+            Episode 89. Reading the authentication state from C#
+        </a> from Udemy course: "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+</ul>
+<h4><code>[AllowAnonymous]</code> attribute</h4>
+<p>
+    You can use the <dfn>[AllowAnonymous]</dfn> attribute to allow access by non-authenticated
+    users. The <dfn>[AllowAnonymous]</dfn> attribute overrides an <dfn>[Authorize]</dfn>
+    attribute and makes the element accessible by everyone, regardless of their authenticated
+    or unauthenticated (anonymous) status.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <strong><code>[AllowAnonymous]</code> bypasses all authorization statements</strong>.
+        If you combine [AllowAnonymous] and any [Authorize] attribute, the [Authorize]
+        attributes are ignored. For example, an [AllowAnonymous] attribute at the controller
+        level will override any [Authorize] attributes on the same controller or in any
+        action within it.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<h4>Globally require all Users to be authenticated</h4>
+<p>
+    There are two ways to require all Users to be authenticated/authorized for the entire application:
+</p>
+<ol>
+    <li>Require authenticated users Client-side.</li>
+    <li>Require authenticated users Server-side.</li>
+</ol>
+<h5>Client-side authorization</h5>
+<p>
+    To require authorization for the entire app client-side, you can apply the
+    <strong><code>[Authorize]</code></strong> attribute to each Razor component of the
+    app using either one of the following approaches:
+</p>
+<ul>
+    <li>
+        <p>
+            Add the <strong><code>@@attribute [Authorize]</code></strong> directive to each
+            Razor component in the Application/Client/Pages folder.
+        </p>
+    </li>
+    <li>
+        <p>
+            In the app's _Imports support file, add a <strong>
+                <code>
+                    @@using Microsoft.AspNetCore.Authorization
+                </code>
+            </strong> directive and an <strong><code>@@attribute [Authorize]</code></strong>
+            directive.
+        </p>
+        <div class="alert alert-warning" role="alert">
+            <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+                <strong>Requires implementation for anonymous access</strong> to the
+                Application/Client/Pages Authentication.razor component to permit redirection
+                to the Identity Provider (Application/Server-Api IdentityServer). In other
+                words, add an <strong><code>@@attribute [AllowAnonymous]</code></strong> directive
+                to the Authentication component.
+            </p>
+        </div>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    This topic is just for illustrative purposes. Our application does not require all
+    Users to be authenticated.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#require-authorization-for-the-entire-app">
+            Require authorization for the entire app (client side)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/secure-data?view=aspnetcore-6.0#require-authenticated-users">
+            Require authenticated users (server side)
+        </a>
+    </li>
+</ul>

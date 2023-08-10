@@ -1,0 +1,65 @@
+﻿
+<!-- Type of the collection of items to search from.-->
+@typeparam TItem
+
+<div>
+    <!-- HTML input element (search text). -->
+    <div class="row pb-2">
+        <div class="col input-group">
+            <input type="text" class="form-control rounded"
+                   autocomplete="off"
+                   placeholder="@Placeholder"
+                   @bind-value="@SearchText"
+                   @bind-value:event="oninput"
+                   @onclick="@ShowSuggestions"
+                   @onfocusout="@HideSuggestions" />
+            <!-- Spinner element while loading suggestions. -->
+            @if (_isSearching)
+            {
+                <div class="d-flex align-items-center" style="z-index: 2000">
+
+                    <span class="spinner-border spinner-border-sm text-primary"
+                          style="margin-left: -1.5rem;"
+                          role="status"></span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Suggestions list-group element. -->
+    @if (ShouldShowSuggestions())
+    {
+        <ul class="list-group">
+            @foreach (TItem suggestion in Suggestions)
+            {
+                <li class="list-group-item list-group-item-action mb-0"
+                    role="button"
+                    @onmouseover="OnMouseOverSuggestion"
+                    @onmouseout="OnMouseOutSuggestion"
+                    @onclick="@(() => SelectItem(suggestion))">
+
+                    @ResultItemTemplate(suggestion)
+                </li>
+            }
+        </ul>
+    }
+    else if (ShouldShowNotFound())
+    {
+        if (ShowNotFoundTemplate is not null)
+        {
+            <ul class="list-group">
+                <li class="list-group-item">
+                    @ShowNotFoundTemplate
+                </li>
+            </ul>
+        }
+        else
+        {
+            <ul class="list-group">
+                <li class="list-group-item">
+                    No Results Found.
+                </li>
+            </ul>
+        }
+    }
+</div>

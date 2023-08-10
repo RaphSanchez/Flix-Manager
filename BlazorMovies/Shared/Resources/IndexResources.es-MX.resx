@@ -1,0 +1,394 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Index1.1" xml:space="preserve">
+    <value>Flix Manager es una aplicación web progresiva para administrar una biblioteca
+de películas que ilustra, desde cero, todos los temas principales que debe conocer cualquier aspirante a desarrollador full stack en .Net </value>
+  </data>
+  <data name="Index1.2" xml:space="preserve">
+    <value>. Establece un antecedente, explica, proporciona fuentes de datos
+y demuestra la implementación práctica de cada tema.</value>
+  </data>
+  <data name="Index2.1" xml:space="preserve">
+    <value>Flix Manager nació en mi viaje de transición como desarrollador de aplicaciones
+    de escritorio a desarrollador de aplicaciones web y espero sinceramente que sea de
+    alguna utilidad para otros colegas desarrolladores que deseen hacer la misma progresión.
+    La sección pedagógica es una colección de datos de múltiples fuentes seleccionados 
+    con un desarrollador en mente sin absolutamente ninguna experiencia para ayudarlo
+    a convertirse en desarrollador full stack de .Net Blazor.</value>
+  </data>
+  <data name="Index3.1" xml:space="preserve">
+    <value>Elegí una aplicación para administrar una biblioteca de películas porque hay muchos proyectos similares e información que se puede encontrar en</value>
+  </data>
+  <data name="Index3.2" xml:space="preserve">
+    <value>(el creador de</value>
+  </data>
+  <data name="Index3.3" xml:space="preserve">
+    <value>y</value>
+  </data>
+  <data name="Index3.4" xml:space="preserve">
+    <value>Esto hace que sea bastante fácil investigar diversos enfoques para lograr el objetivo final de producir una aplicación web progresiva que se apegue a los estándares actuales de la industria.</value>
+  </data>
+  <data name="Index4.1" xml:space="preserve">
+    <value>Aunque la tabla de contenido de los temas en el desarrollo de la aplicación Flix Manager se basa en el curso</value>
+  </data>
+  <data name="Index4.2" xml:space="preserve">
+    <value>por Felipe Gavilán, su implementación está significativamente modificada. Especialmente conforme se va progresando hacia los temas más avanzados. Sin embargo, recomiendo</value>
+  </data>
+  <data name="Index4.3" xml:space="preserve">
+    <value>enfáticamente</value>
+  </data>
+  <data name="Index4.4" xml:space="preserve">
+    <value>consultar su curso en</value>
+  </data>
+  <data name="Index5.0" xml:space="preserve">
+    <value>Arquitectura</value>
+  </data>
+  <data name="Index6.0" xml:space="preserve">
+    <value>La interfaz gráfica de usuario de Flix Manager se divide en tres secciones principales:</value>
+  </data>
+  <data name="Index7.1" xml:space="preserve">
+    <value>1. Barra Horizontal de Navegación en la Parte Superior:</value>
+  </data>
+  <data name="Index7.10" xml:space="preserve">
+    <value>Los enlaces the "Register" (Registro), "Log in" (Iniciar sesión), y "Log out" (Cerrar sesión) son la representación del módulo de </value>
+  </data>
+  <data name="Index7.11" xml:space="preserve">
+    <value>seguridad</value>
+  </data>
+  <data name="Index7.12" xml:space="preserve">
+    <value>que controla el acceso a los diferentes recursos de la aplicación en función de las credenciales de autorización utilizadas para</value>
+  </data>
+  <data name="Index7.13" xml:space="preserve">
+    <value>registro</value>
+  </data>
+  <data name="Index7.14" xml:space="preserve">
+    <value>iniciar sesión</value>
+  </data>
+  <data name="Index7.15" xml:space="preserve">
+    <value>o cerrar la sesión de un usuario de la aplicación.</value>
+  </data>
+  <data name="Index7.16" xml:space="preserve">
+    <value>El proceso de registro incluye</value>
+  </data>
+  <data name="Index7.17" xml:space="preserve">
+    <value>confirmación de la cuenta</value>
+  </data>
+  <data name="Index7.18" xml:space="preserve">
+    <value>y tiene opciones como:</value>
+  </data>
+  <data name="Index7.19" xml:space="preserve">
+    <value>Habilitación de la</value>
+  </data>
+  <data name="Index7.2" xml:space="preserve">
+    <value>Barra de navegación de nivel superior que se encuentra en la parte superior de la interfaz gráfica de usuario.</value>
+  </data>
+  <data name="Index7.20" xml:space="preserve">
+    <value>autenticación de dos factores</value>
+  </data>
+  <data name="Index7.21" xml:space="preserve">
+    <value>para aumentar la seguridad.</value>
+  </data>
+  <data name="Index7.22" xml:space="preserve">
+    <value>Autenticación de usuario de la aplicación con</value>
+  </data>
+  <data name="Index7.23" xml:space="preserve">
+    <value>proveedores de identificación externos</value>
+  </data>
+  <data name="Index7.24" xml:space="preserve">
+    <value>como Google y Facebook.</value>
+  </data>
+  <data name="Index7.25" xml:space="preserve">
+    <value>Es la puerta de entrada al</value>
+  </data>
+  <data name="Index7.26" xml:space="preserve">
+    <value>perfil personal</value>
+  </data>
+  <data name="Index7.27" xml:space="preserve">
+    <value>de un usuario de la aplicación para acceder, descargar, actualizar o eliminar la información de su cuenta en cualquier momento.</value>
+  </data>
+  <data name="Index7.3" xml:space="preserve">
+    <value>En orden de aparición:</value>
+  </data>
+  <data name="Index7.4" xml:space="preserve">
+    <value>El ícono en forma de campana permite al usuario suscribirse al</value>
+  </data>
+  <data name="Index7.5" xml:space="preserve">
+    <value>servicio de notificaciones web push</value>
+  </data>
+  <data name="Index7.6" xml:space="preserve">
+    <value>El menú desplegable es la implementación de</value>
+  </data>
+  <data name="Index7.7" xml:space="preserve">
+    <value>internacionalización</value>
+  </data>
+  <data name="Index7.8" xml:space="preserve">
+    <value>que obtiene las preferencias de idioma del navegador web para mostrar el contenido de la página en el mismo idioma cuando esté disponible.</value>
+  </data>
+  <data name="Index7.9" xml:space="preserve">
+    <value>El menú desplegable permite al usuario ignorar las preferencias del navegador web y seleccionar el idioma manualmente. Esto es sólo para fines de demostración por lo que no está disponible en todas las áreas.</value>
+  </data>
+  <data name="Index8.1" xml:space="preserve">
+    <value>2. Menú de Flix Manager</value>
+  </data>
+  <data name="Index8.10" xml:space="preserve">
+    <value>eliminar</value>
+  </data>
+  <data name="Index8.11" xml:space="preserve">
+    <value>películas, actores y géneros.</value>
+  </data>
+  <data name="Index8.12" xml:space="preserve">
+    <value>filtros</value>
+  </data>
+  <data name="Index8.13" xml:space="preserve">
+    <value>y</value>
+  </data>
+  <data name="Index8.14" xml:space="preserve">
+    <value>Probar actividades autorizadas basadas en las</value>
+  </data>
+  <data name="Index8.15" xml:space="preserve">
+    <value>aserciones de autorización </value>
+  </data>
+  <data name="Index8.16" xml:space="preserve">
+    <value>de previamente cargados</value>
+  </data>
+  <data name="Index8.17" xml:space="preserve">
+    <value>usuarios de la aplicación</value>
+  </data>
+  <data name="Index8.18" xml:space="preserve">
+    <value>Invitado</value>
+  </data>
+  <data name="Index8.19" xml:space="preserve">
+    <value>El usuario tiene acceso a la mayoría de las secciones disponibles pero no puede realizar operaciones de creación, actualizacíon o eliminación.</value>
+  </data>
+  <data name="Index8.2" xml:space="preserve">
+    <value>Elemento de nivel superior del menú de navegación que se encuentra justo en el tope superior de la barra vertical de navegación en la columna de lado izquierdo de la interfaz gráfica del usuario.</value>
+  </data>
+  <data name="Index8.20" xml:space="preserve">
+    <value>Información de acceso de usuario invitado</value>
+  </data>
+  <data name="Index8.21" xml:space="preserve">
+    <value>Usuario</value>
+  </data>
+  <data name="Index8.22" xml:space="preserve">
+    <value>Contraseña</value>
+  </data>
+  <data name="Index8.23" xml:space="preserve">
+    <value>Creador</value>
+  </data>
+  <data name="Index8.24" xml:space="preserve">
+    <value>El usuario tiene acceso a la mayoría de las secciones disponibles y puede realizar operaciones para añadir pero no para actualizar o eliminar información.</value>
+  </data>
+  <data name="Index8.25" xml:space="preserve">
+    <value>Información de acceso de usuario creador</value>
+  </data>
+  <data name="Index8.26" xml:space="preserve">
+    <value>Administrador</value>
+  </data>
+  <data name="Index8.27" xml:space="preserve">
+    <value>El usuario tiene privilegios de administrador para acceder a todas las secciones y  funciones disponibles incluyendo la edición de los permisos de otros usuarios.</value>
+  </data>
+  <data name="Index8.28" xml:space="preserve">
+    <value>Información de acceso de usuario</value>
+  </data>
+  <data name="Index8.3" xml:space="preserve">
+    <value>Proporciona acceso al módulo operativo. Aquí es dónde se puede hacer uso de la mayoría de las funciones de la aplicación.</value>
+  </data>
+  <data name="Index8.4" xml:space="preserve">
+    <value>Algunos ejemplos de las operaciones disponibles son:</value>
+  </data>
+  <data name="Index8.5" xml:space="preserve">
+    <value>Búsqueda utilizando</value>
+  </data>
+  <data name="Index8.6" xml:space="preserve">
+    <value>paginación</value>
+  </data>
+  <data name="Index8.7" xml:space="preserve">
+    <value>añadir</value>
+  </data>
+  <data name="Index8.8" xml:space="preserve">
+    <value>actualizar</value>
+  </data>
+  <data name="Index8.9" xml:space="preserve">
+    <value>y/o</value>
+  </data>
+  <data name="Index9.1" xml:space="preserve">
+    <value>3. Elementos del Menú de Navegación 01 a 13</value>
+  </data>
+  <data name="Index9.10" xml:space="preserve">
+    <value>instalada</value>
+  </data>
+  <data name="Index9.11" xml:space="preserve">
+    <value>en el menú de inicio o la pantalla de inicio, según el navegador web utilizado y el sistema operativo en el que se utiliza (ej. Windows, macOs, iOS o Android).</value>
+  </data>
+  <data name="Index9.12" xml:space="preserve">
+    <value>Por lo general, habrá un ícono junto a la barra de direcciones del navegador web para instalar la aplicación.</value>
+  </data>
+  <data name="Index9.13" xml:space="preserve">
+    <value>Establece progresivamente soporte fuera de línea atendiendo las áreas de la aplicación más visitadas por el usuario.</value>
+  </data>
+  <data name="Index9.14" xml:space="preserve">
+    <value>Se puede experimentar con prácticamente cualquier escenario sin problemas ya que se proporciona un botón denominado</value>
+  </data>
+  <data name="Index9.15" xml:space="preserve">
+    <value>en el componente enrutable</value>
+  </data>
+  <data name="Index9.16" xml:space="preserve">
+    <value>que borra por completo toda la información y reestablece la base de datos a su estado inicial.</value>
+  </data>
+  <data name="Index9.17" xml:space="preserve">
+    <value>La aplicación web progresiva</value>
+  </data>
+  <data name="Index9.18" xml:space="preserve">
+    <value>no fue creada con un enfoque en el diseño de la interfaz gráfica para mantener los temas tan simple como sea posible. La atención se centró principalmente en la arquitectura del código fuente y la forma en que los componentes interactúan entre sí (estructura).</value>
+  </data>
+  <data name="Index9.2" xml:space="preserve">
+    <value>Elementos de nivel superior de navegación que se encuentran justo debajo de Flix Manager en la barra de navegación vertical en la columna de lado izquierdo de la interfaz gráfica del usuario.</value>
+  </data>
+  <data name="Index9.3" xml:space="preserve">
+    <value>Los elementos del menú de navegación brindan acceso al módulo pedagógico de la aplicación. Aquí es donde se demuestra cómo implementar cada una de las funciones disponibles en las secciones operativas de la interfaz gráfica citadas anteriormente.</value>
+  </data>
+  <data name="Index9.4" xml:space="preserve">
+    <value>Cada elemento de nivel superior de navegación cuenta con una introducción al tema e incluye submenús que comprenden desde los conceptos fundamentales hasta las imiplementaciones más avanzadas.</value>
+  </data>
+  <data name="Index9.5" xml:space="preserve">
+    <value>Notas Finales</value>
+  </data>
+  <data name="Index9.6" xml:space="preserve">
+    <value>es una</value>
+  </data>
+  <data name="Index9.7" xml:space="preserve">
+    <value>aplicación web progresiva</value>
+  </data>
+  <data name="Index9.8" xml:space="preserve">
+    <value>y como tal, puede comportarse como una aplicación de escritorio (o nativa). Por ejemplo,</value>
+  </data>
+  <data name="Index9.9" xml:space="preserve">
+    <value>Puede ser</value>
+  </data>
+  <data name="MainHeader" xml:space="preserve">
+    <value>Flix Manager Aplicación Web Progresiva</value>
+  </data>
+  <data name="PageTitle" xml:space="preserve">
+    <value>Flix Manager Intro</value>
+  </data>
+  <data name="Preface" xml:space="preserve">
+    <value>Prefacio</value>
+  </data>
+</root>

@@ -1,0 +1,342 @@
+﻿@page "/03-pwa-accessor-requests"
+
+<PageTitle>PWAs - Accessor Requests</PageTitle>
+
+<h2>Progressive Web Apps - Cache Accessor Requests</h2>
+<p>
+    Recall from the lesson on <a href="03-api-caching">Api Caching</a> that controller
+    actions decorated with the <code>GET</code> HTTP verb are known as <dfn>accessors</dfn>
+    and controller actions decorated with the <code>POST</code>, <code>PUT</code>, or
+    <code>DELETE</code> HTTP verbs are known as <dfn>mutators</dfn> because they are
+    used to change or mutate data.
+</p>
+<p>
+    We explained earlier that apps that adhere to the PWA template (or standard)
+    have support for running offline by default. Users must first visit the app
+    while they are online to allow the browser to automatically download and cache
+    all of the <strong>static</strong> resources required to operate offline.
+</p>
+<p>
+    Recall that at the end of <a href="02-pwa-creation">last lesson</a> where we
+    transform our Flix Manager app to adhere to the PWA standard, we demonstrated
+    that the initial <dfn>navigation request</dfn> is handled as expected because
+    the browser makes an HTTP GET request to the web server, the <dfn>service worker</dfn>
+    intercepts the request, and fetches the cached content (HTML).
+</p>
+<p>
+    However, we have not configured the <dfn>service worker</dfn> to store (or cache)
+    the dynamic content of the response that matches the URL of a request. As you know,
+    a <dfn>navigation request</dfn> is the first of potentially many requests made
+    in the "waterfall" of network traffic. The HTML that the browser loads via a
+    <dfn>navigation request</dfn> initializes the flow of all other requests:
+</p>
+<ul>
+    <li>
+        <strong>sub-resource requests</strong> for images, stylesheets, or other files.
+    </li>
+    <li>
+        <strong>fetch/XHR requests</strong> for API resources/data.
+    </li>
+</ul>
+<p>
+    Therefore, if the application is offline (or the web server is unavailable), the
+    <dfn>service worker</dfn> is able to load the HTML content but fails to load the
+    Api resources (dynamic resources).
+</p>
+<p>
+    This throws an <code>HttpRequestException</code> because it "Failed to fetch".
+    The HttpRequestException in turn will have an inner exception of type
+    <code>JSException</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/27-console-exception.png"
+         alt="JSException displayed in the web browser's console." />
+</div>
+<p>
+    Instead of simply implementing an adequate exception handler mechanism to inform
+    the application user that a connection with the web server must be available to
+    fetch the subsequent requests, we will demonstrate how to implement full offline
+    support. We will establish a dynamic-cache capable of storing dynamic resources
+    to serve any related Http requests.
+</p>
+<p>
+    Nevertheless, keep in mind that setting up full offline support adds significant
+    complexity that is not always relevant for the use cases required. Having said this,
+    let's start working.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Refactor the <dfn>service worker</dfn> to create a 'dynamic-cache' repository to
+    store the dynamic assets that must be fetched with Http GET requests, process the
+    Http GET request, and if successful, clone and store the response in the
+    dynamic-cache. If unsuccessful (web server unavailable), it should attempt to return
+    the response content from the data currently stored in the dynamic-cache.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Keep in mind that in "Step Ten" of the "Testing Offline Support" section in
+    <a href="02-pwa-creation">last lesson</a>, we modified the built-in
+    <dfn>Application/Client/wwwroot service-worker.js</dfn> file to enable offline
+    support during development. We performed a copy-paste of the content of the
+    service-worker.published.js to the service-worker.js file.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Define a new 'dynamic-cache' repository to store the dynamic assets that must be
+    fetched with Http GET requests such as images, stylesheets, JSON objects, etc:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/41-pwa/35-dynamic-cache.png"
+         style="max-width: 120%;"
+         alt="dynamic-cache repository." />
+</div>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This is not the final of the <code>offlineAssetsInclude</code> local reference 
+        in the service worker files (<em>service-worker.js</em> and 
+        <em>service-worker.published.js</em>). After some testing, it was determined
+        that any image related files should not be loaded to the 'offline-cache' during
+        initial install of service worker because the application has too many files and
+        it was taking too long for the application to start. This is unacceptable. Refer
+        to the "Loading Image Files to 'dynamic-cache'" section at the end of the
+        <a href="04-pwa-mutator-requests">Mutator Requests</a> lecture.
+    </p>
+</div>
+<p>
+    Currently, the <dfn>service worker's</dfn> <code>fetch</code> event handler
+    (<code>onFetch</code>) intercepts Http GET requests and attempts to serve them
+    from the offline-cache store (cache-first fetch strategy). If unsuccessful (if
+    cache response is null), it processes the Http request (<code>fetch(event.request)</code>)
+    and sends it to the web server:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/36-on-fetch-static-only.png"
+         alt="onFetch event handler." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the <dfn>service worker's</dfn> <code>fetch</code> event handler (<code>onFetch</code>)
+    to handle the Http requests when the 'offline-cache' is unable to serve the
+    response from its store and processes the Http request (<code>fetch(event.request)</code>);
+    i.e., when it sends the request to the web server. It should intercept the Http <strong>
+        response
+    </strong> and:
+</p>
+<ol>
+    <li>
+        <p>
+            If the Http request is <strong>not</strong> a GET request, it should <strong>
+                simply allow the request to go through
+            </strong> an send it to the web server.
+        </p>
+    </li>
+    <li>
+        <p>
+            Verify that the response content is <stron>not type HTML</stron>.
+        </p>
+        <p>
+            Recall that when SPAs initially load a site (initial <dfn>navigation request</dfn>),
+            the process is very similar to traditional web applications. The browser
+            makes an HTTP GET request to the web server, the server responds with
+            some content such as HTML, CSS, JS, and any other static asset, and the
+            browser parses all the content to load the web page.
+        </p>
+        <p>
+            These static assets have most likely already been captured and stored
+            by the 'offline-cache'. Therefore, we are not interested in HTML content.
+        </p>
+    </li>
+    <li>
+        <p>
+            If it is an Http GET request, the response is successful, and the response
+            content is not type HTML, it should intercept the response, clone it to store
+            its content in the 'dynamic-cache' store, and return the Http response to the
+            Client.
+        </p>
+    </li>
+    <li>
+        <p>
+            If the Http response is unsuccessful, it should attempt to generate the response
+            from the latest content stored in the 'dynamic-cache'.
+        </p>
+        <p>
+            Consider that if code execution has gone this far, it means that it previously
+            failed to retrieve the response from the 'offline-cache'. Therefore, if the
+            response is unsuccessful, try to retrieve the required content from the 'dynamic-cache'
+            store.
+        </p>
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/37-on-fetch-static-dynamic-one.png"
+         alt="onFetch event handler stores dynamic-cache content part one." />
+    <img src="Images/41-pwa/38-on-fetch-static-dynamic-two.png"
+         alt="onFetch event handler stores dynamic-cache content part two." />
+    <img src="Images/41-pwa/39-on-fetch-static-dynamic-three.png"
+         alt="onFetch event handler stores dynamic-cache content part three." />
+</div>
+<p>
+    At this point, the <dfn>service worker</dfn> should clone the successful Http responses
+    that do <strong>not</strong> have any HTML content and store them in the 'dynamic-cache'.
+    If Http response is unsuccessful, it should attempt to serve (or fetch) the response
+    from the data currently stored in the 'dynamic-cache'.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Test the implementation of offline support for Http requests that require dynamic-content;
+    i.e., that request Application/Server-Api resources.
+</p>
+<p>
+    As you know, users must first access the application while they are online to allow the
+    browser to automatically download and cache all of the static resources required to
+    operate offline.
+</p>
+<p>
+    The same principle applies with dynamic resources. The users must first access or request
+    the Application/Server-Api resource while they are online to allow the <dfn>service-worker</dfn>
+    to intercept, clone, store, and serve the HTTP GET request.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Rebuild the Application/Client project to ensure it registers the latest changes made to
+    the <dfn>service worker</dfn>. Run the application to a server that supports HTTPS and
+    access the app in a browser at its secure HTTPS address. PWA <dfn>service workers</dfn>
+    do not execute in regular HTTP protocol.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn> is
+    registered for the host on the Application tab. Allow the latest version of the
+    <dfn>service worker</dfn> to install and click "skip waiting" to activate it:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/40-service-worker-active.png"
+         alt="Service workers window." />
+</div>
+<p>
+    Make sure you are logged in with a <a href="04-secure-user-manager">
+        user that has full admin credentials
+    </a> to perform create, update, and delete operations (e.g., admin@email.com password:
+    123$).
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Go to the "Cache Storage" section in the "Application" tab of the web browser's developer
+    tools to confirm that the 'dynamic-cache' store has been created and that it adds the
+    required dynamic content when navigating to the Flix Manager and Index People routable
+    components. The <dfn>service worker</dfn> should intercept, clone, store, and serve the
+    HTTP GET requests:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/41-dynamic-cache.png"
+         alt="dynamic-cache store." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4:</span>
+    Use the Network tab to go to "Offline" mode and navigate to the Flix Manager and IndexPeople
+    routable components. This time the dynamic content to serve the Application/Server-Api resources
+    required are loaded from the 'dynamic-cache'. This means you should be able to see the
+    complete UI content for the Flix Manager and Index People routable components.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/42-offline-dynamic-content.png"
+         alt="Network tab with offline dynamic content served from service worker." />
+</div>
+<p>
+    What do you think would happen if you try to navigate to a submenu that requests
+    Application/Server-Api resources but that you have not previously visited: For example,
+    Index Users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/43-failed-to-fetch.png"
+         alt="Failed to fetch error with JSException." />
+</div>
+<p>
+    The Http response produces an HttpRequestException because the user has not previously
+    visited this routable component while a valid connection to the web server was available;
+    i.e., it has not allowed the 'dynamic-content' cache to store the required resources.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The HTML content is served by the 'offline-cache' because it has been automatically
+    downloaded by the <dfn>service-worker</dfn> as part of the static assets. It is the
+    dynamic content that has not been previously stored because the user has not previously
+    navigated to the routable component to initialize the process to intercept, clone, and store
+    the dynamic assets required for the related routable component.
+</p>
+<p>
+    As you can see, the exception is handled by our <a href="03-exception-handling">
+        exception handling mechanism
+    </a> and only HTML content is displayed by the Index User UI:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/44-users-html.png"
+         alt="Users UI only displays HTML (static) content." />
+</div>
+<p>
+    If you go back online and visit the Index Users routable component (or any other routable
+    component that sends an Http GET request), you will allow the 'dynamic-cache' to store
+    the required content to make it available the next time the user is offline:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/45-users-dynamic-content.png"
+         alt="Users UI with static and dynamic content." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Copy-paste the code in the Application/Client/wwwroot service-worker.js file used in
+    development to the service-worker.published.js filed used in production.
+</p>
+<p>
+    So far, we have successfully configured the <dfn>service workers</dfn> to automatically
+    download and store in the 'offline-cache' the static assets (including HTML) required
+    to run the application. We also defined the code logic for the <dfn>service worker</dfn>
+    to intercept, clone, and store the dynamic assets required to serve (or fetch)
+    HTTP GET requests that expect Application/Server-Api resources (dynamic content).
+</p>
+<p>
+    It is time to focus on HTTP POST, PUT, and DELETE operations. We need to design a
+    system to intercept, clone, and store dynamic assets required to serve (or fetch)
+    HTTP POST, PUT, and DELETE requests while the application is offline.
+</p>
+<p>
+    These operations should be synchronized as soon as there is a reliable connection
+    to the network server.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        "Episode 148. Guardando los Resultados de Peticiones GET en Cache" of Udemy
+        course
+        <a href="https://www.udemy.com/share/101ZK23@CduxWjnPfPmzrSUddOhNghURQGeVyDLd5pndrNlwDqkc46RkCWYtoT4KghHjqwI6/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        YouTube playlist
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/service-workers">
+            Use Service Workers to manage network requests
+        </a>
+
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Cache/put">
+            Cache: put() method
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/learn/pwa/service-workers/">
+            Service Workers
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/learn/pwa/caching/">
+            Caching
+        </a>
+    </li>
+</ul>

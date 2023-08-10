@@ -1,0 +1,842 @@
+﻿@page "/05-push-service"
+
+<PageTitle>Push Notifications - PushService</PageTitle>
+
+<h2>Web Push Notifications - IPushNotificationsService</h2>
+<p>
+    This lecture covers the final step to complete our push notifications system. So
+    far, we have defined and tested steps one through four of the procedure outline
+    to implement a push notification system in our application:
+</p>
+<ol>
+    <li>
+        <p>
+            <a href="https://vapidkeys.com/">Generate</a> the secure VAPID keys
+            required to send and receive web push notifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Store the VAPID keys in a secure location; e.g., in the application
+                    secrets with the help of the application secret manager.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Prepare the Application/Server-Api for PushNotifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Modify the database schema to incorporate a PushSubscriptionDetails
+                    data entity that represents the details of a unique web push
+                    subscription for a specific end user (e.g., PushEndpointUrl, elliptic
+                    curve public key, and the authentication secret).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Add the required functionality to manage PushSubscriptionDetails database
+                    records.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Use <a href="02-components-part-three">JSInterop</a> to subscribe/unsubscribe
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a JavaScript file to define functions responsible for getting
+                    the status of the permission for notifications granted by the user,
+                    subscribing, and unsubscribing a user to/from the push service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Create the methods responsible for invoking these functions using
+                    CSharp.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a PushNotifications component responsible for subscribing/unsubscribing
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    The component employs the CSharp methods created in last step to invoke
+                    the JS functions to subscribe/unsubscribe a user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    It should handle errors when a connection to the web server is not
+                    available. We do not intend to provide offline support to
+                    subscribe/unsubscribe from the push notifications service.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Include a method to enable sending a push message to all users subscribed
+                    to the web push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The method must be capable of including a Movie object as its payload
+                    if and when the Movie is marked with an "InTheaters" flag.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Call the method from the Add and the Update actions of the Movies
+                    controller to send a push notification when a Movie object is either
+                    added or updated. The Movie must be included in its payload.
+                </p>
+            </li>
+            <li>
+                Use the <dfn>service worker</dfn> to handle push notifications sent by the
+                Application/Server-Api to the web browser's push notifications service which
+                in turn sends the push notification to the application user(s).
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Test and <a href="07-dynamic-website">deploy</a> the application to Azure app service.
+        </p>
+        <p>
+            Use Azure key vault to store the VAPID details of our application. Recall that we
+            explained how to use Azure key vault to centralize app secrets in the
+            <a href="07-dynamic-website">Dynamic Website</a> lesson of the Deployment module.
+        </p>
+    </li>
+</ol>
+<p>
+    In this lecture, we will take care of step five. We will design an IPushNotificationsService
+    with a method that permits sending a push message to all application users that have
+    previously subscribed to the push service. The message will include some members (properties)
+    of a type Movie.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        From this point forward, when we say <strong><code>INotificationService</code></strong>,
+        we refer to the application service responsible for constructing and sending the
+        push message. When we say push service, we refer to the push service used by
+        the web browser (browser servers).
+    </p>
+</div>
+<h4>Push Notifications Service</h4>
+<p>
+    We explained in the introductory lesson on <a href="01-push-notifications-intro">
+        Push Notifications
+    </a> that the general model for push services includes three actors:
+</p>
+<ol>
+    <li>The Application/Server-Api.</li>
+    <li>A push service.</li>
+    <li>A user agent.</li>
+</ol>
+<p>
+    At a high level, these three basic actors interact as follows:
+</p>
+<p>
+    At the very beginning of the process, a user subscribes to the web push service
+    of the web browser and the push service returns a subscription object which
+    is wrapped into a .Net <code>PushSubscriptionDetails</code> instance and sent
+    to the Application/Server-Api for storage.
+</p>
+<ul>
+    <li>
+        <p><strong>Backend:</strong></p>
+        <ul>
+            <li>
+                <p>
+                    The Application/Server-Api is responsible for sending the push
+                    messages to the push service used by the web browser.
+                </p>
+                <p>
+                    Specifically, the IPushNotificationsService will construct the
+                    push message and send <strong>
+                        delivery requests for each application user subscribed
+                    </strong> to the push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The push service then forwards the push messages to the specific
+                    application user according to the push subscription details sent
+                    within the push message.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p><strong>Frontend (Application/Client):</strong></p>
+        <ul>
+            <li>
+                <p>
+                    The operating system notifies the user agent (web browser) when a
+                    push message is received.
+                </p>
+                <p>
+                    The client's browser decrypts the push message data and dispatches
+                    a <code>push</code> event to the <em>service worker</em>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The service worker has a <code>push</code> event handler (is listening
+                    for push events) that uses the Notifications API to display the
+                    information as a notification.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/46-push-intro/01-push-overview.svg"
+         alt="Push notifications flow." />
+</div>
+<p>
+    Keep in mind that the Application/Server-Api does not actually send the push
+    message directly to a client. A <em>push service</em> does that. A push service
+    is a web service controlled by the application user's web browser vendor.
+</p>
+<p>
+    Sending a push notification to a client requires building a web service request to
+    a push service. The web service request sent to the push service is known as
+    a <dfn>web push protocol request</dfn>. The web push protocol request should
+    include:
+</p>
+<ul>
+    <li>
+        <p>
+            What data to include in the message; i.e., the <em>payload</em>.
+        </p>
+    </li>
+    <li>
+        <p>
+            What client to send the message to; i.e., the <em>push endpoint URL</em>.
+        </p>
+    </li>
+    <li>
+        <p>
+            Instructions on how the push service should deliver the message. E.g.,
+            you can specify that the push service should stop attempting to send
+            the message after 10 minutes.
+        </p>
+    </li>
+</ul>
+<p>
+    Typically, web push protocol requests are made through a server that the
+    application controls (e.g., Application/Server-Api). When requesting delivery of
+    a push message, the web application must include a
+    <a href="07-policy-based-authorization">JSON web token</a> (JWT), signed using
+    its signing key which is part of the VAPID details generated in the <a href="02-push-api">
+        Preparing the API
+    </a> lecture:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 550px; margin: auto;"
+         src="Images/47-push-front-end/50-web-push-protocol.svg"
+         alt="Web push protocol request." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://blog.mozilla.org/services/2016/08/23/sending-vapid-identified-webpush-notifications-via-mozillas-push-service/#receive">
+            Web push protocol request.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    This JWT is included in an Authorization header field, using the VAPID authentication
+    scheme. The push service receives the request, authenticates it, and routes the
+    push message to the appropriate client. If the client's browser is offline, the push
+    service queues the push message until the browser comes online.
+</p>
+<p>
+    In order for the push service to validate the JWT, it needs to learn the
+    public key of the application server. Fortunately, there are libraries that can
+    handle constructing the raw web service itself such as
+    <a href="https://github.com/web-push-libs/web-push-csharp/">WebPush</a> for .Net
+</p>
+<p>
+    The WebPush library handles constructing push messages via the <a href="https://datatracker.ietf.org/doc/html/rfc8030">
+        Web Push Protocol
+    </a> and encrypting the data sent within the push messages according to the <a href="https://datatracker.ietf.org/doc/html/rfc8291">
+        Message Encryption for Web Push
+    </a> specifications.
+</p>
+<h4>Application's Push Notifications Service</h4>
+<p>
+    The push notifications service will be consumed by the Application/Sever-Api to
+    communicate with the push service (web servers of the respective user agents/web browsers)
+    to send push messages to each and every application user that has previously granted
+    access to receive push notifications from our application.
+</p>
+<p>
+    Inspect the push notification system diagram to better understand the role of the
+    application's push notifications service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/51-push-notif-syst-notif-service-embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create the application's push notifications service with the following specifications:
+</p>
+<ul>
+    <li>
+        <p>
+            Include a method to enable sending a push message to all users subscribed
+            to the web push notifications service.
+        </p>
+    </li>
+    <li>
+        <p>
+            The method must be capable of including a Movie object as its payload
+            if and when the Movie is marked with an "InTheaters" flag.
+        </p>
+    </li>
+    <li>
+        <p>
+            Call the method from the Add and the Update actions of the Movies
+            controller to send a push message when a Movie object is either
+            added or updated. Some Movie properties must be included in its
+            payload; e.g., title, poster image, and URL to the <a href="04-load-complex-data">
+                MovieBulletin
+            </a> routable component of the Movie object.
+        </p>
+    </li>
+    <li>
+        Use the <dfn>service worker</dfn> to handle push notifications sent by the
+        Application/Server-Api to the web browser's push notifications service which
+        in turn sends the push notification to the application user(s).
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Update all the installed NuGet packages on each project in the Visual Studio solution
+    and install the <a href="https://github.com/web-push-libs/web-push-csharp/">
+        WebPush
+    </a> <strong>NuGet package</strong> to the Application/Server-Api project.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Server-Api/Helpers directory to create an IPushNotificationsService
+    interface with a PushNotificationService class that implements it. As usual, the
+    interface provides an abstract layer that would facilitate to inject a different
+    implementation of the service in the dependency injection container. You can declare
+    both in the same file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/24-i-push-notifications-shell.png"
+         alt="IPushNotificationsService empty interface and class." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Register the IPushNotificationsService in the dependency injection container
+    with a <a href="02-components-part-two">scoped</a> lifetime because it uses an
+    HttpClient to send the push message delivery request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/25-di-container.png"
+         alt="Dependency injection container." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Define the code logic for the implementation of the <em>SendPushMessageMovieOnTheatersAsync</em>
+    method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/26-push-notif-service-one.png"
+         alt="Implementation of the SendPushMessageMovieOnTheatersAsync method part one." />
+    <img src="Images/47-push-front-end/27-push-notif-service-two.png"
+         alt="Implementation of the SendPushMessageMovieOnTheatersAsync method part two." />
+    <img src="Images/47-push-front-end/28-push-notif-service-three.png"
+         alt="Implementation of the SendPushMessageMovieOnTheatersAsync method part three." />
+</div>
+<p>
+    Our IPushNotificationsService is completed and ready to serve its purpose; i.e., ready
+    to send a push message request delivery when invoked.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Go to the Application/Server-Api/Controllers MoviesController and call the
+    <em>SendPushMessageMovieOnTheatersAsync</em> method from the <code>Add</code>
+    and <code>UpdateMovieTask</code> <em>actions</em> to send a web push message to
+    all subscribed users when a new Movie object is added to the database and/or
+    when it is updated. Recall that the Movie object must be marked as "InTheaters":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/29-movies-controller-one.png"
+         alt="Movies controller part one." />
+    <img src="Images/47-push-front-end/30-movies-controller-two.png"
+         alt="Movies controller part two." />
+    <img src="Images/47-push-front-end/31-movies-controller-three.png"
+         alt="Movies controller part three." />
+    <img src="Images/47-push-front-end/32-movies-controller-four.png"
+         alt="Movies controller part four." />
+</div>
+<p>
+    Once the <em>web push protocol request</em> to the push service is sent, the push
+    service keeps queued until one of the following events happens:
+</p>
+<ul>
+    <li>
+        The client comes online and the push service delivers the push message.
+    </li>
+    <li>
+        The message expires.
+    </li>
+</ul>
+<p>
+    When a client browser receives a pushed message, it decrypts the push message data
+    and dispatches a <strong><code>push</code></strong> event to the <em>service worker</em>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Follow the blazor-workshop documentation to <a href="https://github.com/dotnet-presentations/blazor-workshop/blob/main/docs/09-progressive-web-app.md#displaying-notifications">
+        display notifications
+    </a> and <a href="https://github.com/dotnet-presentations/blazor-workshop/blob/main/docs/09-progressive-web-app.md#handling-clicks-on-notifications">
+        handle clicks on notifications
+    </a>. You can also refer to Episode "154. Push API - Backend" of Udemy course
+    <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+        Programando en Blazor - ASP.Net Core 7
+    </a> by Felipe Gavilán.
+</p>
+<p>
+    The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Push_API">
+        Push API
+    </a> and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API">
+        Notifications API
+    </a> are two separate JS APIs that are used together. Push API is used to deliver new
+    content from the Application/Server-Api to the Application/Client without any
+    client-side intervention and its operation is handled by the app's <dfn>
+        service worker.
+    </dfn> Notifications API allows web pages to control the display of system notifications
+    to the end user.
+</p>
+<p>
+    Examine the push notification system diagram where the <a href="02-pwa-creation">
+        service worker
+    </a> is used to handle push notifications sent by the Application/Server-Api to the
+    web browser's push notifications service which in turn sends the push notification to
+    the appropriate application user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/52-push-notif-syst-service-worker-embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<p>
+    Remember that the service worker is responsible for intercepting events and perform
+    activities in a separate thread. By default, unlike the <em>service-worker.published.js</em>,
+    the <em>service-worker.js</em> does not provide offline support because it would
+    interfere with the usual development cycle of making changes and testing them.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Nevertheless, in the <a href="02-pwa-creation">Creating a PWA</a> lesson, we modified
+    the built in <em>service-worker.js</em> files to be identical to enable off-line support
+    during development and be able to test different features related to PWAs and push
+    notifications. Don't forget to <strong>refactor both <em>service worker</em> files:</strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/33-service-worker-one.png"
+         alt="Service worker part one." />
+    <img src="Images/47-push-front-end/34-service-worker-two.png"
+         alt="Service worker part one." />
+    <img src="Images/47-push-front-end/35-service-worker-three.png"
+         alt="Service worker part three." />
+</div>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This is not the final of the <code>offlineAssetsInclude</code> local reference
+        in the service worker files (<em>service-worker.js</em> and
+        <em>service-worker.published.js</em>). After some testing, it was determined
+        that any image related files should not be loaded to the 'offline-cache' during
+        initial install of service worker because the application has too many files and
+        it was taking too long for the application to start. This is unacceptable. Refer
+        to the "Loading Image Files to 'dynamic-cache'" section at the end of the
+        <a href="04-pwa-mutator-requests">Mutator Requests</a> lecture.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Test the IPushNotificationsService to ensure that all records in the PushSubscriptionsDetails
+    database table receive a push notification when a new Movie with an "InTheaters" flag is
+    registered and/or updated. Each table record represents an application user that has
+    been subscribed to the push service.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1:</span>
+    "Clean" and "Rebuild" the Application/Client and the Application/Server-Api projects.
+    Run the app to a server that supports Https and access the app in a browser at its
+    secure Http address. PWA service workers do not execute in regular Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.2:</span>
+    Open the web browser's developer tools and verify that a service worker is registered
+    for the host on the <em>Application</em> tab. Install any <em>worker in waiting</em>
+    to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.3:</span>
+    Use the <a href="04-push-component">PushNotifications</a> component to subscribe the
+    current user agent to the push notifications service.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.4:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), navigate to the FlixManager routable component and create a
+    new Movie object with its "InTheaters" property selected.
+</p>
+<p>
+    You should see the push notification informing of the new movie. The notification
+    should remain active until the user clicks or dismisses it because its
+    <em>requireInteraction</em> property value is set to <code>true</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/36-push-notification.png"
+         alt="Push Notification." />
+</div>
+<div class="alert alert-warning mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you plan to use a language that includes accents and other punctuation symbols
+        in the notification's title, you can save the <em>service worker</em> files
+        with Unicode (UTF-8 with signature) encoding. Refer to the end of Episode
+        "155. Push API - Frontend" of Udemy course <a href="https://www.udemy.com/share/101ZK23@HpSSdNNpBKYVVhnM5MqsMKV2J031PQH7lmUWG_C1Q_bBX5wJV1CtuAGe8eIZM5KO/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </p>
+</div>
+<p>
+    Wait a minute or so to confirm that it does not close automatically and then click on
+    it. A new window should open to load the MovieBulletin routable component of the
+    application with all the details of the Movie object.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode "154. Push API - Backend" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán
+    </li>
+    <li>
+        Episode "155. Push API - Frontend" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán
+    </li>
+    <li>
+        Episodes "29. Display notifications" to "31. Use VAPID to secure push messages"
+        of YouTube course
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers.
+    </li>
+    <li>
+        <a href="https://web.dev/push-notifications-overview/?continue=https%3A%2F%2Fdevelopers.google.com%2Flearn%2Fpathways%2Fpwa-push-notifications%23article-https%3A%2F%2Fweb.dev%2Fpush-notifications-overview">
+            Push Notifications Overview
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/web-push-libs/web-push-csharp/">
+            WebPush library
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/dotnet-presentations/blazor-workshop/blob/main/docs/09-progressive-web-app.md#sending-push-notifications">
+            Sending push notifications
+        </a>
+    </li>
+    <li>
+        <a href="https://webpushdemo.azurewebsites.net/">
+            Web Push Notifications
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/dotnet-presentations/blazor-workshop/blob/main/docs/09-progressive-web-app.md#displaying-notifications">
+            Displaying notifications
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/dotnet-presentations/blazor-workshop/blob/main/docs/09-progressive-web-app.md#handling-clicks-on-notifications">
+            Handling clicks on notifications
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification">
+            ServiceWorkerRegistration: showNotification() method
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notification/Notification">
+            Notification: Notification() constructor
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event">
+            ServiceWorkerGlobalScope: notificationclick event
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Clients/openWindow">
+            Clients: openWindow() method
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    <a href="07-dynamic-website">Publish and deploy</a> the application to Azure app
+    service and confirm that everything is working as expected. Do <strong>not</strong>
+    forget to configure Azure key vault with the <a href="02-push-api">VAPID</a> details.
+    You can refer to the "Configure Azure App Settings" section in the <a href="07-dynamic-website">
+        Dynamic Website
+    </a> lecture for more info.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    "Clean" and "Rebuild" the Application/Client and Application/Server-Api projects.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Azure app service, 'Restart' your application, and give it a minute or so
+    to reload.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Clear the cache of your web browser. You can do so with 'Ctrl + Shift + Delete' keys.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the Visual Studio Explorer, right click the Application/Server-Api project,
+    select "Publish", and publish the application.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Open the web browser's developer tools and verify that a <em>service worker</em>
+    is registered for the host on the <em>Application</em> tab. Install any <em>
+        worker in waiting
+    </em> to activate its latest version and reload the page. Consider that service
+    workers do not execute in regular Http protocol, only on HTTPS.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    The Flix Manager application may have been successfully published to Azure app
+    service but its push notification system will not work as expected. The
+    <a href="02-push-api">VAPID</a> details required by the Application/Server-Api
+    to voluntarily identify to a push service have not been made available in
+    the cloud yet. Recall that we used the secret manager tool to store them in the
+    application secrets. This approach is exclusively for the development stage.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Configure Azure key vault with the VAPID details. You can refer to the "Configure Azure
+    App Settings" section in the <a href="07-dynamic-website">
+        Dynamic Website
+    </a> lecture for more info.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1:</span>
+    Refer to the <a href="02-push-api">Preparing the API</a> lesson in the Push Notifications
+    module to have access to the "key-value" pairs (application secrets).
+</p>
+<p>
+    Alternately, you can use the Visual Studio Solution Explorer. Right click the project
+    associated with the application secrets (Application/Server-Api) and select "Manage
+    User Secrets". This will open a .json file with the application secrets currently
+    available.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2:</span>
+    Go to your app in App Services of the Azure portal and select the "Configuration"
+    blade ton configure the "Application Settings". Select "+ New Application Setting"
+    to add each key-value pair. <strong>Do not forget to select the "Save" icon</strong>
+    when you have added all the app secrets:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/37-app-settings.png"
+         alt="Configuration blade with new app secrets." />
+</div>
+<p>
+    When you add, remove, or edit app settings, Azure app service triggers and app
+    restart. At this point, the push notification system configuration in the cloud
+    is complete and should function as intended.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.3:</span>
+    Go to the web browser and type in the Flix Manager URL (or reload the page) to access
+    the deployed version of the app. Open the web browser's developer tools and verify
+    that a <em>service worker</em> is registered for the host on the <em>Application</em>
+    tab. Install any <em>worker in waiting</em> to activate its latest version and
+    reload the page.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.4:</span>
+    Use the PushNotifications component to subscribe the current user to the push service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/38-permission-request.png"
+         alt="Web browser's dialog box to request permission to receive push notifications." />
+</div>
+<p>
+    <span class="badge bg-info"></span>
+    Make sure that push messaging is enabled in your web browser. Otherwise, it won't
+    allow any subscriptions to the push service.
+</p>
+<p>
+    For example, Brave browser uses Google services for push messaging:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/39-brave-push-messaging.png"
+         alt="Brave browser push messaging settings." />
+</div>
+<p>
+    Microsoft Edge browser manages push messages from the "Notifications" blade of the
+    "Cookies and Site Permissions" submenu of its settings:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/40-edge-notifications.png"
+         alt="Edge browser push notifications settings." />
+</div>
+<p>
+    Google Chrome browser manages push messages in the settings route: Settings,
+    Privacy and security, Site Settings, Notifications:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/41-google-notifications.png"
+         alt="Google Chrome push messages settings." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.5:</span>
+    Source the application settings (VAPID details) from the Azure Key Vault.
+</p>
+<p>
+    You obviously need a key vault for this task. We will use the key vault
+    created in the <a href="06-https-cdn">Https CDN</a> lesson of the Deployment module. We do not
+    need to grant our app access to the key vault because we covered that step
+    in the Use Key Vault to Centralize App Secrets section of the
+    <a href="07-dynamic-website">Dynamic Website</a> lecture.
+</p>
+<p>
+    In the Azure portal, navigate to the key vault, select the "Secrets" blade,
+    click on Generate/Import and create one secret for each VAPID details key-value
+    pair. These are exactly the same values used earlier to configure app settings
+    in the App Service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/42-kv-secrets.png"
+         alt="Key vault secrets." />
+</div>
+<p>
+    When secrets are created in key vault, they are assigned a unique "secret identifier"
+    which in itself is not a secret. This identifier is used as reference from other
+    resources to access the specific secret you are interested in. Still in the "Secrets"
+    blade of the key vault, click on each of the "VapidEmail" secrets, select "CURRENT
+    VERSION" to get access to its properties, and copy their "Secret Identifier" to a
+    notepad or word processor.
+</p>
+<p>
+    Create the key vault references adhering to the <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#reference-syntax">
+        specified key vault reference syntax
+    </a>. For example:
+</p>
+<p>
+    <code>
+        @@Microsoft.KeyVault(SecretUri=https://kv-rslanding.vault.azure.net/secrets/VapidPublicKey/)
+    </code>
+</p>
+<p>
+    <span class="badge bg-dark">Notice:</span>
+    The Uri to the Azure key vault secret value does not have the trailing secret version to
+    always invoke the latest version of the Key Vault secret. However, make sure to
+    <strong>include the trailing forward slash</strong> at the end of the Uri.
+</p>
+<p>
+    or
+</p>
+<p>
+    <code>
+        @@Microsoft.KeyVault(VaultName=kv-rsLanding;SecretName=VapidEmail)
+    </code>
+</p>
+<p>
+    Use the key vault reference string to populate the "Value" field of the Application Setting
+    in the "Configuration" blade of the app service. Do the same for the three VAPID details
+    keys:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/43-key-vault-url.png"
+         alt="Application setting pointer to key vault URL." />
+</div>
+<p>
+    Most application settings using key vault references should be marked as <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#source-application-settings-from-key-vault">
+        slot settings
+    </a>, as you should have separate vaults for each environment (e.g., development, staging,
+    production).
+</p>
+<p>
+    Click "Save" and "Refresh" after you finish passing the key vault references as values
+    to the application secrets that represent the VAPID details. You should see something
+    like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/44-key-vault-secrets.png"
+         alt="Key vault secret references configured." />
+</div>
+<p>
+    The "Save" action triggered an app restart. Repeat Steps 6.3 and 6.4 to confirm
+    that the application and its push notification system is working as it is supposed
+    to.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The PushSubscriptionsDetails database table is not included in the
+        <code>ResetDatabaseAsync</code> method of the
+        Application/Client/ApiServices/IRepositories IMovies responsible for resetting
+        to an initial state of deployment the entire application database.
+    </p>
+</div>
+
+

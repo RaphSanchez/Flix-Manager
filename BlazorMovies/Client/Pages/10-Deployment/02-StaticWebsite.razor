@@ -1,0 +1,355 @@
+﻿@page "/02-static-website"
+<PageTitle>Deployment Static Website</PageTitle>
+
+<h2>Deployment - Static Website</h2>
+<p>
+    As we stated in the beginning of <a href="01-deployment-fundamentals">last lesson</a>,
+    the deployment module is about deploying a personal portfolio website with different
+    features.
+</p>
+<p>
+    In this lesson, the idea is to create a standalone Blazor WASM app that will
+    be deployed as the landing page for a personal portfolio static website that
+    will eventually contain personal information.
+</p>
+<p>
+    The Blazor app will be compiled into a folder using the CLI and will be deployed
+    to an Azure Storage Account as the hosting service.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The site will be based in a Blazor WASM standalone application hosted using an
+        Azure storage account because it is a cheap way to host static content. Additionally,
+        we will integrate the Azure storage account with an Azure CDN to enable a custom
+        domain with HTTPS access, and a ditigal security
+        certificate.
+    </p>
+</div>
+<h3>Static Website Hosting in Azure Storage</h3>
+<p>
+    You can serve static content (HTML, CSS, JavaScript, and image files) directly from a
+    storage container named <span class="fs-5"><strong><code>$web</code></strong></span>. Hosting your content in
+    Azure Storage enables you to use serverless architectures that include Azure Functions
+    and other Platform as a service (PaaS) services. This is a good option for cases where
+    you don't require a web server (back-end) to render content.
+</p>
+<p>
+    Static websites have some limitations. For example, you have to use Azure Content Delivery
+    Network (Azure CDN) to configure headers and/or HTTPS. Also, AuthN and AuthZ are not
+    supported. If these features are required for hosting your static content, you should
+    consider using Azure Static Web Apps.
+</p>
+<p>
+    <a href="https://azure.microsoft.com/services/app-service/static/">Azure Static Web Apps</a>
+    are a great alternative to static websites because they also enable you to use a serverless
+    architecture plus they allow you to configure headers and AuthN-AuthZ is fully supported.
+</p>
+<p>
+    For cases where you need a web server to render content (as is the case of our Blazor
+    Movies App), you can use <a href="https://azure.microsoft.com/services/app-service/">
+        Azure App Service
+    </a>.
+</p>
+<p>
+    As we mentioned at the beginning of this lesson, we will employ the Azure Storage Service
+    to implement an Azure Storage Account to host our landing page because it only contains
+    static content and it does not require AuthN and/or AuthZ operations. Besides, it is the
+    most cost effective and easier to set up.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a <a href="05-api">standalone</a> Blazor WASM app that will be the main entrance to
+    our personal portfolio website. Make sure that:
+</p>
+<ul>
+    <li>
+        It targets the same .Net Framework than the other apps that you intend to include
+        in the same Azure Resource Group; e.g., .Net 6.
+    </li>
+    <li>
+        Once it is created, publish the application and its dependencies to a folder for
+        deployment to a hosting system. If you choose to use the .Net CLI for publishing,
+        invoke the 'Release' mode.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use Visual Studio to create a new standalone Blazor WebAssembly app configured for
+    Https:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/06-rs-portfolio-app.png"
+         alt="Blazor WASM standalone app for RS-Portfolio landing page." />
+</div>
+<p>
+    You might recall from last lesson on <a href="01-deployment-fundamentals">
+        Deployment Fundamentals
+    </a> that a standalone deployment serves the Blazor WebAssembly app as a set of
+    static files that are requested directly by clients.
+</p>
+<p>
+    In other words, once the Blazor WASM app is ready for deployment, you should compile
+    it and publish the resulting set of files to a directory where they can be managed
+    for deployment.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you publish the application and its dependencies to a folder for deployment
+        to a hosting system <span class="text-dark">
+            using the .Net Command Language Interface (CLI),
+        </span> the destination folder path of its assets is:
+        Application/Client bin/Release/TargetFramework/publish/wwwroot folder.
+    </p>
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you publish the application and its dependencies to a folder for deployment
+        to a hosting system <span class="text-dark">
+            using the 'Publish' option from the Visual Studio Solution Explorer,
+        </span> the default destination folder path of its assets is:
+        Application/Client bin/Release/TargetFramework/browser-wasm/publish/wwwroot folder.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the .Net CLI to publish the application and its dependencies to a folder for deployment
+    to a hosting system. Make sure the CLI is executed from the directory where the <a href="03-routing">
+        project file
+    </a> resides. You have two options:
+</p>
+<ul>
+    <li>
+        Go to the Visual Studio Solution Explorer, right click the project that you intend to
+        publish (e.g., RSPortfolio), and select "Open In Terminal".
+    </li>
+    <li>
+        Go to the Visual Studio Solution Explorer, right Click the project that you intend to
+        publish (e.g., RSPortfolio), select "Open Folder in File Explorer", right click and
+        select "Open In Terminal".
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Make sure the path is consistent with the path for the directory where the project resides
+    and type the following command: <strong><code>dotnet publish --configuration Release</code></strong>
+    to publish the application and its dependencies to a folder for deployment to a hosting system:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/08-terminal-publish-release.png"
+         alt=".Net CLI" />
+</div>
+<p>
+    The <code>dotnet publish</code> commandlet compiles the application, reads through its
+    dependencies specified in the project file, and publishes the resulting set of files
+    to a directory. In this case, to the Application/Client
+    /bin/Release/TargetFramework/publish/wwwroot folder. These are the assets that will
+    be updloaded to the static server (Azure storage account):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/09-published-assets.png"
+         alt="Published assets." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#standalone-deployment-1">
+            Standalone deployment
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish">
+            dotnet publish
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@j4ZHiIHSeM6e69d0sFFSgmz_gIBJxKZ4GQdmo3xFcb8miYuCPWXmNDe6YWBUFTwk/">
+            Episode 108.
+        </a> Deploying to Azure Storage of Udemy course: "Programming in Blazor - ASP.Net Core 5"
+        by Felipe Gavilan.
+    </li>
+</ul>
+<h4>Setting up a Static Website in Azure Storage Account</h4>
+<p>
+    You can serve static content (HTML, CSS, JavaScript, and image files) directly from
+    a container in a <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create">
+        general-purpose V2
+    </a> or <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create">
+        BlockBlobStorage
+    </a> account using the Azure portal, the Azure CLI, or PowerShell.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Set up the Azure storage account to be capable of hosting a static website. It should
+    be a general-purpose V2 account.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Azure portal and follow the instructions to <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website-how-to?tabs=azure-portal#enable-static-website-hosting">
+        enable static website hosting
+    </a> on the storage account we created to host the static website content (rlsandingsite):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/07-static-website-enabled.png"
+         alt="Static website hosting enabled." />
+</div>
+<p>
+    If the server returns a <code>404 error</code> and you do not specify an error document
+    when enabling the website, then a <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#viewing-content">
+        default 404 page
+    </a> is returned to the user.
+</p>
+<p>
+    <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#secondary-endpoints">
+        Secondary enpoints
+    </a> are used to access website content if you set up <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-redundancy#redundancy-in-a-secondary-region">
+        redundancy in a secondary region
+    </a>. Data is replicated to secondary regions asynchronously. Therefore, the files that are
+    available at the secondary endpoint are not always in sync with the files that are available
+    on the primary endpoint.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Files in the <span class="fs-5"><strong><code>$web</code></strong></span> container
+    are case-sensitive, served through anonymous access requests, and are available only
+    through read operations.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Upload content to the <code>$web</code> container; i.e., upload the files of your standalone
+    Blazor WASM app (RSPortfolio) crated earlier with the .Net CLI.
+</p>
+<p>
+    You can use any of the following tools to upload content to the <code>$web</code>
+    container:
+</p>
+<ul>
+    <li>
+        <a href="https://portal.azure.com/">
+            Azure Portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website-how-to?tabs=azure-cli">
+            Azure CLI
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website-how-to?tabs=azure-powershell">
+            Azure PowerShell module
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10">
+            AzCopy
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/features/storage-explorer/">
+            Azure Storage Explorer
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/services/devops/pipelines/">
+            Azure Pipelines
+        </a>
+    </li>
+    <li>
+        <a href="https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions">
+            Visual Studio Code extension
+        </a>
+    </li>
+</ul>
+<p>
+    In this demonstration, we will use the Azure Storage Explorer. It allows you to manage
+    your cloud storage on Azure.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the <a href="https://azure.microsoft.com/features/storage-explorer/">
+        Azure Storage Explorer
+    </a> website to download it, sign in, and use the Explorer to navigate to the
+    <strong><code>$web</code></strong> directory of the "rslandingsite" storage account
+    that will host the files for the static content of the RSPortfolio WASM app.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Open the directory where the assets of the published Blazor WASM app reside
+    (Application/Client /bin/Release/TargetFramework/publish/wwwroot) to drag and drop them
+    to the $web directory in the Azure Storage Explorer:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/10-uploaded-assets.png"
+         alt="Uploaded assets." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Azure portal, navigate to the storage account and confirm that the uploaded
+    assets are displayed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/11-$web-folder-with-assets.png"
+         alt="$web folder with uploaded assets." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    View the content from the browser by using the public URL of the website. You can <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website-how-to?tabs=azure-portal#find-the-website-url">
+        find the website URL
+    </a> by using the Azure portal, Azure CLI, or PowerShell.
+</p>
+<p>
+    Go to the Azure portal, navigate to the storage account and select "Static Website" from
+    the pane that appears on the left. Copy the URL (primary endpoint):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/07-static-website-enabled.png"
+         alt="Primary endpoint." />
+</div>
+<p>
+    Go to a web browser to confirm that it is working as expected.
+</p>
+<p>
+    The static website is up and running but we are not done yet. We have to integrate
+    our static website with an Azure Content Delivery Network (CDN). The integration
+    enables configuration of a custom domain endpoint with HTTPS access and provisioning
+    a custom TLS/SSL certificate.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website-how-to?tabs=azure-portal">
+            Host a static website in Azure Storage
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website">
+            Static website hosting in Azure Storage
+        </a>
+    </li>
+    <li>
+        <a href="https://www.youtube.com/watch?v=gYpNC_tdbQQ">
+            How to host a static website with Azure Storage | Azure Tips and Tricks
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-custom-domain-name?tabs=azure-portal">
+            Map a custom domain to an Azure Blob Storage endpoint
+        </a>
+    </li>
+    <li>
+        <a href="https://www.youtube.com/watch?v=G_gDYlRBAZw&t=54s">
+            A static Website as cheaply as possible with Azure Storage, Azure CDN, HTTPS and a
+            Custom Domain
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@j4ZHiIHSeM6e69d0sFFSgmz_gIBJxKZ4GQdmo3xFcb8miYuCPWXmNDe6YWBUFTwk/">
+            Episode 108.
+        </a> Deploying to Azure Storage of Udemy course: "Programming in Blazor - ASP.Net Core 5"
+        by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://techcommunity.microsoft.com/t5/azure-developer-community-blog/azure-on-the-cheap-azure-storage-static-website-and-azure-front/ba-p/1297084">
+            Azure on the Cheap - Azure Storage Static Website and Azure Front Door
+        </a>
+    </li>
+</ul>

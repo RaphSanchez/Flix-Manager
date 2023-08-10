@@ -1,0 +1,907 @@
+﻿@page "/07-delete-data"
+<PageTitle>Delete Data</PageTitle>
+
+<h2>Consuming the Api - Delete Data</h2>
+<p>
+    As mentioned in the topic on Relationships of the <a href="03-create-complex-data">
+        Create Complex Data
+    </a> section, Entity Framework Core (EF Core) represents relationships using
+    foreign keys. <strong>
+        An entity with a foreign key is the child or dependent entity in the relationship.
+    </strong>
+</p>
+<p>
+    If the principal/parent entity is deleted, then the foreign key values of the
+    dependents/children will no longer match the primary or alternate key of any
+    principal/parent. This is an invalid state and will cause a <dfn>
+        referential constraint violation
+    </dfn> in most databases.
+</p>
+<p>
+    For this reason, one of two options must happen to avoid a referential constraint
+    violation:
+</p>
+<ol>
+    <li>
+        Set the foreign key (FK) values to null: Only valid for optional relationships
+        where the foreign key property (and the database column to which it is mapped)
+        must be nullable.
+    </li>
+    <li>
+        Delete the dependent/child entities when deleting a principal/parent entity:
+        Valid for any kind of relationship and is known as <a href="03-create-complex-data">
+            cascade delete
+        </a>.
+    </li>
+</ol>
+<p>
+    <dfn>Cascade delete</dfn> means dependent entities are also deleted and it happens
+    because the principal/parent is deleted or it can happen when the principal/parent
+    still exists but the dependent/child is no longer associated with it.
+</p>
+<p>
+    EF Core <strong>always</strong> applies configured <strong>
+        cascading behaviour to tracked entities.
+    </strong> This means that <span class="mark">
+        <strong>
+            if the application loads all relevant dependent/child entities into the
+            DbContext, then cascading behaviours will be correctly applied regardless
+            of how the database is configured.
+        </strong>
+    </span>
+</p>
+<p>
+    <dfn>ClientSetNull</dfn> means that the dependent entities that are not loaded into
+    memory (tracked) will remain unchanged and <strong>must be manually deleted</strong>
+    or updated to point to a valid principal entity.
+</p>
+<p>
+    But how can you find out the database configuration? You can go to the
+    Application/Server-Api/DataStore/Migrations file automatically created by EF Core when
+    creating the database model for the first time. There you can find the configuration
+    for the tables created during the initial migration. For other tables, you must
+    search for the migration file that contains the creation of the table of interest.
+</p>
+<p>
+    As you know, migration files are a way to incrementally update the database schema
+    and keep it in sync with the application's data model (EDM) while preserving
+    existing data in the database. Take a look to the folder tree of the Migrations file
+    in our application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/44-migration-folder-tree.png"
+         alt="Migrations folder tree.k" />
+</div>
+<p>
+    Let's inspect the migration file named "Initial". You might recall that it was created
+    in step four of the <a href="06-api-db-support">DbSupport</a> section:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/45-migration-initial-one.png"
+         alt="Migration file named Initial part one." />
+    <img src="Images/12-update-complex-data/46-migration-initial-two.png"
+         alt="Migration file named Initial part two." />
+</div>
+<p>
+    EF Core automatically created <dfn>join</dfn> tables for the database schema to
+    represent the relationships in our database model. Recall that a <a href="03-create-complex-data">
+        join table
+    </a> contains common data from two or more tables. For example, GenreMovie table
+    represents the relationship between a Genre and a Movie object and it is <strong>
+        configured with a <dfn>cascade delete</dfn> referential action.
+    </strong>
+</p>
+<p>
+    Did you notice that the MovieCharacters table is not present? Recall that we created
+    the table later as a "join" table that represents the relationship between a Movie
+    and a Person object. This took place in the <a href="03-create-complex-data">
+        Create Complex Data
+    </a> section. Take a look one more time to the image above with the folder tree of
+    the Migrations file and you will see the 20220305164842_MovieCharacter.cs file. This
+    is a clear example of the importance on how you decide to name your migrations.
+</p>
+<p>
+    Now that we know that the relationships in our <dfn>database model - database schema</dfn>
+    are configured with a <dfn>cascade delete</dfn>, we know that deleting an entity and
+    its related data is just a matter of tracking (or loading) not just the entity but
+    its related data (entities) too.
+</p>
+<p>
+    "Episode 78. Deleting Records" of the <a href="https://www.udemy.com/share/102l0i3@15a512LMh0QuzYrKgZtLR9dBwPby-cVuJTJ7257qZhuJw6TUQB6RZhQl3puixPeH/">
+        Udemy
+    </a> course Programming in Blazor - ASP.NET Core 5 by Felipe Gavilan has an example on
+    using raw SQL to <strong>delete in the database</strong>. Nevertheless, recall that we
+    implemented a <a href="10-ef-soft-delete-audit">soft delete</a> mechanism in the
+    05. Server-Api module.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You should <strong>not</strong> configure cascade delete <strong>
+            in the database
+        </strong> when <a href="10-ef-soft-delete-audit">soft-deleting</a> entities. This
+        may cause entities to be accidentally really deleted instead of soft-deleted.
+        Bypassing EF Core (using raw SQL) to delete entities will also affect a
+        soft-delete mechanism.
+    </p>
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/saving/cascade-delete">
+        Cascade Delete
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/relationships?tabs=fluent-api%2Cfluent-api-simple-key%2Csimple-key">
+        Relationships
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.deletebehavior?view=efcore-6.0">
+        DeleteBehavior Enum
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.remove?view=efcore-6.0">
+        DbContext.Remove Method
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/ef/core/managing-schemas/migrations/?tabs=dotnet-core-cli">
+        Migrations Overview
+    </a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    application so the client can go to the IndexGenres routable component, click the
+    Delete button and delete (or remove from the database) the corresponding "Genre"
+    item. If successful, the component should be re-rendered without the deleted Genre.
+</p>
+<p>
+    With a <dfn>cascade delete</dfn> configuration, deleting an entity and its related
+    data is a simple operation as long as you ensure that any related data is being
+    tracked by the DbContext.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Configure the IndexGenres routable
+    component to remove a given Genre object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/01-index-genres-one.png"
+         alt="IndexGenres part one.">
+    <img src="Images/13-delete-data/02-index-genres-two.png"
+         alt="IndexGenres part two.">
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Before deleting a Genre object, let's
+    study the Genre, Movie, and GenreMovie database tables.
+</p>
+<p>
+    Genres table:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/03-dbo-genres-data.png"
+         alt="Genres table." />
+</div>
+<p>
+    Movies table:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/04-dbo-movies-data.png"
+         alt="Movies table." />
+</div>
+<p>
+    GenreMovie table (join table with common data from Genres and Movies table):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/05-dbo-GenreMovie-data.png"
+         alt="GenreMovie join table." />
+</div>
+<p>
+    One can see from the GenreMovie table the following relationships:
+</p>
+<ul>
+    <li>
+        Genre object with primary key "1" named "Drama" has a relationship with
+        a Movie object with primary key "1021" named "Don Jon" and Movie object
+        "1022" named "The Counselor".
+    </li>
+    <li>
+        Genre object with primary key "5" named "Adventure" has a relationship with
+        a Movie object with primary key "1021" named "Don Jon" and Movie object
+        "1022" named "The Counselor".
+    </li>
+</ul>
+<p>
+    What do you think would happen if we were to delete the Genre object named Drama?
+    Keep in mind that we haven't created any specific functionality to delete a Genre
+    object; i.e., we are using the generic
+    Application/Server-Api/Repositories/EfRepository DeleteAsync method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/06-ef-repository.png"
+         alt="EfRepository class." />
+</div>
+<p>
+    Study the database tables after performing a delete operation on the Genre object
+    named Drama:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/07-genre-movie-tables.png"
+         alt="Genres, Movies, and GenreMovie tables." />
+</div>
+<ul>
+    <li>
+        The Genre object with primary key "1" named "Drama" was deleted. It was not
+        removed from the database because we implemented a <a href="10-ef-soft-delete-audit">
+            soft-delete
+        </a> mechanism. Instead of removing it from the database, its "IsDeleted"
+        <a href="10-ef-soft-delete-audit">shadow property</a> value is set to true and the
+        global query filter defined in its
+        Application/Server-Api/DataStore/EntityConfigurations GenresConfiguration class 
+        discards any records marked as "IsDeleted = true" from a query result.
+    </li>
+    <li>
+        The Movie objects with primary key "1021" and "1022" named Don Jon and The Counselor
+        were not affected in any way.
+    </li>
+    <li>
+        The <strong>
+            relationship of the Drama genre with Movie objects Don Jon and The Counselor was
+            not removed from the GenreMovie table
+        </strong> eventhough we deleted the Drama Genre. Although these relationships will not
+        be served in a query because the global query filter discards the Genre object marked
+        as "deleted", this is not the desired result at all.
+    </li>
+</ul>
+<p>
+    But why did the Drama object relationships were not removed? The reason is simple,
+    <strong>the DbContext was not tracking the related entity (Movie)</strong>.
+    The generic EfRepository/DeleteAsync method fails to load into memory any related
+    (dependent) entities. This means that we need to add the specific functionality
+    required to delete a Genre object and include its related data (navigation property
+    values that represent relationships with other entities).
+</p>
+<p>
+    Before adding the new feature, go to the dbo.Genres table and manually set the
+    IsDeleted property value of the Drama object back to false. The IndexGenres component
+    should render it because it is no longer marked as IsDeleted.
+</p>
+<p>
+    As usual, the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data entity
+            type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>DTO</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to serve (not required this time).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to 
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaion's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions (e.g., updating a Movie object) it is also required to extend the
+        Application/ApiServices/ApiManager/IApiConnector interface and its implementation
+        (ApiConnector class).
+    </p>
+</div>
+<p>
+    The type Genre is very simple. We do not need a DTO to optimize data transfer nor do
+    we need to worry about exposing sensitive information when sending a Genre object as
+    part of the Http response message.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Client/ApiServices/IRepositories/IGenres interface to expose the 
+    specific functionality (method) to the Application/Client and establish a contract
+    (or protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/08-igenres-interface.png"
+         alt="IGenres interface exposes a DeleteGenreAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Server-Api/Repositories/EfGenres class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore) and the RESTful 
+    API service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/09-ef-genres.png"
+         alt="EfGenres class implements DeleteGenreAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiGenres class to implement the newly
+    exposed functionality. This is the application's layer responsible for creating
+    the Http requests/responses that serialize-deserialize the data and build the 
+    endpoint's URL (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/10-api-genres.png"
+         alt="ApiGenres class implements DeleteGenreAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Refactor the
+    Application/Server-Api/Controllers/GenresController/DeletePersonTask action to consume 
+    the EfGenres/DeleteGenreAsync method we just implemented instead of the generic
+    DeleteAsync method defined in the EfRepository class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/11-genres-controller.png"
+         alt="Genres controller consumes the DeleteGenreAsync method." />
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    We have concluded the process to add new and specific functionality. In this case,
+    adding a feature to delete Genre objects including their related data (relationships).
+    Before putting it to the test, let's make sure that the Drama object and its
+    relationships are back to their original state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/12-dbo-GenreMovie-original.png"
+         alt="Database tables with Drama genre and relationships intact." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Test the recently added functionality.
+    Go to the IndexGenres routable component and delete the Drama Genre:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/13-dbo-deleted-data.png"
+         alt="Database tables with Drama genre and relationships deleted." />
+</div>
+<ul>
+    <li>
+        The Genre object with primary key "1" named "Drama" was deleted. It was not removed
+        from the database because we implemented a soft-delete mechanism.
+    </li>
+    <li>
+        The Movie objects with primary key "1021" and "1022" named Don Jon and The
+        Counselor were not affected in any way.
+    </li>
+    <li>
+        The relationship of the Drama genre with Movie objects Don Jon and The Counselor
+        was removed from the GenreMovie <dfn>joing</dfn> table because we deleted the Drama
+        Genre. This time the <dfn>cascade delete configuration</dfn> took care of removing
+        any related data from the Genre object because the EfGenres/DeleteGenreAsync method
+        loads all relevant dependent/child entities (e.g., Movie) into the DbContext and
+        EF Core <strong>always</strong> applies configured <strong>
+            cascading behaviour to tracked entities.
+        </strong>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> As you can see, <span class="mark">
+        <strong>
+            deleting an object is a two step process:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Load the principal/parent entity and all relevant dependent/child entities
+        into the DbContext.
+    </li>
+    <li>
+        Remove the principal and EF Core will apply a cascading behaviour regardless
+        of how the database is configured.
+    </li>
+</ol>
+<p>
+    The functionality to delete Genre objects is completed and working fine. Let's focus
+    on deleting Person objects.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    application so the client can go to the IndexPeople routable component, click the
+    Delete button and delete the corresponding "Person" item. If successful, the component
+    should be re-rendered without the deleted item. Ensure that its related data (navigation
+    property values) are also removed from the database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Let's take a look to the IndexPeople
+    routable component to refresh our memory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/14-index-people-one.png"
+         alt="IndexPeople component part one." />
+    <img src="Images/13-delete-data/15-index-people-two.png"
+         alt="IndexPeople component part one." />
+    <img src="Images/13-delete-data/16-index-people-three.png"
+         alt="IndexPeople component part one." />
+</div>
+<p>
+    The "Delete" button element calls the generic
+    Application/Server-Api/Repositories/EfRepository DeleteAsync method which does not
+    load all relevant dependent/child entities into the DbContext. This means that
+    if we try to delete a Person object from the database, its relationships will not
+    be removed as well (unless we do it manually).
+</p>
+<p>
+    Inspect the Person class to determine the related data (entities) for a type Person:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/17-person-class.png"
+         alt="Person class." />
+</div>
+<p>
+    The process to delete a Person object is very similar to deleting a Genre object.
+    In other words, deleting a Person object is a two step process:
+</p>
+<ol>
+    <li>
+        Load the principal/parent entity and all relevant dependent/child entities
+        into the DbContext.
+    </li>
+    <li>
+        Remove the principal and EF Core will apply a cascading behaviour regardless
+        of how the database is configured.
+    </li>
+</ol>
+<p>
+    Let's add the required specific functionality to delete a Person object including
+    its related data; i.e., including any navigation property values that represent
+    relationships with other entities. We already know that the relationships in our
+    database model are configured with a <dfn>cascade delete referential</dfn> action.
+</p>
+<p>
+    This means that deleting an entity and its related data is a simple operation as
+    long as we ensure that any related data is being tracked by the DbContext.
+</p>
+<p>
+    Keep in mind that a <strong>
+        Person object performs specific operations with its Person.PictureUrl
+    </strong> property. Recall that in lesson on <a href="02-data-storage-options">
+        Data Storage Options
+    </a>, we created an IFileStorageService responsible for storing images in a local
+    directory or in an Azure storage account. If we delete a Person object, we should
+    <strong>also remove its image from the storage service.</strong>
+</p>
+<p>
+    As usual, the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data entity
+            type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>DTO</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to serve (not required this time).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to 
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and 
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement 
+        the newly exposed functionality. This is the applicaion's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions (e.g., updating a Movie object) it is also required to extend 
+        the Application/Client/ApiServices/ApiManager/IApiConnector interface and its 
+        implementation (ApiConnector class).
+    </p>
+</div>
+<p>
+    We do not need a DTO to optimize data transfer nor do we need to worry about exposing
+    sensitive information when sending an object of type Person as part of the response
+    message.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Client/ApiServices/IRepositories/IPeople interface to expose the 
+    specific functionality (method) to the Application/Client and establish a contract 
+    (or protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/18-ipeople-interface.png"
+         alt="IPeople interface." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Server-Api/Repositories/EfPeople class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the data entity. It mediates between
+    the data source layer (Application/Server-Api/DataStore) and the RESTful API service
+    (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/19-ef-people-one.png"
+         alt="EfPeople class part one." />
+    <img src="Images/13-delete-data/20-ef-people-two.png"
+         alt="EfPeople class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiPeople class to implement the newly 
+    exposed functionality. This is the application's layer responsible for creating the
+    Http requests/responses that serialize-deserialize the data and build the endpoint's
+    route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/21-api-people-one.png"
+         alt="ApiPeople class part one." />
+    <img src="Images/13-delete-data/22-api-people-two.png"
+         alt="ApiPeople class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Refactor the
+    Application/Server-Api/Controllers/PeopleController/DeletePersonTask
+    action to consume the DeletePersonAsync method we just created instead
+    of the generic DeleteAsync method defined in the EfRepository class.
+</p>
+<p>
+    <strong>Don't forget to define the functionality to delete the image</strong>
+    (Person.PictureUrl) that was probably stored using the <a href="02-data-storage-options">
+        IFileStorage
+    </a> service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/23-people-controller-one.png"
+         alt="People controller part one." />
+    <img src="Images/13-delete-data/24-people-controller-two.png"
+         alt="People controller part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Go to the IndexPeople component and
+    refactor it to consume the newly added functionality:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/25-index-people-one.png"
+         alt="IndexPeople component part one." />
+    <img src="Images/13-delete-data/26-index-people-two.png"
+         alt="IndexPeople component part one." />
+    <img src="Images/13-delete-data/27-index-people-three.png"
+         alt="IndexPeople component part one." />
+</div>
+<p>
+    The <dfn>GetPeopleAlphabeticalAsync()</dfn> is a helper method that contains code
+    logic that is consumed multiple times in the IndexPeople component. It allows us
+    to adhere to the Don't Repeat Yourself (DRY) principle.
+</p>
+<p>
+    We have concluded implementing the new feature to delete a Person object including
+    its related data. It is time to test it.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Produce mock data and test the
+    DeletePersonAsync method:
+</p>
+<ul>
+    <li>
+        Create a dummy Person object.
+    </li>
+    <li>
+        Create a bogus Movie object with an unselected "InTheaters" value to make it appear
+        at the beginning of the Flix Manager. Include the dummy person as an actor of the
+        Movie and a CharacterName for the character played in the dummy Movie.
+    </li>
+    <li>
+        Inspect the database tables to confirm everything is ready for the test:
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/28-dummy-data-test-delete.png"
+         alt="Database tables with dummy data for testing." />
+</div>
+<p>
+    Go to the IndexPerson routable component, delete the "Test Person" object, and inspect
+    the database tables again:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/29-dummy-data-after-test-delete.png"
+         alt="Database tables with dummy data after deleting test Person object." />
+</div>
+<p>
+    One can see from the database tables above that:
+</p>
+<ul>
+    <li>
+        The "Test Movie" object was not deleted from the database.
+    </li>
+    <li>
+        The "Test Person" was deleted. It was not removed from the database because we
+        implemented a <a href="10-ef-soft-delete-audit">soft-delete</a> mechanism. Instead
+        of removing it from the database, its "IsDeleted" <a href="10-ef-soft-delete-audit">
+            shadow property
+        </a> value is set to <em>true</em>.
+    </li>
+    <li>
+        The relationship of the "Test Person" object with the "Test Movie" object was removed
+        from the MoviePerson <dfn>join table</dfn>.
+    </li>
+    <li>
+        The "Test CharcName" object of type MovieCharacter was deleted. It also adheres to the
+        soft-delete mechanism.
+    </li>
+</ul>
+<p>
+    The functionality to delete Person objects, and their related data, is completed
+    and working fine. Let's focus on deleting Movie objects.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    application so the client can go to the Flix Manager routable component, click the
+    Delete button on a given item of type Movie and execute a delete operation that
+    includes any data related to the object.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Inspect the FlixManager routable component
+    to refresh our memory on its current state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/30-flix-manager.png"
+         alt="Flix Manager component." />
+</div>
+<p>
+    The Flix Manager employs the MoviesCatalog component to handle the rendering of the
+    collections of type Movie. One collection for movie items in theaters and one for
+    upcoming releases.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Study the code logic for rendering and deleting
+    items in the MoviesCatalog component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/31-movies-catalog.png"
+         alt="MoviesCatalog component." />
+</div>
+<p>
+    The DeleteMovie handler for the DeleteMovie event callback of the RenderMovie component
+    is configured to handle in-memory objects. But before making any changes to the MoviesCatalog
+    component to consume the IApiService to communicate with the Application/Server-Api, we must
+    crate the new specific functionality required to delete (from the database) Movie objects
+    and their related data.
+</p>
+<p>
+    The process to delete a Movie object is very similar to deleting a Person object. In
+    other words, deleting a Movie object is a two step process:
+</p>
+<ol>
+    <li>
+        Load the principal/parent entity and all relevant dependent/child entities into
+        the DbContext.
+    </li>
+    <li>
+        Remove the principal and EF Core will apply a cascading behaviour regardless of how
+        the database is configured.
+    </li>
+</ol>
+<p>
+    Keep in mind that <strong>
+        a Movie object performs specific operations with its Movie.PosterPath
+    </strong> property. Recall that in lesson on <a href="02-data-storage-options">
+        Data Storage Options
+    </a>, we created an IFileStorageService responsible for storing images in a local directory
+    or in an Azure storage account. If we delete a Movie object, we should <strong>
+        also remove its image from the storage service.
+    </strong>
+</p>
+<p>
+    We already know that the relationships in our database model are configured with
+    a <dfn>cascade delete referential</dfn> action. This means that deleting an entity
+    and its related data is a simple operation as long as we ensure that any related
+    data is being tracked by the DbContext.
+</p>
+<p>
+    Since we are adding specific functionality to our application, we must follow the
+    procedure outlined earlier. We do not need a DTO to optimize data transfer nor do
+    we need to worry about exposing sensitive information when sending an object of
+    tyoe Movie as part of the response message.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Client/ApiServices/IRepositories/IMovies interface to expose the 
+    specific functionality (method) to the Application/Client and establish a contract 
+    (or protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/32-i-movies-interface.png"
+         alt="IMovies interface." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Server-Api/Repositories/EfMovies class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the data entity. It mediates between
+    the data source layer (Application/Server-Api/DataStore) and the RESTful API 
+    service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/33-ef-movies-one.png"
+         alt="EFMovies class part one." />
+    <img src="Images/13-delete-data/34-ef-movies-two.png"
+         alt="EFMovies class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiMovies class to implement the newly 
+    exposed functionality. This is the application's layer responsible for creating 
+    the Http requests/responses that serialize-deserialize the data and build the 
+    endpoint's URL (route to the appropriate controller action):
+</p>
+<div clas="image-lesson mb-3">
+    <img src="Images/13-delete-data/35-api-movies-one.png"
+         alt="ApiMovies class part one." />
+    <img src="Images/13-delete-data/36-api-movies-two.png"
+         alt="ApiMovies class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Refactor the
+    Application/Server-Api/Controllers/MoviesController/DeleteMovieTask action to consume
+    the DeleteMovieAsync method we just created instead of the generic DeleteAsync method
+    defined in the EfRepository class.
+</p>
+<p>
+    <strong>Don't forget to define the functionality to delete the image</strong>
+    (Movie.PosterPath) that was probably stored using the <a href="02-data-storage-options">
+        IFileStorage
+    </a> service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/37-movies-controller-one.png"
+         alt="MoviesController part one." />
+    <img src="Images/13-delete-data/38-movies-controller-two.png"
+         alt="MoviesController part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Go to the MoviesCatalog component
+    and configure it to consume the newly added functionality:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/39-movies-catalog.png"
+         alt="MoviesCatalog component." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The "Movies" parameter of the MoviesCatalog
+    component <span class="mark">
+        <strong>
+            must be updated by removing the deleted Movie object from the collection of
+            in-memory items
+        </strong>
+    </span> to notify the component that its state has changed and that it must be
+    re-rendered. Otherwise, the component will not reflect the changes executed on the
+    database until the next time you load the component.
+</p>
+<p>
+    We have finished implementing the new feature to delete a Movie object including
+    its related data. Its time to test it.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Produce mock data and test the
+    DeleteMovieAsync method:
+</p>
+<ul>
+    <li>
+        Create a dummy Person object.
+    </li>
+    <li>
+        Create a bogus Movie object with an unselected "InTheaters" value to make it
+        appear at the beginning of the Flix Manager. Include the dummy person as an
+        actor of the Movie and a CharacterName for the character played in the dummy
+        Movie.
+    </li>
+    <li>
+        Examine the database tables to confirm everything is ready for the test:
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/40-delete-movie-mock-data.png"
+         alt="Database tables with mock data." />
+</div>
+<p>
+    Go to the Flix Manager routable component, delete the "Test Movie" object, and inspect
+    the database tables again:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/13-delete-data/41-delete-movie-mock-data-after-delete.png"
+         alt="Database tables with mock data after a delete movie operation." />
+</div>
+<p>
+    From the tables shown above, one can conclude that:
+</p>
+<ul>
+    <li>
+        The "Test Movie" object was marked as deleted. It was not removed from the database
+        because we implemented a <a href="10-ef-soft-delete-audit">soft-delete</a> mechanism.
+        Instead of removing it from the database, its "IsDeleted" <a href="10-ef-soft-delete-audit">
+            shadow property
+        </a> value is set to <em>true.</em>
+    </li>
+    <li>
+        The "Test Person" was not deleted from the database.
+    </li>
+    <li>
+        The relationship of the "Test Person" object with the "Test Movie" object was
+        removed from the MoviePerson <dfn>join</dfn> table.
+    </li>
+    <li>
+        The "Test CharacName" object of type MovieCharacter was also marked as deleted.
+        It also adheres to the soft-delete mechanism.
+    </li>
+</ul>
+<p>
+    Success!!! The functionality to delete Movie objects, and their related data, is completed
+    and working as expected.
+</p>
+

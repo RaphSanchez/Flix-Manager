@@ -1,0 +1,74 @@
+﻿@page "/movies/flix-manager/"
+@inject IStringLocalizer<FlixManagerResources> Localizer
+
+<PageTitle>@PageTitle</PageTitle>
+
+<HeadContent>
+    <meta name="description"
+          content="@Description " />
+    <meta name="author"
+          content="@Author" />
+</HeadContent>
+
+<h3 class="mb-4">Flix Manager</h3>
+
+<div class="row mb-3">
+
+    <!-- Resetting the application flag with spinner. -->
+    @if (_isResettingDb)
+    {
+        <div class="col col-4">
+            <p class="text-center">
+                <strong>
+                    Resetting the database...
+                </strong>
+            </p>
+
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border"
+                     style="color: #1b6ec2; width: 3rem; height: 3rem;"
+                     role="status">
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Reset application data button element. -->
+        <div class="col col-4">
+            <button class="btn btn-outline-danger" id="reset-db"
+                    title="Resets the application data to an initial state."
+                @onclick="ResetData">
+                Reset Data
+            </button>
+        </div>
+    }
+
+    <!-- Create Movie object button element. -->
+    <div class="col col-4">
+        <AuthorizeView Policy="@AuthZPolicies.ApiCreateContent">
+            <Authorized>
+                <div class="input-group mb-3">
+                    <a class="btn btn-success" id="create-movie" style="width: 140px"
+                       href="movies/create">
+                        Create Movie
+                    </a>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+<!-- Catalog of upcoming releases. -->
+<div class="mb-4">
+    <h4>@Localizer["Upcoming Releases"]</h4>
+    <MoviesCatalog Movies="_upcomingReleases" />
+</div>
+
+<!-- Catalog of Movies in theaters. -->
+<div class="mb-4">
+    <h4>@Localizer["In Theaters"]</h4>
+    <MoviesCatalog Movies="_inTheaters" />
+</div>
+
+

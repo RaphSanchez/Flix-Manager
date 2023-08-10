@@ -1,0 +1,571 @@
+﻿@page "/06-html-metadata"
+
+<PageTitle>HTML Metadata</PageTitle>
+
+<h2>Miscellaneous - HTML Metadata</h2>
+<p>
+    It is important that you understand how a Blazor WebAssembly app,
+    a Blazor Server app, and a <dfn>hosted</dfn> Blazor WebAssembly app operate to
+    interact with the user.
+</p>
+<p>
+    As we explained in lesson <a href="02-components-part-four">Part-IV</a> of the
+    Components module, application development is generally split into two specialties:
+    the frontend (client-side) and the backend (server-side). In web applications,
+    there is the <em>client</em> (web browser) and the <em>server</em> (web app
+    server) that will process web requests and send some kind of data to the client.
+</p>
+<p>
+    Web applications can contain code that is processed on the <em>client's</em> browser
+    (client side code) or on the web <em>server</em> (server side code). <strong>
+        Markup languages like HTML and CSS are interpreted by the browser on the client
+        side.
+    </strong> As you know, Blazor Web Assembly is a <dfn>single-page app (SPA) framework</dfn>
+    for building interactive client-side web apps. In other words, Blazor WASM runs
+    on the client.
+</p>
+<p>
+    WebAssembly code can access the full functionality of the browser via JavaScript,
+    called JavaScript Interoperability (JSInterop). The <strong>
+        Blazor WebAssembly runtime uses <em>JSInterop</em> to handle DOM (Document Object
+        Model) manipulation and browser API calls.
+    </strong>
+</p>
+<p>
+    On the other hand, Blazor server decouples component rendering logic from how UI
+    updates are applied. Blazor server provides support for hosting Razor components
+    on the server in an ASP.Net Core app. UI updates are handled over a <em>SignalR</em>
+    connection and the runtime stays on the server.
+</p>
+<p>
+    A <dfn>hosted</dfn> Blazor WebAssembly app runs on the client to present data
+    to the end-user but the data is served from a back-end server.
+</p>
+<h4>HTML Fundamentals</h4>
+<p>
+    HTM is the language that web pages are written in. The main characteristics of
+    HTML are:
+</p>
+<ul>
+    <li>
+        HTML stands for Hyper Text Markup Language.
+    </li>
+    <li>
+        HTML is the standard markup language for creating web pages.
+    </li>
+    <li>
+        HTML describes the structure of a web page.
+    </li>
+    <li>
+        HTML consists of a series of <dfn>elements</dfn>.
+    </li>
+    <li>
+        HTML <dfn>elements</dfn> label (or mark) pieces of content such as
+        "this is a heading", "this is a paragraph", "this is a link", etc.
+    </li>
+</ul>
+<h4>The HTML DOM (Document Object Model)</h4>
+<p>
+    The DOM is a W3C (World Wide Web Consortium) standard that defines a standard for
+    accessing documents. The W3C Document Object Model (DOM) is a platform and
+    language-neutral interface that allows programs and scripts to dynamically access
+    and update the content, structure, and style of a document.
+</p>
+<p>The W3C DOM standard is separated into 3 different parts:</p>
+<ol>
+    <li>Core DOM: standard model for all document types.</li>
+    <li>XML DOM: standard model for XML documents.</li>
+    <li>HTML DOM: standard model for HTML documents.</li>
+</ol>
+<p>
+    The HTML DOM is a standard object model and programming interface for HTML. When
+    a web page is loaded, the browser creates a DOM of the page. The HTML DOM model
+    is constructed as a tree of <strong>objects</strong>:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/37-html-metadata/01-dom.png"
+         alt="HTML DOM Tree of Objects." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://www.w3schools.com/js/js_htmldom.asp">
+            W3Schools HTML DOM
+        </a>
+    </figcaption>
+</figure>
+<h4>Anatomy of an HTML document</h4>
+<p>
+    As mentioned in <a href="02-components-part-two">Part-II</a> of the Components
+    module, <strong>
+        in a Blazor WebAssembly app, the <em>host page</em> is a simple static
+        HTML file under <code>wwwroot/index.html</code>. The <em>root HTML elements</em>
+        (e.g., &lt;html&gt;, &lt;head&gt;, and &lt;body&gt;) are typically defined
+        inside the <em>host page</em> because it is used to render the initial HTML
+        content for the application:
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/62-host-page.png"
+         alt="Host page." />
+</div>
+<p>
+    The &lt;div&gt; element with and id attribute value of <strong><code>app</code></strong>
+    is used to indicate where the <code>RouteData</code>, found by the <code>Router</code>
+    component of the root component (Application/Client/App.razor), should be rendered.
+</p>
+<p>
+    In general terms, the main frame (or layout) for a Blazor WASM application is rendered
+    during app build up and only certain components (or parts of the web page) are updated
+    or re-rendered dependent on the data requested by the client. This is the reason why
+    they are called Single-page applications (SPA).
+</p>
+<p>
+    Do not confuse this index.<strong>html</strong> addressable static host page
+    (application's entry point) with the Index.<strong>razor</strong> component which
+    is the routable component that the <em>Router</em> will render if the browser
+    wants to navigate to Home or Index:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/63-folder-tree-host-page.png"
+         alt="Host page folder tree." />
+</div>
+<h4>The <code>&lt;head&gt;</code> Element</h4>
+<p>
+    For this lecture, we are particularly interested in the <strong><code>&lt;head&gt;</code></strong>
+    element. The <a href="https://developer.mozilla.org/en-US/docs/Glossary/Head">
+        <dfn>head</dfn>
+    </a> element is the part of an HTML document that is not displayed in the web
+    browser when a page is loaded and it contains <dfn>metadata</dfn> (data that
+    describes data) about that document such as the page &lt;title&gt;, author,
+    description, links to CSS, to a custom favicon (favorites icon) or JavaScript
+    files, etc.
+</p>
+<p>
+    Many <strong><code>&lt;meta&gt;</code></strong> elements include a <em>name</em>
+    and <em>content</em> attributes:
+</p>
+<ul>
+    <li>
+        <code>name</code> specifies the type of meta element it is; i.e., what type
+        of information it contains.
+    </li>
+    <li>
+        <code>content</code> specifies the actual meta content.
+    </li>
+</ul>
+<p>
+    For example, <strong>two meta elements that are useful to include</strong> in the
+    &lt;head&gt; section of a page are the author and the description of the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/02-meta-example.png"
+         alt="Meta tag examples with author and description." />
+</div>
+<p>
+    Specifying a description that includes keywords relating to the content of
+    your page is useful as it has the potential to make your page appear higher
+    in relevant searches performed in search engines. The description is also
+    used on search engine result pages.
+</p>
+<p>
+    You can also add references to custom icons in your metadata to further enrich
+    your site design. The most commonly used of these is the <dfn>favicon</dfn>
+    which stands for "favorites icon" and refers to its use in the "favorites" or
+    "bookmarks" lists in browsers).
+</p>
+<p>
+    Depending on the browser, you may also see a favicon displayed in the browser
+    tab containing each open page. <strong>
+        A favicon can be added to a page in two easy steps:
+    </strong>
+</p>
+<ol>
+    <li>
+        <p>
+            Save it in the same directory as the site's index page. It must be saved
+            in <code>.ico</code> format (some browsers support favicons in formats like
+            <code>.gif</code> or <code>.png</code>).
+        </p>
+    </li>
+    <li>
+        <p>
+            Add the following line into your HTML's <code>&lt;head&gt;</code> block to
+            reference it:
+        </p>
+        <p>
+            <code>&lt;link rel=</code>"icon" <code>href=</code>"favicon.ico" <code>type=</code>"image/x-icon"<code>/&gt;</code>
+        </p>
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Web browsers use the information contained in the <code>&lt;head&gt;</code> element
+        to render the HTML document correctly.
+    </p>
+</div>
+<p>
+    Since Blazor is a Single-page application framework where each component maintains its
+    own state and specifies itw own rendering logic, <a href="01-blazor">
+        components do not render directly to the DOM
+    </a> because the application application is running inside &lt;body&gt; of the
+    static HTML host page. They instead render to an in-memory representation of the DOM
+    called the <code>RenderTree</code> where Blazor compares the newly rendered output with
+    the previous output to calculate a UI difference that it then applies efficiently to the
+    DOM.
+</p>
+<p>
+    In other words, it needs an alternate way to specify important metadata about a specific
+    routable component (or Razor page). This subject takes particular importance when
+    considering how the web browsers search and retrieve relevant data requested by an
+    end-user.
+</p>
+<p>
+    Search engine bots (a.k.a. web crawler bots, web crawlers, or spiders) are responsible
+    for downloading and indexing content from all over the internet. Their goal is to
+    learn what web pages on the web are about so that their information can be retrieved
+    when it is needed.
+</p>
+<p>
+    These bots are typically operated by search engines that apply a search algorithm to
+    the data collected by web crawlers to be able to provide relevant links in response
+    to user search queries and generate the list of webpages that show up after a user
+    types a search into Google, Yahoo, Bing, or any other search engine.
+</p>
+<p>
+    Indexing focuses mostly on the text that appears on the page (&lt;body&gt; element)
+    and on metadata about the page that users do not see (&lt;head&gt;). Metadata is
+    then data that tells search engines what a webpage is about. Often the meta
+    <dfn>title</dfn> and meta <dfn>description</dfn> are part of the Search Engine
+    Result Pages (SERP).
+</p>
+<p>
+    Although Search Engine Optimization (SEO) and Social Media Optimization (SMO) mostly
+    rely on the &lt;body&gt; content of a web page, you can significantly contribute by
+    adding metadata.
+</p>
+<p>
+    The content of the &lt;head&gt; element of a document should typically consist of
+    at least:
+</p>
+<ul>
+    <li>
+        Title.
+    </li>
+    <li>
+        Description.
+    </li>
+    <li>
+        Link to your site map.
+    </li>
+    <li>
+        <a href="https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls">
+            Canonical
+        </a> link.
+    </li>
+    <li>
+        <a href="https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data">
+            Structured data like JSON-LD
+        </a>.
+    </li>
+    <li>
+        Favicon (typically defined for the whole application in the host page
+        (wwwrooot/index.html).
+    </li>
+</ul>
+<h4>Control <code>&lt;head&gt;</code> Content in Blazor apps</h4>
+<p>
+    Razor components can modify the HTML <code>&lt;head&gt;</code> element content of a
+    page including setting the page's <em>title</em> (&lt;title&gt; element) and modifying
+    metadata (&lt;meta&gt; elements).
+</p>
+<p>
+    You can use the <dfn>Microsoft.AspNetCore.Components.Web</dfn> <strong><code>PageTitle</code></strong>
+    component to render an HTML &lt;title&gt; element to a <dfn>HeadOutlet</dfn> component
+    and you can use the <dfn>Microsoft.AspNetCore.Components.Web</dfn>
+    <strong><code>HeadContent</code></strong> component to provide content to a
+    <dfn>HeadOutlet</dfn> component.
+</p>
+<p>
+    The <dfn>Microsoft.AspNetCore.Components.Web</dfn> <strong><code>HeadOutlet</code></strong>
+    component renders content provided by <code>PageTitle</code> and <code>HeadContent</code>
+    components. In an app create from a Blazor WebAssembly project template, the
+    <code>HeadOutlet</code> component is added to the <dfn>RootComponents</dfn> collection
+    of the <dfn>WebAssemblyHostBuilder</dfn> in Application/Client Program.cs class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/03-head-outlet-registration.png"
+         alt="HeadOutlet component registered in DI container." />
+</div>
+<p>
+    With the CSS <strong><code>after::</code></strong> <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/::after">
+        pseudo-selector
+    </a> specified, the contents of the root component are appended (added at the end)
+    to the existing head contents (defined in the <dfn>host</dfn> HTML page) instead of
+    replacing the content. This allows the app to retain previously defined static head
+    content in <code>wwwroot/index.html</code> without having to repeat the content in
+    the app's Razor components.
+</p>
+<p>
+    In Blazor Server apps created from the Blazor Server project template, a
+    <code>Component Tag Helper</code> renders <code>&lt;head&gt;</code> content for the
+    <code>HeadOutlet</code> component in Application/Server-Api/Pages _Host.cshtml:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/37-html-metadata/04-component-tag-helper.png"
+         alt="Component Tag Helper." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/control-head-content?view=aspnetcore-7.0#headoutlet-component">
+            ASP.Net Core Blazor components
+        </a>
+    </figcaption>
+</figure>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define a favicon for the entire application.
+</p>
+<p>
+    Keep in mind that ASP.Net Core incorporates Identity as a <a href="https://learn.microsoft.com/en-us/aspnet/core/razor-pages/ui-class?view=aspnetcore-6.0&tabs=visual-studio">
+        Razor Class Library
+    </a> and this library has its own Pages/Shared/<code>_Layout</code> file where all
+    the related HTML configuration takes place. You can refer to the <a href="03-security-id-server">
+        Identity Server
+    </a> lesson of the Security module for more info.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Choose an image, use any online converter to convert your image into an
+    <code>.ico</code> format, and save it in the same directory as the site's
+    index page (e.g., Application/Client/wwwroot):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/05-favicon.png"
+         alt="Favicon folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the host page in Application/Client/wwwroot Index.html to include a
+    "link" element into the &lt;head&gt; block. The link should target the
+    favicon.ico file we just stored in the web root directory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/06-favicon-link.png"
+         alt="Web root file with favicon link." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application, the favicon should be displayed in the web browser's tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/07-browser-tab-favicon.png"
+         alt="Browser tab with favicon." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Specify relevant metadata for the Application/Client/Pages Index and
+    Application/Client/Pages/Movies FlixManager routable components. Ensure that the
+    metadata includes:
+</p>
+<ul>
+    <li>
+        Title.
+    </li>
+    <li>
+        Description.
+    </li>
+    <li>
+        Author.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/Pages Index routable component and use the <code>
+        &lt;PageTitle&gt;
+    </code> and <code>&lt;HeadContent&gt;</code> built-in components to define any
+    relevant metadata. Ensure that their content is defined in the code file with
+    class level constant variables.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 1.1:</span>
+    Go to the code file of the Index routable component and define the variables
+    with the content for the PageTitle, description, and author metadata:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/08-index-code-file.png"
+         alt="Index.razor.cs file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 1.2:</span>
+    Go to the view file of the Index routable component and use the <code>
+        &lt;PageTitle&gt;
+    </code> and <code>&lt;HeadContent&gt;</code> built-in components to define
+    its relevant metadata:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/09-index-view-file.png"
+         alt="Index.razor file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Client/Pages/Movies FlixManager routable component and use
+    the <code>&lt;PageTitle&gt;</code> and <code>&lt;HeadContent&gt;</code> built-in
+    components to define any relevant metadata. Ensure that their content is defined
+    in the code file with class level constant variables.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 2.1:</span>
+    Go to the code file of the FlixManager routable component and define the variables
+    with the content for the PageTitle, description, and author metadata:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/10-flix-manager-code-file.png"
+         alt="FlixManager.razor.cs file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 2.2:</span>
+    Go to the view file of the FlixManager routable component and use the <code>
+        &lt;PageTitle&gt;
+    </code> and <code>&lt;HeadContent&gt;</code> built-in components to define
+    its relevant metadata:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/11-flix-manager-view-file.png"
+         alt="FlixManager.razor file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application and navigate to the Index.razor and FlixManager.razor
+    routable components. They should display the PageTitle on the browser's tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/12-page-titles.png"
+         alt="Browser tabs with custom page titles." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the "Elements" (Inspector in Firefox browser) tab in the web browser's dev tools
+    to confirm that your custom metadata has been appended (added at the end) to the existing
+    head contents (defined in the <dfn>host</dfn> HTML page):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/13-elements.png"
+         alt="Elements tab with appended metadata." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Update the page title (<code>&lt;title&gt;</code>) element of the host page 
+    (Application/Client/wwwroot index.html) to "Flix Manager":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/17-host-page-title.png"
+         alt="Host page title updated." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define a favicon for the ASP.Net Core Identity section which is incorporated as
+    a <a href="https://learn.microsoft.com/en-us/aspnet/core/razor-pages/ui-class?view=aspnetcore-6.0&tabs=visual-studio">
+        Razor Class Library
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Choose an image, use any online converter to convert your image into an
+    <code>.ico</code> format, and save it in the same directory as the site's
+    index page (e.g., Application/Server-Api/wwwroot):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/14-identity-favicon-folder-tree.png"
+         alt="Identity favicon folder tree." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The favicon file name should be different from the favicon file name of the
+    Application/Client/wwwroot file to prevent any conflicts.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Server-Api/Pages/Shared/ _Layout.cshtml file to include a
+    "link" element into the &lt;head&gt; block. The link should target the
+    identity-favicon.ico file we just stored in its web root directory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/15-layout-file.png"
+         alt="_Layout.cshtml file with custom favicon and title." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    We also replaced:
+</p>
+<ul>
+    <li>
+        "Blazor Movies" with "Flix Manager" in the <code>&lt;title&gt;</code> element.
+    </li>
+    <li>
+        "Blazor Movies" with "Flix Manager" in the <code>&lt;a&gt;</code> (anchor) element
+        of the nav bar in the <code>&lt;header&gt;</code> block.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application and use the menu on the top to navigate to the Login page. The
+    favicon should be displayed in the web browser's tab, its title should include
+    "Flix Manager", and the nav-bar title should also include "Flix-Manager":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/37-html-metadata/16-login-title-favicon.png"
+         alt="Login page with custom favicon and title." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <code>&lt;PageTitle&gt;</code> component to update the page title for
+    every routable component in the application.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Given the structure of Blazor WASM applications, many search engine bots will
+        not see the specific content (or body) of routable components. You have to
+        modify the WASM application to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/prerendering-and-integration?view=aspnetcore-7.0&pivots=webassembly">
+            Prerender and integrate ASP.Net Core Razor components
+        </a>. You can use the <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/views/tag-helpers/built-in/component-tag-helper?view=aspnetcore-7.0">
+            Component Tag Helper
+        </a> to render a component from a page or view by integrating Blazor routable
+        and non-routable components into Razor pages and MVC apps.
+    </p>
+</div>
+<p>
+    Prerendering can improve Search Engine Optimization (SEO) by rendering content
+    for the initial HTTP response that search engines can use to calculate page
+    rank.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Getting_started#anatomy_of_an_html_element">
+            Getting started with HTML
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/The_head_metadata_in_HTML">
+            What's in the head? Metadata in HTML
+        </a>
+    </li>
+    <li>
+        <a href="https://www.telerik.com/blogs/get-your-head-together-blazor-new-headcontent-pagetitle">
+            Get Your Head Together With Blazor's New HeadContent and PageTitle
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/control-head-content?view=aspnetcore-7.0">
+            Control &lt;head&gt; content in ASP.Net Core Blazor apps
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/prerendering-and-integration?view=aspnetcore-6.0&pivots=webassembly">
+            Prerender and integrate ASP.Net Core Razor components.
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/views/tag-helpers/built-in/component-tag-helper?view=aspnetcore-7.0">
+            Component Tag Helper in ASP.Net Core
+        </a>
+    </li>
+</ul>

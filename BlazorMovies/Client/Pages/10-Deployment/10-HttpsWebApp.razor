@@ -1,0 +1,416 @@
+﻿@page "/10-https-web-app"
+<PageTitle>HTTPS Web App</PageTitle>
+
+<h2>Deployment - HTTPS on Azure App Service</h2>
+<p>
+    It is essential that you have a basic understanding of digital certificates. You can
+    refer to the introductory lesson of the <a href="https://localhost:7077/01-deployment-fundamentals">
+        Deployment
+    </a> module for more info.
+</p>
+<p>
+    As you know, the HTTPS protocol ensures that the data exchange is delivered securely via
+    TLS/SSL. When the web browser is connected via HTTPS, it validates the web site's certificate.
+    It verifies that the certificate, if any, is issued by a legitimate certificate authority
+    (CA).
+</p>
+<p>
+    To fully enable HTTPS on an Azure App Service, you require a TLS/SSL certificate.
+    You can choose to use a certificate that is managed by the Azure App Service or to
+    use a certificate from an external certification authority (CA).
+</p>
+<p>
+    The options provided by the Azure App Service to add digital certificates are:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/30-https-web-app/01-certificate-options.png"
+         alt="Options to create a certificate in Azure App Service." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#upload-a-private-certificate">
+            Options to create a certificate in App Service
+        </a>
+    </figcaption>
+</figure>
+<p>
+    The prerequisites for a free certificate are:
+</p>
+<ul>
+    <li>
+        Have a mapped domain where you want the certificate in the App Service.
+    </li>
+    <li>
+        For a root domain (e.g., flix-manager.com), make sure that your app does not
+        have any <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-ip-restrictions">
+            IP restrictions
+        </a> configured. Both certificate creation and its periodic renewal for a root
+        domain depends on your app being reachable from the internet.
+    </li>
+</ul>
+<p>
+    Some of the key attributes of a free App Service managed certificate are:
+</p>
+<ul>
+    <li>
+        It is fully managed by App Service.
+    </li>
+    <li>
+        It is automatically renewed continuously in six-month increments, 45 days before
+        expiration, as long as the prerequisites that you set up stay the same.
+    </li>
+    <li>
+        All the associated bindings are updated with the renewed certificate.
+    </li>
+    <li>
+        It is free of charge.
+    </li>
+    <li>
+        Free certificates are issued and managed by DigiCert. Azure fully manages the
+        certificates on your behalf.
+    </li>
+</ul>
+<p>
+    Free App Service managed certificates have the following limitations:
+</p>
+<ul>
+    <li>
+        Do not support wildcard certificates.
+    </li>
+    <li>
+        Do not support usage as a client certificate by using certificate thumbprint,
+        which is planned for deprecation and removal.
+    </li>
+    <li>
+        Do not support private DNS.
+    </li>
+    <li>
+        Are not exportable.
+    </li>
+    <li>
+        Are not supported in App Service Environment (ASE).
+    </li>
+    <li>
+        Only support alphanumeric characters, dashes (-), and periods (.).
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        To create custom TLS/SSL bindings or enable client certificates for the
+        App Service app, the <a href="https://azure.microsoft.com/pricing/details/app-service/">
+            App Service plan
+        </a> must be at least in the Basic tier.
+    </p>
+</div>
+<p>
+    Unlike <a href="06-https-cdn">Azure CDN-managed certificates</a>, Azure App Service
+    managed certificates are available for root or apex domains. Nevertheless, in
+    <a href="09-custom-domain-web-app">
+        last lesson
+    </a> we chose to use a managed certificate for the "app.flix-manager.com" subdomain
+    and an external CA certificate for the "www.app.flix-manager.com" subdomain. These way
+    we can demonstrate both approaches eventhough it not necessary to get an external
+    certificate.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a free managed certificate for the app.flix-manager.com subdomain.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the "TLS/SSL settings" blade of the Azure App service, select the "Private
+    Key Certificates (.pfx)" option, and click on "+ Create App Service Managed
+    Certificate". Alternately, you can use the "Certificates" blade, select "Managed
+    Certificates", and "+ Add Certificate":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/02-tls-ssl-blade.png"
+         alt="TLS/SSL blade." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Select the subdomain from the dropdown list and click on "Create". The process may
+    take a few minutes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/03-subdomain-create-cert.png"
+         alt="Create managed certificate page." />
+</div>
+<p>
+    That's it. We have created a free fully managed digital certificate that can be used
+    for SSL/TLS binding. Azure App Service will handle timely renewals:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/04-certificate-details.png"
+         alt="Certificate details." />
+</div>
+<p>
+    At this point, the certificate is created and valid but it is not yet bound to the
+    custom domain that it was created for (app.flix-manager.com). It is time to generate
+    an SSL/TLS certificate from an external CA for the "www.app.flix-manager.com" subdomain.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Get an SSL/TLS certificate from an external Certification Authority (CA) for the
+    "www.app.flix-manager.com" subdomain.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The process followed for this task is exactly the same than the one demonstrated in the
+    <a href="06-https-cdn">
+        Https CDN
+    </a> lesson to get an SSL/TLS certificate for the landing page domain "rafaelsanchez.ws".
+    Refer to that lesson for the detailed steps.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to <a href="https://www.ssls.com/">SSLs</a> to buy a "PositiveSSL" certificate. This
+    is a Domain Validation (DV) certificate for 1 domain only but that is all we need because
+    it covers both subdomains (app.flix-manager.com and www.app.flix-manager.com) by default.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the instructions to
+    <a href="https://www.ssls.com/knowledgebase/okay-so-i-ordered-an-ssl-how-do-i-get-it-to-work-on-my-domain/#create-csr-in-browser">
+        create the SSL files locally
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    <a href="https://www.ssls.com/knowledgebase/how-to-install-an-ssl-on-a-windows-server-when-the-csr-was-generated-elsewhere/#create_pfx">
+        Create the .pfx file
+    </a> for your certificate.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://www.ssls.com/">
+            SSLs
+        </a>
+    </li>
+    <li>
+        <a href="https://decoder.link/converter">
+            SSL Converter
+        </a>
+    </li>
+    <li>
+        <a href="https://www.ssls.com/knowledgebase/how-to-install-an-ssl-on-microsoft-azure-web-app/">
+            How to install an SSL on Microsoft Azure Web App
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/W2UF1WMPg7o">
+            Azure App service managed certificates | Free SSL for App Service | Configure SSL for App Service
+        </a> (contains how to convert certificate to PFX using OpenSSL).
+    </li>
+</ul>
+<p>
+    We have an SSL/TLS certificate and an Azure Key Vault created in the <a href="06-https-cdn">
+        Https CDN
+    </a> lesson. It is time to upload the certificate to the key vault.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Upload the SSL/TLS certificate to the Azure Key Vault (kv-rsLanding) and ensure that its
+    access policy has the required permissions enabled to allow access to the Flix-Manager web
+    app to any of its stored certificates.
+</p>
+<p>
+    The Azure Key Vault (kv-rsLanding) was created in the <a href="06-https-cdn">
+        Https CDN
+    </a> lesson where we uploaded the SSL/TLS certificate for the "rafaelsanchez.ws" domain.
+    Later, in the <a href="07-dynamic-website">Dynamic Website</a> lesson, we configured the
+    key vault (kv-rsLanding) to allow access to its "secrets" from the Flix-Manager web app.
+    Finally, in the <a href="08-id-server-cert">IdServer Engine Certificate</a> lecture, we
+    updated the key vault's access policy for the web app to grant access to its stored
+    certificates.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate?source=recommendations&tabs=azure-portal">
+        instructions
+    </a> to import a certificate to the key vault service.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Import the certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/05-kv-import-cert.png"
+         alt="Key vault import input data." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    After a successful upload, click on the certificate to access its properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/06-certificate-properties.png"
+         alt="Certificate properties." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Ensure that the Key Vault has an access policy that allows the App Service web app
+    (flix-manager) to access the certificates stored. If not, you can follow the
+    Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy?tabs=azure-portal#assign-an-access-policy">
+        assign an access policy
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the "Access policies" blade of the key vault service, select the access policy
+    named "flix-manager" and click on the "Edit" icon:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/07-access-policy.png"
+         alt="Access policy's permissions." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#import-a-certificate-from-key-vault">
+        import the certificate into the App Service
+    </a> from Key Vault.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Select, validate, and import the certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/08-select-certificate.png"
+         alt="Certificate selection and validation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the "Certificates" blade of the App Service, navigate to the "Bring your own
+    certificates (.pfx)" or "Private Key Certificates (.pfx)" option, select the recently
+    added certificate, and use the ellipsis menu to access its details:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/09-certificate-details.png"
+         alt="Certificate details." />
+</div>
+<p>
+    So far, we have created an Azure managed free certificate for the "www.app.flix-manager.com"
+    subdomain and we have created, and imported to Azure Key Vault, an external CA certificate for
+    the "app.flix-manager.com" subdomain. What's more, in <a href="09-custom-domain-web-app">
+        last lesson
+    </a>, we associated these custom subdomains to the Azure App Service web app. We can now
+    proceed to bind the ditial certificates to the custom subdomains.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the Azure <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-bindings#secure-a-custom-domain">
+        documentation
+    </a> to secure your custom subdomains by binding them with the corresponding TLS/SSL certificate.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the "Custom domains" blade of the App Service and select "Add binding" for the
+    "app.flix-manager.com" subdomain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/10-custom-domains-blade.png"
+         alt="Custom domains blade." />
+</div>
+<p>
+    Recall that at the end of <a href="09-custom-domain-web-app">
+        last lesson
+    </a>, the "app.flix-manager.com" subdomain was configured to be secured with an Azure
+    managed certificate.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/14-app-domain-validation.png"
+         alt="Custom subdomain configuration-validation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the "Custom domains" blade of the App Service and select "Add binding" for the
+    "www.app.fllix-manager.com" subdomain:
+</p>
+<p>
+    Recall that at the end of  <a href="09-custom-domain-web-app">
+        last lesson
+    </a>, the "www.app.flix-manager.com" subdomain was configured to be secured with an
+    external CA certificate stored in the key vault service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/28-www-app-domain-validation.png"
+         alt="Custom subdomain configuration-validation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the "Custom domains" blade of the App Service and ensure that the subdomains are
+    secured:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/11-secured-domains.png"
+         alt="Secured subdomains." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use a web browser to navigate and test each subdomain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/30-https-web-app/12-naked-subdomain-secured.png"
+         alt="Naked subdomain web browser certificate viewer." />
+</div>
+<p>
+    Data Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/tutorial-import-certificate?source=recommendations&tabs=azure-portal">
+            Tutorial: Import a certificate in Azure Key Vault
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy?tabs=azure-portal#assign-an-access-policy">
+            Assign a Key Vault access policy
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#import-a-certificate-from-key-vault">
+            Import a certificate from Key Vault
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-bindings#secure-a-custom-domain">
+            Secure a custom domain
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#create-a-free-managed-certificate">
+            Secure connections by adding and managing TLS/SSL certificates in Azure App Service
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/BrJtpCV_foU">
+            How to Setup Azure App Service Custom Domains with Certificates
+        </a> by Blaize Stewart from Atmosfera channel.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/BwdvltGl6iw">
+            Azure App Service Custom Domain | Configuring Custom Domain for Azure App Service
+        </a> from iCode2Learn channel
+    </li>
+</ul>
+<p>
+    The two subdomains that point to the Azure App Service web app resource are up and
+    running with their SSL/TLS certificates in place. It might be a good idea to
+    <a href="07-dynamic-website">
+        Publish and deploy
+    </a> the web app into the Azure app service to update the recently added files and ensure
+    that everything is working as expected.
+</p>
+<p>
+    The Flix-Manager web app should display with no apparent issues. You should be able to
+    download content from either one of its subdomains using the Https protocol. However,
+    even after a successful authentication of a user, the authorization service to grant access
+    (or not) to protected Application/Server-Api resources will return a StatusCode 401-Unauthorized 
+    when using the custom subdomains. Only the URL of the site that is automatically launched by
+    Visual Studio after a successful deployment works as expected: https://flix-manager.azurewebsites.com.
+</p>
+<p>
+    This takes us to the next lesson on <a href="">URL redirection</a> where we explain
+    the problem and provide the solution.
+</p>

@@ -1,0 +1,287 @@
+﻿@page "/09-mfa"
+<PageTitle>Multi Factor AuthN</PageTitle>
+
+<h2>Security - Multi Factor Authentication (MFA)</h2>
+<p>
+    Multi-factor authentication (MFA) is a process in which a user is requested for
+    additional forms of identification during a sign-in event. This requirement could
+    be to enter a code from a cellphone, use a FIDO2 (Fast Identity Online) key, or
+    to provide a biometric scan.
+</p>
+<p>
+    Requiring a second form of authentication enhances security because the additional
+    authentication factor is not easily obtained or duplicated by an attacker. MFA
+    requires at least two types of proof for an identity. Two-factor authentication
+    (2FA) is like a subset of MFA but the difference being that MFA can require two
+    or more factors to prove the identity.
+</p>
+<p>
+    2FA is supported by default when using ASP.Net Core Identity. To enable or disable
+    2FA for a specific user, set the <code>IdentityUser&lt;TKey&gt;.TwoFactorEnabled</code>
+    property. The ASP.Net Core Identity Default UI includes pages for configuring 2FA.
+</p>
+<h4>MFA SMS</h4>
+<p>
+    MFA with Short Message Service (SMS) increases security massively compared with
+    a single factor authentication with password by itself. However, using SMS as a
+    second factor is no longer recommended. Too many known attack vectors exist for
+    this type of implementations. Besides, third-party providers of short message
+    services charge on a pay as you go basis.
+</p>
+
+<h4>MFA FIDO2 or password-less</h4>
+<p>
+    Fast Identity Online is currently the most secure way of achieving MFA and the
+    only MFA flow that protects against phishing attacks. At present, ASP.Net Core
+    does not support FIDO2 directly. FIDO2 can be used for MFA or passwordless flows.
+</p>
+<p>
+    Azure Active Directory provides <a href="https://docs.microsoft.com/en-us/azure/active-directory/authentication/concept-authentication-passwordless">
+        support
+    </a> for FIDO2 and passwordless flows.
+</p>
+
+<h4>MFA TOTP (Time-based One-Time Password Algorithm)</h4>
+<p>
+    MFA using TOTP is supported by default when using ASP.Net Core Identity. This
+    approach can be used together with any compliant authenticator app including:
+</p>
+<ul>
+    <li>Microsoft Authenticator</li>
+    <li>Google Authenticator</li>
+</ul>
+<p>
+    2FA using TOTP is preferred to SMS 2FA. An authenticator app provides a 6 to 8
+    digit code which users must enter after they provide their username and password,
+    and the application has validated these credentials. Typically, an authenticator
+    app is installed on a smartphone.
+</p>
+<p>
+    The ASP.Net Core Identity UI templates support configuration for authenticator
+    applications such as Microsoft authenticator and Google authenticator but they
+    don't provide support for Quick Response (QR)code generation. QR code is a
+    two-dimensional type of barcode that is scan-able using smartphones/tablets
+    that are natively developed to scan/detect QR codes.
+</p>
+<p>
+    The authenticator app uses the code within the QR code to register the secret that
+    will be shared between the application and the authenticator app and to synchronize
+    their respective counters.
+</p>
+<p>
+    When the QR code is scanned, both parties (the authenticator and the application)
+    start their counters and each time a new code is generated, their counter values
+    increase.
+</p>
+<p>
+    To disable support for MFA TOTP, configure authentication using <code>.AddIdentity</code>
+    instead of <code>.AddDefaultIdentity</code>. <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio#adddefaultidentity-and-addidentity">
+        AddDefaultIdentity
+    </a> calls are equivalent to calling AddIdentity, AddDefaultUI, and
+    AddDefaultTokenProviders internally. The latter registers multiple token providers
+    including one for MFA TOTP.
+</p>
+<p>
+    To register only specific token providers, call AddTokenProvider for each required
+    provider.
+</p>
+<p>
+    2FA does not happen using an external authentication provider such as Google or
+    Facebook. External logins are protected by whatever mechanism the external login
+    provider supports. Otherwise, if the default templates were to enforce "local"
+    2FA with "external" login providers, then users would be required to satisfy two
+    2FA approaches.
+</p>
+<p>
+    In this lesson, we will increase the security of our application with 2FA using
+    TOTP for the following reasons:
+</p>
+<ol>
+    <li>ASP.Net Core Identity UI templates support 2FA TOTP by default.</li>
+    <li>Documentations and support for this type of MFA is extense.</li>
+    <li>It can be implemented in a short amount of time.</li>
+    <li>It does not require a paid service.</li>
+</ol>
+<p>
+    You will need access to the Identity UI templates. If you haven't done so, refer
+    to the Scaffold Identity in ASP.Net Core section in lesson
+    <a href="03-security-id-server">Identity Server</a> to scaffold the complete UI
+    for Identity.
+</p>
+<p>
+    Authenticated users can click the user name link of the nav menu on the top
+    of any page to navigate to the Application/Server-Api/Areas/Identity/Pages
+    Account/Manage/Index page to manage their account settings:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/02-manage-index-link.png"
+         alt="Link to manage index page." />
+</div>
+<p>
+    The EnableAuthenticator form (in the EnableAuthenticator page) is displayed when
+    the "Two-factor authentication" link in the Manage index page is selected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/03-two-factor-authn-link.png"
+         alt="Two-factor authentication link." />
+</div>
+<p>
+    The EnableAuthenticator form contains instructions for the User on how to use
+    a two-factor authenticator app. However, the application does not have support
+    for QR code generation:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/20-MFA/04-enable-authenticator-page.png"
+         style="max-width: 110%"
+         alt="EnableAuthenticator page." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Add QR codes to the 2FA configuration page.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a folder named "lib" in the webroot (wwwroot) directory of the Application/Server-Api
+    and download the <dfn>qrcode.js</dfn>  JavaScript library. To download the file, you can use
+    either one of the following approaches:
+</p>
+<ul>
+    <li>
+        Go to <a href="https://davidshimjs.github.io/qrcodejs/">qrcode.js</a> and download
+        the library to the lib folder.
+    </li>
+    <li>
+        Use a <dfn>Library Manager</dfn> such as .Net's <dfn>LibMan</dfn> to find, fetch,
+        and manage library files from an external CDN such as <a href="https://cdnjs.com/">
+            cdnjs
+        </a>. You might recall that this approach is explained in the Setting up Bootstrap
+        in Blazor section of the <a href="02-components-part-four">
+            02. Components Part-IV
+        </a> lecture.
+    </li>
+</ul>
+<p>
+    Once done, you should have something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/01-wwwroot-folder-tree.png"
+         alt="Web root folder tree with qrcode.js library." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Add a "js" folder to the web root directory and create a new JS file named "qr.js" with
+    the following code:
+</p>
+<div class="=image-lesson mb-3">
+    <img src="Images/20-MFA/05-qr-js-file.png"
+         alt="qr.js file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Remove the code with the message for the User on how to enable QR code generation.
+    This message will no longer be needed because that is exactly what we are doing
+    with this task.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Locate the scripts section at the end of the EnableAuthenticator view (page) and add
+    a reference to the <strong><code>qrcode.js</code></strong> library downloaded earlier
+    and a reference to the <strong><code>qr.js</code></strong> file with the call to
+    generate the QR code:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/06-enable-authenticator-view-one.png"
+         alt="Scripts in EnableAuthenticator page view file part one." />
+    <img src="Images/20-MFA/07-enable-authenticator-view-two.png"
+         alt="Scripts in EnableAuthenticator page view file part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Change the site name in the QR code.
+</p>
+<p>
+    The site name in the QR code is taken from the project name. You can change it in
+    the GenerateQrCodeUri method of the EnableAuthenticator PageModel:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/08-enable-authenticator-page-model.png"
+         alt="Custom site name in QR code." />
+</div>
+<p>
+    At this point, 2FA with TOTP should be fully configured.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Test the 2FA with TOTP implementation.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Go to android apps (for android mobile) or app store (for ios mobile) and download
+    Google Aunthenticator or Microsoft authenticator app.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Run the Flix Manager application, authenticate a User and use the user name in the
+    nav menu on top to navigate to the user account manager. Select the Two-factor
+    authentication link and click on "Set up authenticator app" to configure (and synchronize)
+    the Blazor WASM app with the authenticator app:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/20-MFA/09-set-up-authenticator.png"
+         alt="Two-factor authentication page." />
+</div>
+<p>
+    Follow the instructions on the screen to configure (and synchronize) the authenticator
+    app:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/20-MFA/10-qr-code.png"
+         style="max-width: 110%"
+         alt="Account manger index page with QR code." />
+</div>
+<p>
+    You can <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-enable-qrcodes?view=aspnetcore-6.0#using-a-different-qr-code-library">
+        replace
+    </a> the QR Code library. The HTML contains a <code>qrCode</code> element
+    into which you can place a QR Code by whatever mechanism the library provides.
+</p>
+<div class="alert alert-warning" role="alert">
+    Time-based One-Time Password (TOTP) authentication depends on both the server
+    (identity provider) and authenticator device having an accurate time. Tokens
+    <strong>only last for 30 seconds</strong>. If TOTP 2FA logins are failing, ensure
+    that the server time is accurate and preferable, synchronized to an accurate 
+    NTP service.
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/mfa?view=aspnetcore-6.0#extend-the-login-with-an-mfa-claim">
+            Multi-factor authentication in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/sKjpLblZeDQ">
+            Deep Dive: Multi-Factor Authentication with .Net 5
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-enable-qrcodes?view=aspnetcore-6.0">
+            Enable QR code generation for TOTP authenticator apps in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://davidshimjs.github.io/qrcodejs/">
+            QRCode.js
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/2fa?view=aspnetcore-1.1&viewFallbackFrom=aspnetcore-6.0">
+            Two-factor authenticator with SMS in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/66486574/how-do-i-enforce-2fa-in-net-core-identity">
+            How do I enforce 2FA in .Net Core Identity?
+        </a>
+    </li>
+</ul>

@@ -1,0 +1,16 @@
+﻿@page "/genres/create"
+@attribute [Authorize(Policy = AuthZPolicies.ApiCreateContent)]
+
+<PageTitle>Create Genre</PageTitle>
+
+<h3 class="mb-0">Create Genre</h3>
+<p class="mt-0 small text-muted">(open the browser's console)</p>
+
+<div class="form-control">
+
+    <GenreForm Genre="_genre"
+               OnValidSubmit="CreateGenre" />
+
+</div>
+
+

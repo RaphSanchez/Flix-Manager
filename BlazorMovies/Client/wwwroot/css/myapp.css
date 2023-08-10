@@ -1,0 +1,229 @@
+﻿
+/* #region Blazor host page error message dismiss */
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+/* #endregion */
+
+/* #region Root Elements */
+
+:root {
+    --color-html: rgb(255, 112, 97);
+    --color-h: rgb(239, 77, 112);
+    --color-font: rgb(110,110,110);
+    --color-nav: white;
+    --color-nav-bg: rgb(134,153,134);
+    --color-nav-hover: rgb(142, 147, 139);
+    --color-nav-hover-font: white;
+    --color-sidebar: rgb(221, 214, 209);
+}
+
+html {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--color-html);
+    box-sizing: border-box;
+    color: var(--color-font);
+    font: normal 16px Roboto, Helvetica, sans-serif;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+}
+
+/*  #endregion */
+
+/* #region General Purpose */
+p {
+    text-align: justify;
+}
+
+.hide-small {
+    display: none;
+}
+
+/* #endregion */
+
+/* #region Headers */
+
+h1, h2, h3, h4, h5 {
+    color: var(--color-h);
+    font-weight: normal;
+    margin: 0 0 .7rem 0;
+    padding: 0;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, .4);
+}
+
+h1 {
+    color: rgb(77, 38, 38);
+    font-size: 220%;
+}
+
+h2 {
+    font-size: 200%;
+}
+
+h3 {
+    font-size: 180%;
+}
+
+h4 {
+    font-size: 160%;
+}
+
+header {
+    max-height: 12vh;
+    padding: 1rem 0 0 0;
+}
+
+    header p {
+        color: rgb(77, 38, 38);
+        margin: 0 0 1rem 0;
+        padding: 0;
+    }
+
+/* #endregion */
+
+/* #region Lesson Images */
+
+.image-lesson {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    height: auto;
+    justify-content: center;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+    .image-lesson img {
+        animation: slide-bounce 2s normal 1 forwards;
+        display: block;
+        height: auto;
+        max-width: 100%;
+    }
+
+/* #endregion */
+
+/* #region NavMenu Animations */
+
+@keyframes slide-bounce {
+    0% {
+        transform: translateY(-400%)
+    }
+
+    50% {
+        opacity: .7;
+        transform: translateY(0%)
+    }
+
+    65% {
+        transform: translateY(-9px)
+    }
+
+    80% {
+        opacity: 1;
+        transform: translateY(0)
+    }
+
+    95% {
+        transform: translateY(-3px)
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0)
+    }
+}
+
+/* #endregion */
+
+/* #region Custom Loading Spinner */
+
+.spinner {
+    border: 16px solid silver;
+    border-top: 16px solid #337AB7;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 700ms linear infinite;
+    top: 35%;
+    left: 50%;
+    position: absolute;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* #endregion */
+
+/* #region Custom Loading Spinner */
+
+.spinner {
+    border: 16px solid silver;
+    border-top: 16px solid #337AB7;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 700ms linear infinite;
+    top: 35%;
+    left: 50%;
+    position: absolute;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* #endregion */
+
+/* Small Viewport tablet portrait view */
+@media screen and (min-width: 768px ) {
+    .hide-small {
+        display: inline-block;
+    }
+
+    h1 {
+        margin-bottom: 0;
+    }
+}
+
+/* Large Viewport desktop */
+@media screen and (min-width: 1280px) {
+    .image-lesson img {
+        max-width: 80%;
+    }
+}

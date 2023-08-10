@@ -1,0 +1,1017 @@
+﻿@page "/07-dynamic-website"
+<PageTitle>Deployment Dynamic Website</PageTitle>
+
+<h2>Deployment - Dynamic Website</h2>
+<p>
+    It is <strong>strongly suggested</strong> to watch the following video series
+    before going through this module. They provide a very good foundation on "Cloud"
+    concepts and Azure services:
+</p>
+<ul>
+    <li>
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhXEgpNSDbKBLvaYets30KQF">
+            Cloud computing tutorial for beginners
+        </a> by kudventakt.
+    </li>
+    <li>
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVIhqTz-LBfwgz_Amz7rRLp">
+            Azure tutorial for beginners
+        </a> by kudvenkat.
+    </li>
+    <li>
+        <a href="https://youtu.be/4BwyqmRTrx8">
+            Azure App Service (Web apps) Tutorial
+        </a> by Adam Marczak.
+    </li>
+    <li>
+        <a href="https://youtu.be/vfLN-P8H0KA">
+            What Are Azure App Services?
+        </a> by Blaize Stewart in Atmosfera.
+    </li>
+</ul>
+<p>
+    ASP.Net Core Blazor Webassembly incorporates different features to optimize and
+    customize the hosting and deployment of the application. For example:
+</p>
+<dl>
+    <dt>Ahead-of-time (AOT) compilation</dt>
+    <dd>
+        With <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#ahead-of-time-aot-compilation-1">
+            AOT
+        </a> compilation, you can compile your .Net code directly into WebAssembly.
+        This results in runtime performance improvements at the expense of a larger
+        app size.
+    </dd>
+    <dt>Runtime relinking</dt>
+    <dd>
+        One of the largest parts of a Blazor WebAssembly app is the WebAssembly-based
+        .Net runtime (dotnet.wasm) that the browser must download when the app is first
+        accessed by a user's browser. <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#runtime-relinking-1">
+            Relinking
+        </a> the .Net WebAssembly runtime trims unused runtime code and thus improves
+        download speed.
+    </dd>
+    <dt>Globalization</dt>
+    <dd>
+        Globalization is the process of designing and developing your app in such a way that it
+        functions appropriately in different global markets (on systems with different language
+        and culture configurations) without requiring culture-specific changes or customization.
+    </dd>
+    <dd>
+        The <strong><code>@@bind</code></strong> attribute directive applies formats and
+        parses values for display based on the user's first preferred language that the
+        app supports.
+    </dd>
+    <dt>Localization</dt>
+    <dd>
+        Localization is the process of adapting or translating your app's localizable resources
+        to meet the language, cultural, and political requirements of the specific local
+        markets that the app is intended to support.
+    </dd>
+</dl>
+<p>
+    You can refer to the <a href="05-internationalization">Internationalization</a> lesson
+    in the Miscellaneous module for more info.
+</p>
+<hr />
+<p>
+    As we explained in the beginning of the <a href="01-deployment-fundamentals">
+        Deployment Fundamentals
+    </a> lesson, the deployment module is about deploying a personal portfolio website
+    with different features. In this lesson, we will demonstrate how to publish the
+    BlazorMovies web application (dynamic site) using Visual Studio 2022 and an Azure
+    App Service.
+</p>
+<p>
+    In general, to deploy an ASP.Net Core app to a hosting environment, you need to
+    deploy the app to a folder on the hosting environment. Keep in mind that a web
+    server that is capable of hosting ASP.Net Core apps is required.
+</p>
+<p>
+    Last section of the deployment module demonstrated how to execute a standalone
+    deployment that serves the Blazor WebAssembly app as a set of static files that
+    are requested directly by clients. Any static file server is able to serve
+    the Blazor app. We published the <a href="02-static-website">Static Website</a>
+    using the .Net CLI and the
+    <a href="https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish">
+        dotnet publish
+    </a> commandlet. This approach first compiles the app code and copies the files
+    required to run the app into a "publish" folder which is then employed to deploy
+    the app to a hosting system.
+</p>
+<p>
+    In this section of the deployment module, we will demonstrate how to execute a hosted
+    deployment with ASP.Net Core. A <dfn>hosted deployment</dfn> serves the Blazor WebAssembly
+    app to browsers from an ASP.Net Core app that runs on a web server. <span class="mark">
+        <strong>
+            The application will be deployed to Azure App Services on a Windows operating
+            system (as opposed to Linux) which hosts the app with
+        </strong>
+    </span>
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#iis">
+        Microsoft Internet Information Services (IIS) web server
+    </a>.
+</p>
+<p>
+    Deployment is conveniently simplified using the "Publish" option in the Solution
+    Explorer of Visual Studio. Under these circumstances, the "dotnet publish" step occurs
+    automatically before the files are copied to the deployment destination (e.g., to the
+    server). The client project of the Blazor WebAssembly app is published into the
+    Application/Server-Api/bin/Release/{TargetFramework} folder of the <strong>server</strong>
+    project (Application/Server-Api) and the two apps (projects: Application/Client and
+    Application/Server-api) are deployed together.
+</p>
+<p>
+    In the introductory lesson for the <a href="01-deployment-fundamentals">deployment</a>
+    module, we created an Azure account, a subscription (RS-Portfolio), a resource group
+    (FlixMngr-RG), a storage account (blazormoviesstg) for hosting the static assets of
+    the web application, and an App Service (Flix-Manager) to host the web application. Next,
+    we have to publish the application.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/?view=aspnetcore-6.0#publish-to-a-folder">
+            Host and deploy ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0">
+            Host and deploy ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0">
+            Publish an ASP.Net Core app to Azure with Visual Studio
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@00HBEH3EaKPVspLrXT4x7Hzd2xt6TihpHmUsJcDy21VjVUXvDSsVUkraiTMPb6zU/">
+            Episode 106.
+        </a>Deploying to Azure App Service of Udemy course "Programming in Blazor - ASP.Net Core5" by
+        Felipe Gavilan.
+    </li>
+
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/quickstart-dotnetcore?tabs=net60&pivots=development-environment-vs">
+            Quickstart: Deploy an ASP.Net web app
+        </a>
+    </li>
+</ul>
+<p>
+    The MSDN documentation creates the Azure SQL database service within the publish and deploy
+    process. Although this approach is more convenient, it does not allow to fine tune the
+    SQL database features and their corresponding costs. For this reason, we will first create
+    the database from the Azure portal.
+</p>
+<h4>Azure SQL database</h4>
+<p>
+    The database resource type creates a database in Azure SQL database with its own set of
+    resources and is managed via a logical SQL server that acts as a central administrative
+    point for a collection of databases.
+</p>
+<p>
+    The logical server allows you to administer logins, firewall rules, auditing rules,
+    threat detection policies, and auto-failover groups.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Azure SQL database to host the app's data.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Azure portal to create the database service.
+</p>
+<p>
+    Creating the database is a two stage process because we first have to create an SQL
+    Server responsible for handling the SQL database(s). Once you have the SQL Server, you
+    can create the SQL database service. Azure will automatically provide a field for a new
+    SQL Server when creating the database if it detects that there is no SQL Server in the
+    current subscription.
+</p>
+<p>
+    Make sure you enable the "Allow Azure services and resources to access this server" and
+    the "Add current client IP Address":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/11-azure-db-networking.png"
+         alt="Azure DB networking tab." />
+</div>
+<p>
+    General settings used to create the Azure SQL database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/12-db-settings.png"
+         alt="SQL DB settings." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you have a dynamic IP address for your local computer, you will have to eventually
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/firewall-configure?view=azuresql#use-the-azure-portal-to-manage-server-level-ip-firewall-rules">
+            reset the valid IP address to access the Azure SQL database
+        </a> from your computer. Otherwise, you won't be granted access.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    For the purpose of this lesson, let's suppose you want to update the valid IP address
+    registered in the Azure SQL server firewall.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to your SQL database in the Azure portal and select "Set Server firewall":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/22-sql-database-firewall.png"
+         alt="Azure portal SQL database overview." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Select "+ Add your client IPv4 address (000.000.00.00)":
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/27-deployment-dynamic/23-firewall-ip-authz.png"
+         alt="Add your client IPv4 address option." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Access your Azure SQL database from local machine.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Access your Azure SQL database from Visual Studio.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Go to the Overview blade of the SQL database service in the Azure portal and copy to clipboard
+    the "Server name":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/24-server-name.png"
+         alt="SQL server name for database in Azure portal." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Open the Visual Studio SQL Server Object Explorer, select "Add Sql Server" and fill
+    out the Server Name, Authentication, User Name, and Password (for the Azure SQL server).
+    Once you fill out these fields, the Database Name options field is populated with any
+    available databases:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/25-connect-from-visual-studio.png"
+         alt="Visual Studio SQL Server Object Explorer." />
+</div>
+<p>
+    That's it, you can now access the Azure SQL database from Visual Studio:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/26-azure-db-from-visual.png"
+         alt="SQL Server Object Explorer with Azure SQL server and DB." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Access your Azure SQL database from Microsoft SQL Server Management Studio (MSSMS).
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Open MSSMS, select "Database Engine" in the server type, fill out the server Name,
+    Authentication, Login, and Password (for the Azure SQL server) and click "Connect":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/27-mssms-connect.png"
+         alt="MSSMS Connect dialog box." />
+</div>
+<p>
+    That's it, you can now access the Azure SQL databases from MSSMS:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/28-mssms-connected.png" />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Azure Data Studio is a cross-platform database tool for data professionals who use
+    on-premises and cloud data platforms on Windows, macOs, and Linux. It offers a modern
+    editor experience with IntelliSense, code snippets, source control integration, and an
+    integrated terminal.
+</p>
+<p>
+    You can use <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/what-is-azure-data-studio?view=sql-server-ver16">
+        Azure Data Studio
+    </a> to query, design, and manage your databases and data warehouses whether they are
+    on your local computer or in the cloud.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/single-database-create-quickstart?view=azuresql&tabs=azure-portal">
+            Quickstart: Create a single database - Azure SQL Database
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/BgvEOkcR0Wk">
+            Azure SQL Database Tutorial | Relational databases in Azure
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/single-database-overview?view=azuresql">
+            What is a single database in Azure SQL Database?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/logical-servers?view=azuresql&tabs=portal">
+            What is a logical SQL server in Azure SQL Database and Azure Synapese?
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/JMcmJGogqyg">
+            How to access azure sql database from local machine
+        </a> by kudvenkat.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/what-is-azure-data-studio?view=sql-server-ver16">
+            What is Azure Data Studio?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/download-azure-data-studio?view=sql-server-ver16">
+            Download and install Azure Data Studio
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/quickstart-sql-database?source=recommendations&view=sql-server-ver16">
+            Quickstart: Use Azure Data Studio to connect and query Azure SQL Database
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/firewall-configure?view=azuresql#use-the-azure-portal-to-manage-server-level-ip-firewall-rules">
+            Use the Azure portal to manage server-level IP firewall rules
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Publish and deploy the BlazorMovies web app into the Azure app service created in
+    previous lessons. Use the MSDN <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0">
+        documentation
+    </a> and Episode 106 of the Udemy course <a href="https://www.udemy.com/share/102l0i3@tupc2YuMTLJbHcC4WNo_jX0sidQeVJVioqAWFpaCBggEYV4-LW_hv-iyWsrFkRrB/">
+        Programming in Blazor - ASP.Net Core 5
+    </a> by Felipe Gavilán for guidance.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Before deploying the application, make sure to enable the <a href="02-data-storage-options">
+        Azure Storage Service
+    </a>
+    in the Application/Server-Api/Program class as opposed to using the InAppStorageService:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/09-azure-storage-service.png"
+         alt="Azure Storage service enabled." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the Solution Explorer in Visual Studio to create a Publish profile to
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0#deploy-the-app-to-azure">
+        Deploy the app to Azure
+    </a>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Keep in mind that we are deploying with a
+    backend ASP.Net Core app to serve the files. We are deploying a hosted Blazor WASM app.
+    For a hosted Blazor WebAssembly solution, <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#use-a-custom-webconfig-1">
+        publish the solution
+    </a> from the <strong>
+        Application/Server-Api
+    </strong> project. In other words, you should right-click on the Application/Server-Api
+    project to select "Publish". Also, the MSDN documentation deploys to a Linux platform but
+    we are deploying to a Windows operating system to eventually take advantage of the
+    Microsoft Internet Information Services (IIS) web server features.
+</p>
+<p>
+    Visual Studio creates the publish profile files. You can use these files to <a href="https://go.microsoft.com/fwlink/?LinkID=208121">
+        customize
+    </a> the deployment settings of your app:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/10-publish-profile-file.png"
+         alt="Publish profile file path." />
+</div>
+<p>
+    The publish profile summary page should look something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/01-publish-profile.png"
+         alt="Publish profile." />
+</div>
+<p>
+    Visual Studio has detected that this application requires a SQL Server database. This
+    service dependency needs to be configured. The service dependency for "Storage" does not
+    need configuration because it was already taken care of at the end of the
+    <a href="01-deployment-fundamentals">
+        deployment
+    </a> introductory lesson. You can select the "Ignore for this profile" option.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the ellipsis menu of the Storage dependency and select "Ignore for this profile".
+    Then, go to the ellipsis menu of the SQL Server Database dependency and select "Connect"
+    to configure the Azure SQL Server and Azure SQL database. Select the "Azure SQL Database"
+    service dependency and click Next.
+</p>
+<p>
+    We already created the Azure SQL Server and SQL datbase but if you haven't done so, you
+    first have to create the Azure SQL Server. Make sure to store the database server name,
+    administrator user name and administrator password. Since we already have a database,
+    select it from the dialog box:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/02-sql-db.png"
+         alt="SQL db dialog box." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    At this point, the Azure SQL server or managed instance is only configured for access
+    using a single SQL login and user account. The "Database connection user name" is the
+    "Server Admin Login" or "Administrator Username" you assigned during creation of the
+    Azure SQL Server.
+</p>
+<p>
+    You can refer to <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/logins-create-manage?view=azuresql">
+        Authorize database access to SQL Database, SQL Managed Instance, and Azure Synapse
+        Analytics
+    </a> if you need to create additional logins and users. <strong>
+        Store the connection string for future reference:
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/03-sql-db.png"
+         alt="SQL Database connect dialog box." />
+</div>
+<p>
+    Summary of changes for the Azure SQL database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/06-summary-azure-sql-db.png"
+         alt="Summary of changes for the SQL dependency." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    For the next step, make sure that you do not have the debug console of the application
+    open because it will create a conflict. The Entity Framework migrations are being used
+    by the console and this prevents the settings from accessing the resources:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/07-conflict.png"
+         alt="Entity Framework migrations conflict." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    In the Publish profile summary, select "Show All Settings". Expand the "Databases"
+    option and check the database connection string to run at runtime. Then expand the
+    "Entity Framework Migrations" option and check the "Apply this migration on publish"
+    checkbox. Make sure that <strong>
+        the connection string selected on each option matches the connection string that
+        you stored
+    </strong> in Step Three:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/08-settings.png"
+         alt="Profile settings." />
+</div>
+<p>
+    At this point, the Application/Server-Api/Properties/PublishProfiles publish profile
+    file has the necessary data to establish a connection with Azure to deploy the
+    application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/04-publish-profile-file.png"
+         alt="Publish profile file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Select the Publish button from the Publish summary to deploy the application to Azure.
+    When the deployment completes, the Publish summary reports the result and the app should
+    open in a web browser:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/05-publish-succeeded.png"
+         alt="Publish summary." />
+</div>
+<p>
+    However, in this case, the web browser indicates that the web app is not available.
+    It throws an HTTP 500 Internal Server Error response code:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/13-http-500.png"
+         alt="HTTP Error 500" />
+</div>
+<p>
+    We can use the Azure App Service Console Blade to open the Azure console, execute the
+    application from there, and see if there are any exceptions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/14-app-service-console.png"
+         alt="App service console." />
+</div>
+<p>
+    The name of the app can be obtained from Visual Studio Solution Explorer:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/15-solution-explorer.png"
+         alt="Visual Studio Solution Explorer." />
+</div>
+<p>
+    Unfortunately, the <strong><code>.exe</code></strong> command aborted after 60 seconds
+    "due to no output nor CPU activity". It seems as if the application is not able to
+    start.
+</p>
+<p>
+    We can dig even deeper with the help of the <a href="https://learn.microsoft.com/en-us/azure/app-service/resources-kudu">
+        Kudu Service
+    </a> which is the engine behind Azure App Service. Anytime you create an app, App Service
+    creates a companion app for it that is secured by HTTPS. This Kudu app is <a href="https://learn.microsoft.com/en-us/azure/app-service/resources-kudu#access-kudu-for-your-app">
+        accessible
+    </a>at <strong><code>https://yourappname.scm.azurewebsites.net</code></strong>.
+</p>
+<p>
+    In other words, Kudu is a web-based diagnostics console provided by Azure App Service.
+    It let's you examine the server-hosting environment, view deployed files to Azure,
+    review deployment history, and even open a Secure Shell Protocol (SSH) session into the
+    hosting environment.
+</p>
+<p>
+    Go to a web browser and type in the URL for your app, for example: <strong>
+        <code>
+            https://flix-manager.scm.azurewebsites.net
+        </code>
+    </strong>
+</p>
+<p>
+    You can also access the Kudu Service for your App Service from the "Advanced Tools"
+    blade of the Azure App Service. It is right below the "Console" blade shown in the
+    image above. In any case, open the Kudu Service for your app and navigate to:
+</p>
+<ul>
+    <li>Debug console</li>
+    <li>LogFiles</li>
+    <li>eventlog.xml</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/16-event-log-file-route.png"
+         alt="Event log file route." />
+</div>
+<p>
+    Download the eventlog.xml file of your app to trace the execution process. Alternately,
+    you can also download the eventlog.xml file by selecting the "Diagnostic dump"
+    options under the "Tools" menu on top:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/29-diagnostic-dump.png"
+         alt="Diagnostic dump option." />
+</div>
+<p>
+    Download the compressed files, extract them, and select the "eventlog.xml" file. We have
+    underlined important events, green for successful and yellow for require attention:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/17-event-log-file.png"
+         alt="Event log file." />
+</div>
+<p>
+    When the application executes, an InvalidOperationException is thrown because the
+    Client Id and Password for the Google authentication is not found. Recall that in
+    lesson <a href="10-external-id-providers">Trusted External Identity Providers</a>,
+    we configured ASP.Net Core to enable users to sign in using OAuth 2.0 with credentials
+    from external authentication providers such as Google and Facebook.
+</p>
+<p>
+    The authentication Id and password for both external providers were set up using the
+    secret-manager tool. We need a way to allocate that data into the Azure App Service
+    to make it available to our application configuration.
+</p>
+<p>
+    And since we are already fixing issues with the "application secrets", we should also
+    include the app secrets for the email service provider (Twilio SendGrid) responsible
+    for sending <a href="08-account-confirmation">account confirmation</a> emails to validate
+    new accounts, password resets, etc.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/quickstart-dotnetcore?tabs=net60&pivots=development-environment-vs">
+            Quickstart: Deploy an ASP.Net web app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0">
+            Publish an ASP.Net Core app to Azure with Visual Studio
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/tutorial-dotnetcore-sqldb-app?tabs=azure-portal%2Cvisualstudio-deploy%2Cdeploy-instructions-azure-portal%2Cazure-portal-logs%2Cazure-portal-resources">
+            Tutorial: Deploy an ASP.Net Core and Azure SQL Database app to Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/tooling?view=aspnetcore-6.0&pivots=windows#net-webassembly-build-tools">
+            Tooling for ASP.Net Core Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+            Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@tupc2YuMTLJbHcC4WNo_jX0sidQeVJVioqAWFpaCBggEYV4-LW_hv-iyWsrFkRrB/">
+            Episode 106 and 107
+        </a> of Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/BgvEOkcR0Wk">
+            Azure SQL Database Tutorial | Relational databases in Azure
+        </a> by Adam Marczak
+    </li>
+    <li>
+        <a href="https://youtu.be/vfLN-P8H0KA">
+            What are Azure App Services?
+        </a> by Blaize Stewart in Atmosfera.
+    </li>
+    <li>
+        YouTube Video
+        <a href="https://youtu.be/LrNcvyXCp-o">
+            How to deploy web applicatoin with sql database to azure
+        </a> by Kudvenkat.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/logins-create-manage?view=azuresql">
+            Authorize database access to SQL Database, SQL Managed Instance, and Azure Synapse
+            Analytics
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/resources-kudu">
+            Kudu Service
+        </a>
+    </li>
+</ul>
+<h4>Configure Azure App Settings</h4>
+<p>
+    The commonly accepted approach to store application secrets is to access them as
+    environment variables. In App Service, the way to define environment variables is
+    through <dfn>app settings</dfn>. App settings and connection strings are stored
+    encrypted in Azure and they are decrypted only before being injected into your
+    app's process memory when the app starts. The encryption keys are rotated regularly.
+</p>
+<p>
+    Alternatively, you can integrate your App Service app with Azure Key Vault for
+    advanced secrets management. By accessing the Key Vault with a managed identity,
+    your App Service app can securely access the secrets it needs but more on that later.
+</p>
+<p>
+    In App Service, app settings are variables passed as environment variables to the
+    application code. These are injected into your app environment at app startup. When
+    you add, remove, or edit app settings, App Service triggers an app restart.
+</p>
+<p>
+    For ASP.Net and ASP.Net Core developers, setting app settings in App Service is
+    like setting them in <code>&lt;appsettings&gt;</code> in <dfn>Web.config</dfn> or
+    <dfn>appsettings.json</dfn> source files but <strong>
+        the values in App Service
+        override the ones in
+    </strong> <dfn>Web.config</dfn> or <dfn>appsettings.json</dfn>.
+</p>
+<p>
+    You can keep development settings in the local source files and production secrets
+    safely in App Service. The same code uses your development settings when you debug
+    locally and it uses your production secrets when deployed to Azure.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-common?tabs=portal#configure-app-settings">
+        Configure app settings
+    </a> in the App Service for:
+</p>
+<ul>
+    <li>
+        Email Service Provider: Twilio Send Grid.
+    </li>
+    <li>
+        Email Service Provider: ZeptoMail.
+    </li>
+    <li>External Identity Providers: Google and Facebook.</li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Refer to the <a href="08-account-confirmation">Account Confirmation</a> and
+    <a href="10-external-id-providers">External ID Providers</a> lesson in the security
+    module to retrieve the "key-value" pairs (application secrets).
+</p>
+<p>
+    Alternately you can use the Visual Studio Solution Explorer. Right click the
+    project that holds the application secrets (e.g., Application/Server-Api) and select
+    "Manage User Secrets". This will open a .json file with the application secrets
+    currently available.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to your app in App Services of the Azure portal and select the "Configuration"
+    blade to configure the "Application Settings". Select "+ New Application Setting"
+    to add each key-value pair. <strong>Do not forget to select the "Save" icon</strong>
+    when you have added all the app secrets:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/18-app-secrets-saved.png"
+         alt="App secrets saved." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    As mentioned earlier, when you add, remove, or edit app settings, App Service triggers
+    and app restart. Go to the App Service "Overview" blade, wait a couple minutes and click
+    on its URL to open a web browser. This time the application should be up and running in
+    the cloud. If it's not, "Restart" your application manually from the overview blade of
+    the App Service, wait a couple minutes, and click on its URL to open it in a web browser:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/19-web-app-running.png"
+         alt="Web app up and running in the cloud." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that the IdentityServer engine is authenticating users and authorizing access
+    to Application/Server-Api resources as expected.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Login with the admin user that we seeded in the <a href="04-secure-user-mangaer">
+        Secure User Manager
+    </a> lesson. The user has full access to all resources. This means that the Flix Manager
+    submenu should be available, including the "Users" submenu:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/20-flix-manager-submenus.png"
+         alt="Flix Manager submenus available." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Logout the current user and register a new user to ensure that the email sender
+    provider is sending the email responsible for <a href="08-account-confirmation">
+        account confirmation
+    </a>. Confirm your email and login to the application. You should be granted access
+    to "read" Genres and People resources but not to "create", "update", nor "delete"
+    them; i.e., the "create" and "edit" buttons are not available:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/21-genres-read-permission.png"
+         alt="Genres page with read permission only." />
+</div>
+<p>
+    The application is up a running on the cloud because this time it has access to its
+    required application secrets right before it starts. Nevertheless, it is a best practice
+    to secure the app secrets using the key vault.
+</p>
+<h4>Use Key Vault to Centralize App Secrets </h4>
+<p>
+    As we explained in the <a href="06-https-cdn">Azure Key Vault</a> lesson, objects stored
+    in Key Vault are versioned whenever a new instance of an object is created and each
+    version is assigned a unique identifier and URL. <strong>
+        The complete URL to an object is called the <dfn>object identifier</dfn> and/or
+        <dfn>object principal</dfn>.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Grant your app access to Key Vault using <a href="06-https-cdn">managed identities</a>
+    and configure its app secrets in Key Vault to have them available for referencing.
+</p>
+<p>
+    You obviously need a Key Vault for this task. In our example, we will use the key vault
+    created in the <a href="06-https-cdn">Https CDN</a> lesson.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Grant your app access to Key Vault.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Add a <a href="https://learn.microsoft.com/en-us/azure/app-service/overview-managed-identity?tabs=portal%2Chttp#add-a-system-assigned-identity">
+        system-assigned
+    </a> managed identity for your application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/30-app-service-managed-identity.png"
+         alt="System assigned managed identity." />
+</div>
+<p>
+    As explained in the <a href="06-https-cdn">App Registration vs Enterprise Applications</a>
+    lesson, when an application is registered in <strong>Azure AD</strong>, a
+    <dfn>service principal</dfn> is created under "Enterprise Applications" in Azure AD. This is
+    a concrete instance of the application object and it defines what the app can do in the
+    specific tenant, who can access the app, and what resources the app can access:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/31-ad-enterprise-apps.png"
+         alt="Azure AD enterprise application flix-manager." />
+</div>
+<p>
+    You have to configure the target resource (Key Vault) to allow access from your app
+    or function; i.e., you need to add an access policy to Key Vault that includes the
+    managed identity of your app. Otherwise, your calls to Key Vault will be rejected.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Create an <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy?tabs=azure-portal">
+        access policy in Key Vault
+    </a> for the application identity you just created. This is known as
+    <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/security-features#privileged-access">
+        granting access in the data plane
+    </a>. Enable the "Get" and "List" secret permission on this policy. Do not
+    configure the "authorized application" or "applicationId" settings, as this is not
+    compatible with a managed identity:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/32-policy-settings.png"
+         alt="Policy settings in Key Vault for App Service." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the MSDN <a href="https://learn.microsoft.com/en-us/azure/azure-app-configuration/use-key-vault-references-dotnet-core?tabs=core5xhttps://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-portal">
+        documentation
+    </a> to set the app settings as secrets in the Key Vault.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    In the Azure portal, navigate to the key vault, select the "Secrets" blade, click on
+    Generate/Import and create one secret for each external id provider and one secret for
+    the email sender provider. These are exactly the same values used earlier in the task to
+    configure app settings in the App Service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/33-key-vault-secrets.png"
+         alt="Key Vault secrets enabled." />
+</div>
+<p>
+    The secret names contain dashes instead of colons because secret names can
+    <strogn>only</strogn> contain alphanumeric characters and dashes.
+</p>
+<p>
+    When secrets are created in Key Vault, they are assigned a unique <dfn>"secret identifier"</dfn>
+    which in itself is not a secret. This identifier is used as a reference from other resources
+    to access the specific secret you are interested in. Go to the "Secrets" blade of the
+    Key Vault and click on either one of the secrets, select the "CURRENT VERSION" to get
+    access to its properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/34-secret-version.png"
+         alt="Secret identifier for Authentication-Facebook-AppSecret" />
+</div>
+<p>
+    If you want to make a change to any given secret, you don't delete it, you just
+    "Create a New Version" and this new version gets assigned a new identifier. This is
+    very useful when you are having backwards compatibility issues.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        To always access the latest version of a Key Vault secret from elsewhere, you can
+        remove its unique "version" at the end of its Uri assigned as its access identifier.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Source the application settings <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#source-application-settings-from-key-vault">
+        from Key Vault
+    </a>.
+</p>
+<p>
+    Key Vault references can be used as values for Application Settings. To use a Key
+    Vault reference for an app setting, set the reference as the value of the setting. Your
+    app can reference the secret through its key as usual.
+</p>
+<p>
+    Make sure to adhere to the <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#reference-syntax">
+        specified Key Vault reference syntax
+    </a>. The reference syntax for key vault is of the form:
+</p>
+<p>
+    <strong><code>@@Microsoft.KeyVault(<span class="text-opacity-75">referencestring</span>)</code></strong>
+    where reference string is replaced by either one of the following options:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/27-deployment-dynamic/36-reference-string-options.png"
+         alt="Key Vault reference string options." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#reference-syntax">
+            Key Vault references string options
+        </a>
+    </figcaption>
+</figure>
+<p>
+    For example, a complete reference would look like either one of the the following:
+</p>
+<p>
+    <strong><code>@@Microsoft.KeyVault(SecretUri=https://myvault.vault.azure.net/secrets/mysecret/)</code></strong>
+</p>
+<p>
+    <strong><code>@@Microsoft.KeyVault(VaultName=myvault;SecretName=mysecret)</code></strong>
+</p>
+<p>
+    In our application, it should look something like this:
+</p>
+<p>
+    <strong><code>@@Microsoft.KeyVault(SecretUri=https://kv-rslanding.vault.azure.net/secrets/Authentication-Facebook-AppId/)</code></strong>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The Uri to the Azure key vault secret value does not have the trailing secret version to
+    always invoke the latest version of the Key Vault secret. However, make sure to
+    <strong>include the trailing forward slash</strong> at the end of the Uri.
+</p>
+<p>
+    or
+</p>
+<p>
+    <strong><code>@@Microsoft.KeyVault(VaultName=kv-rsLanding;SecretName=Authentication-Facebook-AppId)</code></strong>
+</p>
+<p>
+    Use the Key Vault reference string for the "Value" field of the Application Setting in
+    the Configuration blade of the App Service:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/27-deployment-dynamic/35-app-setting-reference-kv.png"
+         style="max-width: 105%;"
+         alt="App settings secret reference to key vault." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Most application settings using Key Vault references should be marked as <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli#source-application-settings-from-key-vault">
+            slot settings
+        </a>, as you should have separate vaults for each environment.
+    </p>
+</div>
+<p>
+    Go back to the App Service Configuration blade, "Save", and "Refresh" the page. You should
+    see something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/27-deployment-dynamic/37-secret-source-key-vault.png"
+         alt="App settings secret source key vault." />
+</div>
+<p>
+    Repeat the process for the rest of the application secrets to source their values from
+    the Key Vault. Don't forget to click "Save" and "Refresh" in the Configuration blade
+    of the App Service to keep the changes.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Go to the Overview blade of the App Service and click its URL link to confirm that
+    the application is still up and running.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/overview-security">
+            Security in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-common?tabs=portal#configure-app-settings">
+            Configure an App Service app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-key-vault-references?tabs=azure-cli">
+            Use Key Vault references for App Service and Azure Functions
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/tutorial-connect-msi-sql-database?tabs=windowsclient%2Cef%2Cdotnet">
+            Tutorial: Connect to SQL Database from .Net App Service without secrets using
+            a managed identity
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/PgujSug1ZbI">
+            Azure Key Vault Tutorial | Secure secrets, keys, and certificates easily
+        </a> by Adam Marczak.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/T0zpfInK7Kw">
+            Azure Key Vault Basics: How to keep 'secrets' secret
+        </a> by Dany in KnowOps.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/AA3yYg9Zq9w">
+            AZ-900 Episode 27 | Azure Key Vault | Secret, Key and Certificate Management
+        </a> by Adam Marczak.
+    </li>
+</ul>
+<p>
+    With the application running properly in the Azure App Service, the next step is to
+    update the "Key" that the IdentityServer engine uses to sign the security tokens.
+</p>

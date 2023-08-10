@@ -1,0 +1,58 @@
+﻿@using BlazorMovies.Shared.AuthZHelpers
+
+<!-- RenderMovie component replaced the SingleMovie component for more  -->
+<!-- advanced lessons.                                                  -->
+
+<div class="border rounded bg-light p-2 mb-3 mx-2"
+     style="border-color: rgb(200, 200, 200)">
+
+    <!-- Image rendering markup -->
+    <a href="@("movies/bulletin/" +
+                    $"{Movie?.Id}/{Movie?.Title?.ToLower().Replace(' ', '-')}")">
+        <img class="img-thumbnail"
+             style="height: 185px; width: 133px;"
+             src="@Movie?.PosterPath"
+             alt="Movie Poster: @Movie?.Title" />
+
+        <p style="font-size: .8rem;">@Movie?.TitleSummary</p>
+    </a>
+
+    <div class="d-flex justify-content-between">
+        <AuthorizeView Policy="@AuthZPolicies.ApiEditContent">
+            <Authorized>
+                <!-- Edit button -->
+                <a href="movies/edit/@Movie?.Id"
+                   class="btn btn-info btn-sm">
+                    Edit
+                </a>
+
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@AuthZPolicies.ApiDeleteContent">
+            <Authorized>
+                <!-- Delete button -->
+                <button @onclick="@(()=> DeleteMovie.InvokeAsync(Movie))"
+                        class="btn btn-danger btn-sm">
+                    Delete
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public Movie? Movie { get; set; }
+
+    /// <summary>
+    /// EventCallback<TValue> allows you to pass a method (functionality) from
+    /// the parent component as a parameter to this child component. The type
+    /// parameter Movie is the movie to be deleted.
+    /// </summary>
+    [Parameter]
+    public EventCallback<Movie> DeleteMovie { get; set; }
+}
+
+

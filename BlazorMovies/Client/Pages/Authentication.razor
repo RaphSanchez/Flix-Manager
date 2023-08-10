@@ -1,0 +1,53 @@
+﻿@page "/authentication/{action}"
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager navManager
+@attribute [AllowAnonymous]
+
+<RemoteAuthenticatorView Action="@Action">
+
+    <LogOutSucceeded>
+
+        @{
+            navManager.NavigateTo("/");
+        }
+
+    </LogOutSucceeded>
+
+    <LoggingIn>
+        <div class="mt-4">
+            <p class="text-center">
+                <strong>
+                    Checking Login State...
+                </strong>
+            </p>
+
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border"
+                     style="color: #1b6ec2; width: 3rem;
+                            height: 3rem;" role="status">
+                </div>
+            </div>
+        </div>
+
+    </LoggingIn>
+
+    <CompletingLoggingIn>
+        <div class="mt-4">
+            <p class="text-center">
+                <strong>
+                    Completing Logging In...
+                </strong>
+            </p>
+
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border"
+                     style="color: #1b6ec2; width: 3rem;
+                            height: 3rem;" role="status">
+                </div>
+            </div>
+        </div>
+
+    </CompletingLoggingIn>
+
+</RemoteAuthenticatorView>
+

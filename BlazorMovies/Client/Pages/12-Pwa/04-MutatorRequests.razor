@@ -1,0 +1,877 @@
+﻿@page "/04-pwa-mutator-requests"
+
+<PageTitle>PWAs - Mutator Requests</PageTitle>
+
+<h2>Progressive Web Apps - Mutator Requests Part One</h2>
+<p>
+    Recall from the lesson on <a href="03-api-caching">Api Caching</a> that controller
+    actions decorated with the <code>GET</code> HTTP verb are known as <dfn>accessors</dfn>
+    and controller actions decorated with the <code>POST</code>, <code>PUT</code>, or
+    <code>DELETE</code> HTTP verbs are known as <dfn>mutators</dfn> because they are
+    used to change or mutate data.
+</p>
+<p>
+    In last lesson on <a href="03-pwa-accessor-requests">Accessor Requests</a>, we
+    demonstrated that when the web server fails to <dfn>fetch</dfn> because the
+    application is offline (or the web server is unavailable), an <strong>
+        <code>
+            HttpRequestException
+        </code>
+    </strong> is produced because it "Failed to Fetch". The HttpRequestException in turn
+    has an inner exception of type <strong><code>JSException</code></strong>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/27-console-exception.png"
+         alt="HttpRequestException in Console tab." />
+</div>
+<p>
+    In this lecture, we will establish an exception handling mechanism with a specific
+    set of instructions to execute when it catches an HttpRequestException that in turn
+    includes an inner exception of type JSException.
+</p>
+<p>
+    The idea is that when the end user attempts to perform a POST, PUT, or DELETE operation
+    and this type of exception occurs, it is very likely that the application is offline.
+    Therefore, instead of simply informing the end user that a connection could not be
+    established, we can:
+</p>
+<ol>
+    <li>
+        <p>
+            Store the parameters that contain the data required to build the Http request
+            (e.g., data entity object or DTO, controller name, and route template).
+        </p>
+        <p>
+            These parameters can be stored in an IndexedDB which is a low-level API
+            for client-side storage but more on that later.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use a custom PwaSync component responsible for using the IndexedDB records
+            to build the Http requests and process them when an available connection
+            to the web server is reestablished.
+        </p>
+        <p>
+            The PwaSync component can also keep track and display to the user the number
+            of pending operations that need to be synchronized or updated with the web
+            server.
+        </p>
+    </li>
+    <li>
+        <p>
+            Remove from the IndexedDB any records that have been transformed into Http
+            requests and successfully processed.
+        </p>
+    </li>
+</ol>
+<h4>API Connector Review</h4>
+<p>
+    When we say that we need to store the parameters that contain the data required to
+    build the Http request, we are referring to the formal input parameters expected by
+    the <dfn>resource methods</dfn> defined in the implementation of the
+    Application/Client/ApiServices/ApiManager IApiConnector interface.
+</p>
+<p>
+    The ApiConnector is part of the <a href="09-api-connector-service">Api Service</a>
+    and it is responsible for serializing and deserializing .Net objects to JSON format.
+    It acts as an Http session to send/receive Http requests/responses and defines the
+    <a href="08-api-controllers">media type</a> of the resource representations (e.g.,
+    application/json).
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/39-api-service.svg"
+         alt="Application Api Service diagram." />
+</div>
+<p>
+    The purpose of the ApiConnector methods is to encapsulate the required code logic for
+    the <dfn>resource methods</dfn> (.Net's JSON helpers) that build the Http
+    requests/responses and serialize/deserialize .Net objects to JSON format so they can
+    travel through the internet to the Application/Server-Api/Controllers and back:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/01-api-connector-one.png"
+         alt="ApiConnector part one." />
+    <img src="Images/42-mutator-requests/02-api-connector-two.png"
+         alt="ApiConnector part two." />
+    <img src="Images/42-mutator-requests/03-api-connector-three.png"
+         alt="ApiConnector part three." />
+    <img src="Images/42-mutator-requests/04-api-connector-four.png"
+         alt="ApiConnector part four." />
+</div>
+<p>
+    When the end user attempts to perform a POST, PUT, or DELETE operation while there is
+    no connection to the web server, we can store the request parameters using a low-level
+    API for client-side storage (IndexedDB):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-offline-flow.svg"
+         alt="Online flow." />
+</div>
+<p>
+    When a connection with the web server is reestablished, our PwaSync component  can
+    retrieve the required parameters from the IndexedDB store and employ the ApiConnector
+    to build the Http requests of the pending operations and process them:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-online-flow.svg"
+         alt="Online flow." />
+</div>
+<h4>IndexedDB</h4>
+<p>
+    You might recall from the <a href="05-internationalization">Internationalization</a>
+    lesson that we have already worked with local storage through the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API">
+        Web Storage API
+    </a> that provides mechanisms by which browsers can store key/value pairs in a much
+    intuitive fashion than using <a href="https://developer.mozilla.org/en-US/docs/Glossary/Cookie">
+        cookies.
+    </a>
+</p>
+<p>
+    The two mechanisms within <strong>Web Storage</strong> are:
+</p>
+<dl>
+    <dt><code>sessionStorage</code></dt>
+    <dd>
+        Maintains a separate storage area for each given origin that is available for
+        the duration of the page session (as long as the browser is open, including page
+        reloads and restores).
+    </dd>
+    <dd>
+        Stores data only for a session, meaning that the data is stored until the browser
+        (or tab) is closed.
+    </dd>
+    <dd>
+        Data is never transferred to the server.
+    </dd>
+    <dd>
+        Storage limit is larger than a cookie (at most 5MB).
+    </dd>
+    <dt><code>localStorage</code></dt>
+    <dd>
+        Maintains a separate storage area for each given origin that is persisted even
+        when the browser is closed and reopened.
+    </dd>
+    <dd>
+        Stores data with no expiration date and gets cleared only through JavaScript or
+        clearing the browser cache/locally stored data.
+    </dd>
+    <dd>
+        Storage limit is the maximum amongst the two.
+    </dd>
+</dl>
+<p>
+    Nevertheless, these web storage options are different from IndexedDB.
+    <span class=" mark">
+        <strong>IndexedDB</strong> is a low-level API for client-side storage of significant
+        amounts of structured data including files/blobs.
+    </span> This API uses indexes to enable high-performance searches of this data.
+</p>
+<p>
+    While <strong>Web Storage</strong> is useful for storing smaller amounts of data, it
+    is less useful for storing larger amounts of structured data. <strong>IndexedDB</strong>
+    provides a solution. The IndexedDB API is available to <dfn>service workers</dfn>.
+</p>
+<p>
+    IndexedDB is a transaction database system, like an SQL-based Relational Database
+    Management System (RDBMS). However, unlike SQL-based RDMSs which use fixed-column
+    tables, IndexedDB is a JavaScript-based object-oriented database. IndexedDB lets
+    you store and retrieve objects that are indexed with a <strong><code>key</code></strong>
+    and these objects can be complex structured objects.
+</p>
+<p>
+    In other words, <strong>
+        IndexedDB is a means to persistently store data inside a user's browser.
+    </strong> Because it lets you create web applications with rich query abilities
+    regardless of network availability, these applications can work both online and
+    offline.
+</p>
+<p>
+    IndexedDB is useful for applications that store a large amount of data (e.g., a
+    catalog of DVDs in a lending library) and applications that do not need persistent
+    internet connectivity to work (e.g., mail clients, to-do lists, and notepads).
+</p>
+<p>
+    Any objects supported by the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm">
+        structured clone algorithm
+    </a> can be stored and all changes that you make to the database happen within
+    transactions. Like most web storage solutions, IndexedDB follows a <a href="https://www.w3.org/Security/wiki/Same_Origin_Policy">
+        same-origin policy
+    </a>. You can access stored data within a domain but you cannot access data across
+    different domains.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        IndexedDB API is powerful but may seem a bit complicated for simple cases. There
+        are simple <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API#see_also">
+            API libraries
+        </a> that make IndexedDB more programmer-friendly.
+    </p>
+</div>
+<p>
+    In this lecture, we will use <a href="https://dexie.org/">Dexie.js</a> which is
+    a JavaScript wrapper library for IndexedDB that allows much faster code development via
+    nice and simple syntax. There is a .Net alternative to the JavaScript wrapper library,
+    you can refer to <a href="https://github.com/b-straub/DexieNET">DexieNet</a> for more info.
+</p>
+<p>
+    Alternatively, you can choose to use IndexedDB directly, you can refer to <a href="https://blog.stevensanderson.com/2019/08/03/blazor-indexeddb/">
+        IndexedDB in Blazor
+    </a> by Steve Sanderson,
+    <a href="https://www.syncfusion.com/faq/blazor/general/how-do-i-use-indexeddb-in-blazor-webassembly">
+        How Do I Use IndexedDB in Blazor WebAssembly?
+    </a> by Syncfusion, and to <a href="https://github.com/nwestfall/BlazorDB#blazordb">
+        BlazorDB
+    </a> in Github to jump start fairly easily.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API">
+            IndexedDB API
+        </a>
+    </li>
+	<li>
+        <a href="https://blog.stevensanderson.com/2019/08/03/blazor-indexeddb/">
+            IndexedDB in Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/indexeddb/#:~:text=IndexedDB%20is%20a%20low%2Dlevel,larger%20amounts%20of%20structured%20data.">
+            Working with IndexedDB
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Basic_Terminology">
+            IndexedDB key characteristics and basic terminology
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/dexie/Dexie.js">
+            Dexie.js (GitHub)
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/offline">
+            Store data on the device
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API">
+            Web Storage API
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/storage-for-the-web/">
+            Storage for the web
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.stevensanderson.com/2019/08/03/blazor-indexeddb/">
+            IndexedDB in Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/b-straub/DexieNET">
+            DexieNet
+        </a>
+    </li>
+    <li>
+        <a href="https://www.syncfusion.com/faq/blazor/general/how-do-i-use-indexeddb-in-blazor-webassembly">
+            How Do I Use IndexedDB in Blazor WebAssembly?
+        </a>
+    </li>
+</ul>
+<h4>Setup IndexedDB with Dexie.js</h4>
+<p>
+    The objective is to provide offline support for <em>mutator</em> (POST, PUT, and
+    DELETE) operations. Thus, we need:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>One IndexedDB</strong>: The database is responsible for storing the
+            parameters required to build mutator Http requests into separate <dfn>
+                object stores.
+            </dfn>
+        </p>
+        <p>
+            We can name the IndexedDB <em>PwaDB</em> because it will be consumed to
+            enable offline features to adhere to the Progressive Web App (PWA) standard.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Three <dfn>Object Stores</dfn></strong> (individual buckets similar
+            to tables that store data):
+        </p>
+        <ul>
+            <li><em>createOperations</em> store.</li>
+            <li><em>updateOperations</em> store.</li>
+            <li><em>deleteOperations</em> store.</li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            <strong>Six functions</strong>:
+        </p>
+        <ol>
+            <li>
+                <code>getRecordsOfPendingOperations</code> to retrieve all the available
+                records stored in the <dfn>object stores</dfn>. These will be used to
+                build the Http requests when attempting to synchronize with the web server.
+            </li>
+            <li>
+                <code>deleteLocalDbRecord</code> to delete a specific record from the
+                database (IndexedDB) once it has been successfully synchronized with
+                the web server.
+            </li>
+            <li>
+                <code>getNumberOfPendingSynchronizations</code> that calculates the total
+                number of database records that represent pending operations that need to
+                be synchronized with the web server. Its value will be used to inform the
+                user.
+            </li>
+            <li>
+                <code>persistCreateOperationParameters</code> to persist a specific record
+                into the <em>createOperations</em> object store of the database (IndexedDB)
+                with the data (parameters) required to build an Http request to POST.
+            </li>
+            <li>
+                <code>persistUpdateOperationParameters</code> to persist a specific record
+                into the <em>updateOperations</em> object store of the database (IndexedDB)
+                with the data (parameters) required to build an Http request to PUT.
+            </li>
+            <li>
+                <code>persistDeleteOperationParameters</code> to persist a specific record
+                into the <em>deleteOperations</em> object store of the database (IndexedDB)
+                with the data (parameters) required to build an Http request to DELETE.
+            </li>
+        </ol>
+    </li>
+</ul>
+<p>
+    Later, we can use <a href="02-components-part-three">JSInterop</a> to consume these
+    functions from CSharp code; i.e., from our PwaSync component.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Setup the IndexedDB that will allow you to store locally (in the end user's web browser)
+    the parameters required to build Http requests to POST, PUT, and/or DELETE that can
+    be used to synchronize pending operations when a connection to the web server is
+    reestablished. Utilize the Dexie.js wrapper library for ease of use.
+</p>
+<p>
+    In lesson <a href="02-components-part-four">Components Part IV</a>, we used Bootstrap to
+    demonstrate the 3 main ways to setup any JS library plugin in a Blazor application:
+</p>
+<ol>
+    <li>
+        Request a cached version of the plugin using an open source CDN. It requires an
+        internet connection every time the application is initialized.
+    </li>
+    <li>
+        Copy-paste ready to use files into your project (e.g.,
+        <a href="https://unpkg.com/dexie@3.2.3/dist/dexie.js">
+            https://unpkg.com/dexie@3.2.3/dist/dexie.js
+        </a>).
+    </li>
+    <li>
+        Use a <dfn>Package Manager</dfn> such as Visual Studio's Extension <a href="https://marketplace.visualstudio.com/items?itemName=MadsKristensen.WebCompiler">
+            Web Compiler
+        </a> to compile downloadable source files.
+    </li>
+</ol>
+<p>
+    In lesson <a href="02-components-part-three">Components Part III</a>, we explained
+    that custom JS code can be loaded into Blazor using any of the following approaches
+    inside the application's host page (Application/Client/wwwroot index.html):
+</p>
+<ul>
+    <li>
+        Load a script in the &lt;head&gt; markup (not generally recommended).
+    </li>
+    <li>
+        Load a script in the &lt;body&gt; markup.
+    </li>
+    <li>
+        Load a script from an external JS file (.js).
+    </li>
+    <li>
+        Inject a script after Blazor starts.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Set up the Dexie.js plugin using a <em>script</em> tag inside the application's host page
+    before the closing tag of the &lt;body&gt; element markup:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/05-dexie-plugin.png"
+         alt="Host page with script for Dexie.js wrapper library." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Add a .js file named "Dexie.js" to the "js" directory that resides in the web root
+    folder (Application/Client/wwwroot). This is the JS file that will contain all the
+    JS code required to interact with our IndexedDB:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/06-dexie-js-file.png"
+         alt="Folder tree for the web root folder." />
+</div>
+<p>
+    Later, we will use <a href="02-components-part-three">JSInterop</a> to consume the
+    functionality defined in the Dexie.js library from CSharp code.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Ensure that the Dexie.js file code is loaded during initialization of the application.
+</p>
+<p>
+    To load a JS function from a .js file we need to provide a script tag with a script
+    <span class="mark"><strong><code>src</code></strong></span> path before the closing
+    &lt;/body&gt; tag of the host page but after the Blazor script reference:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/07-dexie-js-load-script.png"
+         alt="Host page with script to load Dexie.js file during initialization." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Initialize the database instance, define the database schema, and declare the code
+    logic for the six functions mentioned earlier to store the data (parameters) required
+    to build <em>mutator</em> (POST, PUT, and DELETE) Http requests:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/08-dexie-js-file-one.png"
+         alt="Dexie.js file part one." />
+    <img src="Images/42-mutator-requests/09-dexie-js-file-two.png"
+         alt="Dexie.js file part two." />
+    <img src="Images/42-mutator-requests/10-dexie-js-file-three.png"
+         alt="Dexie.js file part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Unlike DELETE operations, POST and PUT require the data entity object (body) as
+    specified by the methods of the ApiConnector class. Also, POST operations do not
+    need an additional route template segment but PUT and DELETE do, they need the object
+    Id as specified by their respective Application/Server-Api/Controllers controller
+    action.
+</p>
+<p>
+    At this point, we have completed the JavaScript logic to utilize our custom
+    IndexedDB. Now we need to create CSharp code capable of loading JS functionality
+    into our Blazor application.
+</p>
+<h4>JSInterop with Dexie.js</h4>
+<p>
+    As we explained in the <a href="02-components-part-three">
+        Blazor Components Part III
+    </a> lesson, Blazor uses JavaScript (JS) to bootstrap the .Net runtime. CSharp can
+    call a JS function/API and JS code can call any CSharp method. This ability to call
+    a JS method from CSharp and viceversa is referred to as JavaScript Interoperability.
+</p>
+<p>
+    It should be clear by now that the IndexedDB will persist records with the data
+    (parameters) required to build mutator HTTP requests. Each IndexedDB record consists
+    of a key/value pair where the key is similar to the primary key (or Id) in relational
+    databases and the value is a complex structured object.
+</p>
+<p>
+    In our example, the value (complex structured object) is formed with the parameters
+    that contain the data required to build the Http request. These parameters are
+    the data entity object or DTO, the controller name, and the route template.
+</p>
+<p>
+    Before designing the code logic to invoke the JS functions from CSharp code, we have
+    to create a Data Transfer Object (DTO) that will represent/encapsulate an IndexedDB
+    record in the CSharp world. The DTO can be named <em>LocalDbRecordDto</em> and must
+    incorporate members (properties) that represent the record key and the parameters
+    that form its value (complex structured object):
+</p>
+<ul>
+    <li>
+        <p><strong>Key</strong>: Id</p>
+    </li>
+    <li>
+        <p>
+            <strong>Value</strong> (complex structured object):
+        </p>
+        <ul>
+            <li>
+                Controller name.
+            </li>
+            <li>
+                Route template complement.
+            </li>
+            <li>
+                Data entity object (this can in turn be a DTO too).
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    Each <em>object store</em> (createOperations, updateOperations, and deleteOperations table)
+    of the IndexedDB is capable of persisting multiple records and our
+    <code>getRecordsOfPendingOperations()</code> returns a complex structured object that consists
+    of:
+</p>
+<ol>
+    <li>
+        A collection of records with data (parameters) to build create or POST Http requests.
+    </li>
+    <li>
+        A collection of records with data (parameters) to build update or PUT Http requests.
+    </li>
+    <li>
+        A collection of records with data (parameters) to build DELETE Http requests.
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/11-get-records-pending-function.png"
+         alt="getRecordsOfPendingOperations function." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Shared/EntityDtos directory to create:
+</p>
+<ul>
+    <li>
+        <p>
+            A DTO to represent/encapsulate a single IndexedDB record in the CSharp world.
+        </p>
+        <p>
+            It can be named <em>LocalDbRecordDto</em>.
+        </p>
+        <p>
+            Must have property members that represent the key/value pair of the IndexedDB
+            record.
+        </p>
+    </li>
+    <li>
+        <p>
+            A DTO to represent/encapsulate the collections of records with data (parameters)
+            to build create, update, and delete HTTP requests.
+        </p>
+        <p>
+            It can be named <em>LocalDbRecordsDto</em>.
+        </p>
+        <p>
+            Must have an initialized property member of type <code>List&lt;LocalDbRecordDto&gt;</code>
+            for each database object store (table) in the IndexedDB.
+        </p>
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/12-local-db-record-dto-one.png"
+         alt="LocalDbRecordDto and LocalDbRecordsDto classes part one." />
+    <img src="Images/42-mutator-requests/13-local-db-record-dto-two.png"
+         alt="LocalDbRecordDto and LocalDbRecordsDto classes part two." />
+</div>
+<p>
+    With the DTOs in place, we can declare the code logic to invoke the JS functions from
+    CSharp code.
+</p>
+<p>
+    You might recall that in lesson <a href="02-components-part-three">
+        Blazor Components Part III
+    </a>, we extended the <dfn>Microsoft.JSInterop.IJSRuntime</dfn> that represents an
+    instance of a JavaScript runtime to which calls may be dispatched. We created an
+    Application/Client/Helpers IJSRuntimeExtensions class responsible for centralizing the
+    CSharp <dfn>extension methods</dfn> that encapsulate the code logic required to
+    invoke JS functions.
+</p>
+<p>
+    Some examples are JS built-in functions such as <code>window.alert</code>, setting a
+    timer for <a href="10-external-id-providers">Automatic Logout if User is Inactive</a>,
+    and <a href="02-sweet-alert">
+        SweetAlert
+    </a> functions to convey information to the application user.
+</p>
+<p>
+    Having commonly required JS function invocations integrated into a single class that is
+    available from everywhere in our application allows changing their implementation from
+    a single place.
+</p>
+<p>
+    We can use our IJSRuntimeExtensions class to incorporate <dfn>extension methods</dfn>
+    that will allow us to utilize our custom IndexedDB from anywhere in our application
+    using CSharp code. These <dfn>extension methods</dfn> must be exactly equivalent, and
+    compatible, with the JS functions defined in the Application/Client/wwwroot/js Dexie.js
+    file.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Helpers IJSRuntimeExtensions class to declare the
+    <dfn>extension methods</dfn> that encapsulate invocations to the JS functions of
+    the Application/Client/wwwroot/js Dexie.js file.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    To load a JS function from a .js file we need to provide a script tag with a script
+    <span class="mark"><strong><code>src</code></strong></span> path before the closing
+    &lt;/body&gt; tag of the host page but after the Blazor script reference just as we
+    did earlier in the Setup IndexedDB with Dexie.js
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Declare the <dfn>extension methods</dfn> to invoke, from CSharp code, the JS functions
+    defined in the Dexie.js file. These must be equivalent/compatible.
+</p>
+<p>
+    Keep in mind that as <dfn>extension methods</dfn>, they must adhere to the following
+    conditions:
+</p>
+<ul>
+    <li>Reside within a static class.</li>
+    <li>Include the <code>static</code> modifer.</li>
+    <li>
+        Their first formal input parameter must be preceded with the keyword <code>this</code>
+        followed by the type that the method operates on; i.e., the type that is being
+        extended.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/14-dexie-js-interop-one.png"
+         alt="Interop code for Dexie.js functions part one." />
+    <img src="Images/42-mutator-requests/15-dexie-js-interop-two.png"
+         alt="Interop code for Dexie.js functions part two." />
+    <img src="Images/42-mutator-requests/16-dexie-js-interop-three.png"
+         alt="Interop code for Dexie.js functions part three." />
+    <img src="Images/42-mutator-requests/17-dexie-js-interop-four.png"
+         alt="Interop code for Dexie.js functions part four." />
+</div>
+<p>
+    It seems that we are almost done with the pieces involved in the offline flow. The
+    Dexie.js functions to utilize our custom IndexedDB are completed and the JSInterop
+    methods to invoke these functions from CSharp code are ready:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-offline-flow.svg"
+         alt="Offline flow diagram." />
+</div>
+<p>
+    The obvious next step is to start working with the Application/Client to test the
+    recently added functionality. Let's start simple by simply attempting to create
+    a new Genre object while the application is offline.
+</p>
+<h4>Create Genres Offline</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Genres GenreCreate routable component to refactor
+    the exception handling mechanism of its CreateGenre <dfn>onclick event handler</dfn>
+    to store the Http POST request parameters when the application user attempts to
+    execute the operation while the application is offline. It should also inform the
+    user that the operation was stored because a connection was not available.
+</p>
+<p>
+    As mentioned at the beginning of this lecture, the idea is that when the end user
+    attempts to perform a POST, PUT, or DELETE operation while the application is
+    offline, an HttpRequestException that includes an inner JSException is thrown:
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Refactor the catch block of the CreateGenre() method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/18-genre-create-one.png"
+         alt="Exception handler for CreateGenre method part one." />
+    <img src="Images/42-mutator-requests/19-genre-create-two.png"
+         alt="Exception handler for CreateGenre method part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    You can refer to the <a href="07-exception-handlers">Exception Handlers</a>
+    lesson for the final version of the exception handling mechanism for the
+    CreateGenre() method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Test the CreateGenre() method with online and offline modes.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    "Clean" and "Rebuild" the Application/Client project and run the application
+    to a server that supports Https and access the app in a browser at its secure
+    Http address. PWA service workers do not execute in regular Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab. Install any
+    <em>worker in waiting</em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), navigate to the IndexGenres routable component, and create a
+    new Genre object in online mode. Then go to offline mode and attempt to create a new
+    Genre object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/21-no-connection-message.png"
+         alt="No connection and operation stored message." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4:</span>
+    Go to the IndexedDB section in the Application tab of the web browser's dev tools
+    and select the "createOperations" object store of our IndexedDB named PwaDB.
+</p>
+<p>
+    You should see the the key/value pair of the stored record where the value is a
+    complex structured object with the data (parameters) required to build an Http
+    request to create an object of type Genre:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/22-create-operations-store.png"
+         alt="createOperations object store with new record." />
+</div>
+<p>
+    We have successfully completed the pieces involved in the offline flow. The
+    Dexie.js functions to utilize our custom IndexedDB are completed, the JSInterop
+    methods to invoke these functions from CSharp code are ready, and the IndexedDB
+    record was successfully stored as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-offline-flow.svg"
+         alt="Diagram for offline flow." />
+</div>
+<p>
+    The logical next step would be to refactor the exception handling mechanisms for
+    the PUT and DELETE operations for Genre objects but before going any further in
+    that sense, we are going to work on our PwaSync component which will be responsible
+    for:
+</p>
+<ul>
+    <li>
+        <p>
+            Using the IndexedDB records to build the Http requests and process them when
+            an available connection to the web server is reestablished.
+        </p>
+        <p>
+            Keeping track and displaying to the user the number of pending operations that
+            need to be synchronized or updated with the web server.
+        </p>
+    </li>
+    <li>
+        <p>
+            Removing, from the IndexedDB, any records that have been transformed into Http
+            requests and successfully processed.
+        </p>
+    </li>
+</ul>
+<p>
+    Once we have the online flow pieces up and running, we can refactor the exception
+    handling mechanisms of all the data entities for which we want to provide offline
+    support to perform mutator (POST, PUT, and DELETE) operations.
+</p>
+<p>
+    You can refer to the <a href="08-pwa-offline-support">Offline Support</a>
+    lesson for the final version of our exception handling mechanism that
+    supports working offline.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 149. Introducción a IndexedDB of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@7fRBtnPBNZT8syKiJqijFFWGJkNtOoIyCvSYcQ7VlpRyjMMph1LxGT70Tm-EYVR2/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        Episode 150. Implementando el Componente Sincronizador of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@7fRBtnPBNZT8syKiJqijFFWGJkNtOoIyCvSYcQ7VlpRyjMMph1LxGT70Tm-EYVR2/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        Episode 151. Creando Géneros en Modo Offline of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@7fRBtnPBNZT8syKiJqijFFWGJkNtOoIyCvSYcQ7VlpRyjMMph1LxGT70Tm-EYVR2/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://dexie.org/docs/Dexie.js">
+            Dexie.js
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/offline">
+            Store data on the device
+        </a>
+    </li>
+</ul>
+<h4>Loading Image Files to 'dynamic-cache'</h4>
+<p>
+    As we explained in the <a href="01-pwa-fundamentals">PWAs</a> introductory lesson,
+    when installing a new version of itself, the <em>service-worker</em> creates a
+    new, separate cache for offline static resources (offline-cache) and starts populating
+    the cache with the resources listed in the <em>service-worker-assets.js</em> file.
+    This logic is implemented in the <code>onInstall</code> event handler inside the
+    service worker files (<em>service-worker.js</em> and <em>service-worker.published.js</em>).
+</p>
+<p>
+    The <em>onInstall</em> process completes successfully when all of the resources are
+    loaded without error and all content hashes match.
+</p>
+<p>
+    After performing some tests, the initial service worker install was taking too long
+    because the application has too many image files. This is unacceptable waiting time
+    for the application user.
+</p>
+<p>
+    For this reason, it was decided to avoid loading any image related files to the
+    'offline-cache' during the <em>onInstall</em> process of the service worker. This
+    significantly reduces the initial loading times for the application when a new
+    service worker is available.
+</p>
+<p>
+    <span>Task:</span>
+    Refactor the <strong><code>offlineAssetsInclude</code></strong> code logic to
+    omit any image related file extensions from the 'offline-cache'.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to <strong>both</strong> service worker files and remove the 
+    <code>/\.png$/</code>, <code>/\.jpe?g$/</code>, <code>/\.gif/</code>, and
+    <code>/\.ico$</code> patterns from the <code>offlineAssetsInclude</code> local 
+    reference:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/45-service-worker-final-version.png"
+         alt="Omit image related file extensions during initial offline-cache upload." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Make sure to refactor <strong>both service workers</strong> <em>
+        service-worker.js
+    </em> and <em>service-worker.published.js</em> files. Recall that one is used
+    for development and the other one is consumed when in production.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Excluding image related file extensions from the <code>offlineAssetsInclude</code>
+    local reference only excludes loading the files to the 'offline-cache' during initial
+    service worker install. Later, if the application user visits the 'page' and the
+    application is online, our custom <code>getResponseAndUpdateCache</code> function
+    loads the image files to the 'dynamic-cache' for later use.
+</p>
+<p>
+    You can confirm this by repeating Step Two of the last task to run the application
+    and examine the 'dynamic-cache' in the "Cache Storage" section of the "Application"
+    tab in the web browser's developer tools.
+</p>

@@ -1,0 +1,2271 @@
+﻿@page "/04-forms-part-one"
+<PageTitle>Blazor Forms - I</PageTitle>
+<h2>Forms - Part One</h2>
+<p>
+    Forms are used to receive user input and then pass that data along to a server. The
+    data can be in its simplest form of <em>input text</em> or the user might have to
+    make a choice. There is usually a <em>submit</em> button element that finalizes the
+    input and sends the data off to a server.
+</p>
+<p>
+    The <strong><code>&lt;EditForm&gt;</code></strong> component is Blazor's approach
+    to managing user input. The <code>&lt;EditForm&gt;</code> component is bound to a
+    model (root entity) that uses <em>data annotations</em> and makes it easy to
+    <strong>perform validation</strong> to check if all validation rules have been
+    satisfied, and present the user with validation errors if they have not.
+</p>
+<p>
+    Although it is possible to create forms using the standard <em>&lt;form&gt;</em>
+    HTML element, it is <strong>recommended</strong> to use the
+    <strong><code>&lt;EditForm&gt;</code></strong> component because of the additional
+    features it provides.
+</p>
+<p>
+    The key feature to the &lt;EditForm&gt; is its <strong>
+        <code>Model</code> parameter.
+    </strong> This parameter provides the component with a context it can work with
+    to enable UI binding and determine whether or not the user's input is valid.
+</p>
+<p>
+    An <em>&lt;EditForm&gt;</em> component instantiates an <strong><code>EditContext</code></strong>
+    type based on the assigned model instance as a <a href="02-components-part-four">
+        cascading value
+    </a> for other components (or elements) in the form. The <code>EditContext</code>
+    tracks metadata related to the data editing process such as flags to indicate which
+    fields of the <em>&lt;EditForm&gt;</em> have been modified and the current set
+    of validation messages. <strong>
+        A form can be bound to data using an <em>EditForm.Model</em> or an
+        <em>EditForm.EditContext</em>:
+    </strong>
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/01-form-data-binding.png" alt="Form data binding with EditForm.Model or EditForm.EditContext " />
+</div>
+
+<p>
+    Assign either an <em>EditContext</em> or a <em>Model</em> to an <code>&lt;EditForm&gt;</code>.
+    <strong>Assignment of both is not supported</strong> and generates a runtime error.
+</p>
+
+<h3>Form Submission</h3>
+<p>
+    The <code>&lt;EditForm&gt;</code> component provides the following callbacks for handling
+    form submission:
+</p>
+<ul>
+    <li>
+        Use <strong><code>OnValidSubmit</code></strong> to assign an event handler to run
+        when a form with valid fields is submitted.
+    </li>
+    <li>
+        Use <strong><code>OnInvalidSubmit</code></strong> to assign an event handler to run
+        when a form with invalid fields is submitted.
+    </li>
+    <li>
+        Use <strong><code>OnSubmit</code></strong> to assign an event handler to run
+        regardless of the form field's validation status. The form is validated by calling
+        <code>EditContext.Validate</code> in the event handler method. If <code>Validate</code>
+        returns <em>true</em>, the form is valid.
+    </li>
+</ul>
+
+<p>
+    When the user clicks a <strong><code>Submit</code></strong> &lt;button&gt; element,
+    the <code>EditForm</code> can raise any of the event callbacks just mentioned. You can
+    use this event to handle any business logic:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/02-form-submission-events.png" alt="Form submission events." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The <em>submit</em> &lt;button&gt; element must
+    be a direct child of the <code>&lt;EditForm&gt;</code> component; i.e., it must reside within the
+    component or the callback event will not be raised.
+</p>
+
+<h3>Built-in form validation components</h3>
+<p>
+    The Blazor framework provides built-in form components to receive and validate user
+    input. Inputs are validated when they are changed and when a form is submitted. There
+    is a standard collection of input components, all descended from the
+    <strong>Microsoft.AspNetCore.Components.Forms.InputBase&lt;T&gt;</strong> base class:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/03-input-components.png" alt="Built-in input components." />
+</div>
+
+<p>
+    Because the <em>&lt;EditForm&gt;</em> component renders a standard &lt;form&gt; HTML
+    element, it is possible to use standard HTML form elements such as &lt;input&gt; and
+    &lt;select&gt; within the mark-up. However, it is <strong>
+        recommended to use the built-in Blazor input controls
+    </strong> because they come with additional functionality such as validation.
+</p>
+<p>
+    Input components provide default behavior for validating when a field is changed,
+    including updating the field <em>CSS</em> class to reflect the field's state as
+    valid or invalid. Some components like <code>InputDate&lt;TValue&gt;</code> and
+    <code>InputNumber&lt;TValue&gt;</code> handle unparseable values gracefully by
+    registering unparseable values as <em>validation errors</em>.
+</p>
+<p>
+    It is recommended to <strong>
+        descend (or derive) components from the <code>InputBase&lt;T&gt;</code>
+    </strong> class if you intend to use them as user input. This class adds addtional
+    functionality above that of standard HTML &lt;input&gt; elements such as validation
+    and CSS styling based on the result of the validation.
+</p>
+
+<p>
+    For more info visit
+    <a href="https://chrissainty.com/building-custom-input-components-for-blazor-using-inputbase/">
+        Building Custom Input Components for Blazor using InputBase,
+    </a> and
+    <a href="https://blazor-university.com/forms/descending-from-inputbase/">
+        Descending from InputBase&lt;T&gt;
+    </a>
+</p>
+
+<h3>Data Validation</h3>
+<p>
+    You might recall from the <em>02_SalesApp_Repository</em> application created for the
+    lesson on Entity Framework (EF); that EF uses a programming pattern referred to as
+    'convention over configuration' which assumes that your classes follow the conventions
+    on EF. However, you can specify additional configuration to supplement or override what
+    was discovered by convention such as their data types, their shape, the relationships
+    between them, how they map to the database, etc.
+</p>
+<p>
+    To achieve this, you can either override the <em>OnModelCreating(ModelBuilder)</em>
+    method in your derived context (DBContext) and use ModelBuilder API to configure your
+    model, or you can define 'Data Annotations' as attributes on the root entities (models).
+    For the time being, we will use Data Annotations to illustrate data validation.
+</p>
+<p>
+    The <strong><code>&lt;DataAnnotationsValidator/&gt;</code></strong> is the standard
+    validator type in Blazor. Adding this component within an <code>&lt;EditForm&gt;</code>
+    component will enable form validation based on .Net attributes descended from
+    <em>System.ComponentModel.DataAnnotations.ValidationAttribute</em> class; i.e., this
+    class serves as the base class for all validation attributes.
+</p>
+<p>
+    The properties of a model (class) can be decorated with validation attributes to specify
+    rules that must be met. Furthermore, validation attributes allow you to define custom
+    validation error messages. Some of the most common built-in validation attributes are:
+
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/04-validation-attributes.png" alt="Common built-in validation attributes." />
+</div>
+
+<p>
+    For a complete list of validation attributes refer to
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations">
+        System.ComponentModel.DataAnnotations
+    </a> namespace and to
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/built-in-components?view=aspnetcore-6.0">
+        ASP.Net Core built-in Razor components
+    </a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a form to allow the user to input
+    information to create movie <em>Genres</em>; e.g., Action or Adventure. Recall that in
+    a previous lesson we have already created the
+    <em>BlazorMovies/Client/Pages/Genres/GenreCreate.razor</em> routable component to host
+    this form.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the <em>BlazorMovies/Shared/EDM</em>
+    folder and create an entity (.cs) that represents a movie Genre:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/05-genre-entity.png" alt="Genre entity." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the GenreCreate component and use
+    an <code>&lt;EditForm&gt;</code> component to create the create genre form. Don't forget
+    to:
+</p>
+<ul>
+    <li>
+        Declare an &lt;InputText&gt; built-in component to receive the user input for the
+        new Genre's name.
+    </li>
+    <li>
+        Define a label for the &lt;InputText&gt; field.
+    </li>
+    <li>
+        Bind the Genre model (class instance) to the <em>Model</em> property (or parameter)
+        of the <em>&lt;EditForm&gt;</em> component.
+    </li>
+    <li>
+        Include a &lt;button&gt; element to submit the form. The <em>OnSubmit</em> event
+        callback handler should only display the input (Genre name) typed by the user into
+        the web browser's console.
+    </li>
+    <li>
+        Include a conditional statement in the event handler in case the user does not
+        type an input and raises the OnSubmit event callback.
+    </li>
+</ul>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/06-genre-form-initial.png" alt="Create genre form." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Navigate to the <a href="genres/create">
+        Create Genre
+    </a> component and verify that it writes the user input into the web browser's
+    console only when the user actually typed some data before raising the Submit event
+    of the &lt;button&gt; element.
+</p>
+<p>
+    Although the conditional statement does its job to avoid displaying an empty genre into
+    the browser's console, this is not an ideal solution because the CreateGenre() method is
+    still executed. Instead, you can use data validation attributes to specify validation rules
+    for the properties of the model (class).
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> There will be more complex and/or specific
+    use cases where the built-in validation attributes are not sufficient. A typical scenario,
+    that often requires custom validation attributes, is found with Application/Server-Api
+    controller endpoints where custom data validation is required on data passed by the user
+    before attempting to execute the action (method). For more info refer to the Custom
+    Validation Attribute title at the end of the <a href="10-ef-soft-delete-audit">
+        Soft Delete & Audit
+    </a> section of the Server-Api module.
+</p>
+<h3>Data Annotations Validator component</h3>
+<p>
+    The Blazor framework provides the <strong><code>&lt;DataAnnotationsValidator/&gt;</code></strong>
+    component to attach validation support to forms based on validation attributes (data
+    annotations). The <code>&lt;DataAnnotationsValidator/&gt;</code> component attaches data
+    annotations validation to a cascaded <code>EditContext</code>.
+</p>
+<p>
+    Blazor performs two types of validation:
+</p>
+<ul>
+    <li>
+        <strong><em>Field validation:</em></strong> is performed when the user tabs out of a
+        field. During field validation, the <em>&lt;DataAnnotationsValidator&gt;</em> component
+        associates all reported validation results with the field.
+    </li>
+    <li>
+        <strong><em>Model validation:</em></strong> is performed when the user submits the form.
+        During model validation, the <em>&lt;DataAnnotationsValidator&gt;</em> component attempts
+        to determine the field based on the member name that the validation result reports.
+        Validation results that are not associated with an individual member are associated with
+        the model rather than a field.
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        For those occurrences when you are forced to write a date as a string
+        (e.g., when using data annotation attributes), it is <strong>strongly</strong>
+        recommended to use the <a href="https://en.wikipedia.org/wiki/ISO_8601">
+            ISO-8601
+        </a> notation: "2024-06-27". Otherwise, data validation can throw a
+        System.FormatException if the culture settings of the OS where the app
+        is running differ from the settings of the client (end-user).
+    </p>
+</div>
+<p>
+    You can refer to the <a href="06-api-db-support">Db Support</a> lesson in the
+    05. Server-Api module for an example with the ReleaseDate property of the
+    Movie entity.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Specify that the Name data field value of
+    the Create Genre form is required:
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Decorate the Name property of the Genre model
+    with a validation attribute:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/07-required-attribute.png" alt="Name property decorated with validation attribute." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Declare an instance of the
+    <em>DataAnnotationsValidator</em> within the <em>EditForm</em> component used to create
+    the Create Genre form and replace the OnSubmit event callback with an OnValidSubmit event
+    callback. Make any necessary adjustments to the CreateGenre() method:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/08-on-valid-submit.png" alt="Create Genre form with OnValidSubmit event callback." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Navigate to the <a href="genres/create">
+        Create Genre
+    </a> component and raise the submit event of the Save Changes &lt;button&gt; element without
+    typing anything in the Name field. You should see that nothing is displayed into the browser's
+    console and the text box will have a red border:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/09-empty-field-test.png" alt="Name field with red border because of data validation." />
+</div>
+
+<p>
+    When the user clicks the Save Changes button, the UI is updated and it provides a
+    visual indication that there are errors in the user's input. The <em>&lt;InputText&gt;</em>
+    component is aware of the validation rules enforced by the <code>[Required]</code>
+    attribute used to decorate the Genre.Name property.
+</p>
+<p>
+    However, this is not very informative because the user may not realize what is the problem
+    with the field. It would be considerably better if we could convey some kind of error message
+    for the user.
+</p>
+
+<h3>Validation Error Messages</h3>
+<p>
+    Validation error messages can be displayed to the user in two ways:
+</p>
+<ol>
+    <li>
+        Add a <strong><code>&lt;ValidationSummary/&gt;</code></strong> to show a
+        comprehensive list of all errors in the form.
+    </li>
+    <li>
+        Use the <strong><code>&lt;ValidationMessage/&gt;</code></strong> component
+        to display error messages for a specific input on the form.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-info">Notice:</span> These components are not mutually exclusive, so
+    it is possible to use both at the same time.
+</p>
+<p>
+    The <code>&lt;ValidationSummary/&gt;</code> component can simply be dropped into an
+    <em>EditForm</em> with no additional parameters required at all. This approach will summarize
+    all validation messages. If you require output validation messages for a specific model you
+    can use its <strong><em>Model</em></strong> parameter.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement a data validation summary for the
+    Create Genre form and make sure it is working as expected.
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/10-validation-summary.png" alt="Validation summary component." />
+</div>
+
+<p>
+    The <em>&lt;ValidationSummary&gt;</em> component performs field validations when the user
+    tabs out of a field. During field validation, the <em>&lt;DataAnnotationsValidator&gt;</em>
+    component associates all reported validation results with the field:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/11-validation-summary-ui.png" alt="Validation summary displayed to the user." />
+</div>
+
+<p>
+    Since the <strong><code>&lt;ValidationMessage/&gt;</code></strong> component displays error
+    messages for a single field, it <strong>
+        requires us to specify the identity of the field.
+    </strong> Specify the field for validation with the <strong><code>For</code></strong>
+    attribute <strong>and a lambda expression naming the model property</strong>.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement a validation error message for the
+    Name field of the Create Genre form:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/12-validation-message.png" alt="Validation message for Name property." />
+</div>
+
+<p>
+    The lambda expression for naming the model property related to the specific field validation
+    message is required because the parameter named <code>For</code> is defined on the
+    <em>ValidationMessage.cs</em> as follows:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/13-for-attribute.png" alt="For attribute structure." />
+</div>
+
+<p>
+    Specifying an <code>Expression</code> when identifying the field ensures that the
+    parameter's value remains correct even after refactoring. For example, if you were to
+    refactor property names on the Genre class.
+</p>
+<p>
+    This time both the <em>&lt;ValidationSummary&gt;</em> and the <em>&lt;ValidationMessage&gt;</em>
+    components display the validation error message:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/14-error-messages.png" alt="Error messages displayed to the user." />
+</div>
+
+<p>
+    The <em>ValidationMessage&lt;TValue&gt;</em> and <em>ValidationSummary</em> components
+    support arbitrary attributes. Any attribute that <strong>does not</strong> match a component
+    parameter is added to the generated &lt;div&gt; or &lt;ul&gt; element. Refer to the lesson
+    on <a href="02-components-part-one">Arbitrary Parameters</a> in module 02-Components part one
+    for more info.
+</p>
+<p>
+    You can <strong>control the style of validation error messages</strong> in the application's
+    CSS global stylesheet (wwwroot/css/app.cs or wwwroot/css/site.css). The <strong>default</strong>
+    <strong><code>validation-message</code></strong> class sets the text color of validation
+    messages to red:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/15-validation-messages-location.png" alt="Folder tree for validation messages styling." />
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/16-validation-messages-styling.png" alt="Global CSS file with validation messages styling." />
+</div>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Modify the default styling for the validation error
+    messages.
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/17-validation-messages-styling.png" alt="Default validation message styling modified." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/18-purple-validation-message.png" alt="Purple validation message." />
+</div>
+
+<h3>Custom content for Validation Error Messages</h3>
+<p>
+    As mentioned earlier, the <em>System.ComponentModel.DataAnnotations.ValidationAttribute</em>
+    class serves as the base class for all validation attributes. This abstract class enforces
+    validation and has a property named <em>ErrorMessage</em> that you can use to get or set an
+    error message to associate with a validation control if validation fails.
+</p>
+<p>
+    In other words, validation attributes let you specify the content of the error message to be
+    displayed for an invalid input.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Customize the content of the validation error
+    message for the Genre.Name field. Make sure that it does not accept null or empty values,
+    that it enforces a minimum length of 4 characters, a maximum length of 10 characters, and
+    that it provides meaningful custom error messages to the user in case the input data does
+    not adhere to the validation rules.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the BlazorMovies/Shared/EDM/Genre
+    class to define a "Required" validation attribute for the Genre Name and use the
+    <em>ValidationAttribute.ErrorMessage</em> property to customize its content:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/19-custom-required-validation-message.png" alt="Custom required validation message." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Add a <em>StringLength</em> validation attribute
+    to specify the minimum and maximum length of characters that are allowed in the data field:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/20-custom-string-length-validation.png" alt="Custom string length validation." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Test both validation error messages:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/21-required-validation-test.png" alt="Custom content for Required validation error message." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/22-string-length-validation-test.png" alt="Custom content for StringLength validation error message." />
+</div>
+<h3>Custom validation CSS class attributes</h3>
+<p>
+    Custom validation CSS class attributes are useful when integrating with CSS frameworks such
+    as Bootstrap.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Specify custom validation CSS class attributes
+    for "valid" and "invalid" states of a given field.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Provide global CSS styles for custom validation
+    in <em>wwwroot/css/app.css</em> (BlazorWebAssembly) or wwwroot/css/site.css (Blazor Server):
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/23-css-custom-validation.png" alt="Custom CSS styles for validation." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create a class derived from
+    <em>Microsoft.AspNetCore.Component.Forms.FieldCSSClassProvider</em> class. The
+    FieldCSSClassProvider class supplies CSS class names for form fields to represent
+    their validation state or other state information from an <em>EditContext</em>.
+</p>
+<p>
+    The <em>Microsoft.AspNetCore.Component.Forms.FieldCSSClassProvider</em> base class
+    has only one <em>virtual</em> method that returns a string that represents CSS
+    class names for form fields that represent their validation state:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/23-field-css-class-provider.png" alt="FieldCSSClassProvider base class." />
+</div>
+
+<p>
+    As you know, base classes may define and implement <em>virtual</em> methods and
+    derived classes can <em>override</em> them. This means you simply need to provide
+    your own implementation (code inside curly brackets) which happens to be very
+    similar to the base class's implementation.
+</p>
+<p>
+    Your derived class (e.g., CustomFieldClassProvider) will be responsible for
+    overriding the <em>CustomFieldClassProvider.GetFieldCssClass()</em> virtual method
+    to check field validation messages and for applying the appropriate "valid" or
+    "invalid" CSS class style. These CSS class names must be identical to the custom
+    CSS classes you defined earlier:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/24-custom-field-css-class-provider.png" alt="Custom field CSS class provider." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Set the <em>CustomFieldClassProvider</em>
+    class you just created as the <em>Field CSS Class Provider</em> on the form's EditContext
+    instance using the <em>EditContextFieldClassExtensions.SetFieldCSSClassProvider()</em> extension
+    method:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/06-forms/25-edit-context.png" alt="EditContext assigned to Create Genre form." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/26-set-field-css-class.png" alt="SetFieldCSSClassProvider method implementation. " />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Test the Create Genre form to ensure that your
+    custom valid and invalid CSS classes are being applied appropriately.
+</p>
+<p>
+    The code shown above checks the validity of all form fields and applies a style
+    to each field. If you need your form to <strong>
+        apply custom styles to only a subset of the fields,
+    </strong> make your <em>CustomFieldClassProvider</em> class apply styles
+    conditionally. For more info refer to
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/forms-validation?view=aspnetcore-5.0#custom-validation-css-class-attributes-1">
+        Custom validation CSS class attributes.
+    </a>
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/27-valid-state-custom-styling.png" alt="UI with custom styling for valid state field." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/28-invalid-state-custom-styling.png" alt="UI with custom styling for invalid state field." />
+</div>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/forms-validation?view=aspnetcore-5.0">
+        ASP.Net Core Blazor forms and validation,
+    </a>
+    <a href="https://chrissainty.com/building-custom-input-components-for-blazor-using-inputbase/">
+        Building Custom Input Components for Blazor using InputBase,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-5.0#validation-attributes">
+        Validation attributes,
+    </a>
+    <a href="https://blazor-university.com/forms/">Blazor University - Forms,</a>
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations?view=net-5.0">
+        System.ComponentModel.DataAnnotations namespace,
+    </a> and
+    <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/formats-and-model-binding/model-validation-in-aspnet-web-api">
+        Model Validation in ASP.Net Web API
+    </a>
+</p>
+<p>
+    There is a popular .Net fluent validation library for building strongly-typed validation
+    rules named FluentValidation by Jeremy Skinner and you can get it from
+    <a href="https://fluentvalidation.net/">
+        Fluent Validation,
+    </a>
+    <a href="https://github.com/FluentValidation/FluentValidation">github repository</a> or even
+    as a NugetPackage.
+</p>
+<h3>Editing Form Records</h3>
+<p>
+    The procedure shown here to edit form records will be used extensively throughout the
+    application. It adheres to the DRY (Don't Repeat Yourself) principle because it
+    encapsulates the functionality in a Blazor component so it can be re-used in different
+    places such as a Create and an Edit Form. Typically, these two forms are very similar
+    except that one creates a new object instance and the other one modifies an existing
+    one but the fields (properties) are the same.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create an Edit Genre routable component that
+    includes a form with one input text field. Make sure you don't end-up repeating code with
+    the Create Genre routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the Edit Genre routable component with
+    a route parameter for the Genre Id and a route constraint of type int. Since it is Genre
+    related, it should reside inside the BlazorMovies/Client/Pages/Genres folder:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/30-genre-edit-component.png" alt="Genre Edit routable component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> The GenreCreate and the GenreEdit routable
+    components have a very similar UI (just one input text field). We can encapsulate the form
+    created so far inside of a Blazor component and make it available to be consumed from either
+    one of the routable components.
+</p>
+<p>
+    We could create a GenreForm component inside the BlazorMovies/Client/Shared folder with all
+    the rest of the components but since it is related only to Genre objects, it is better to
+    create it inside the BlazorMovies/Client/Pages/Genres. This way, it is only available to any
+    routable components inside the Genres folder:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/29-genre-form.png" alt="Genre Form component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Before going any further, make sure that the
+    GenreForm component is working correctly. Go to the GenreCreate routable component, consume
+    the GenreForm component you just created, and test its functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/31-genre-create-genre-form.png" alt="Genre Create component consumes Genre form component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the EditGenre routable component and
+    consume the GenreForm component you just created. At some point, we will be communicating
+    to a DataBase to obtain data but for the time being, you can override the OnInitialized()
+    life cycle method to hard code a new Genre object and pass it for editing to satisfy the
+    Genre parameter of the GenreForm component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/32-genre-edit-form.png" alt="Edit Genre Form" />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Five:</span> Test the Edit Genre routable component that
+    consumes the Genre Form component. Since we don't have a link to the EditGenre component,
+    you can type the route directly into the address bar:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/33-genre-edit-component.png" alt="GenreEdit component's UI." />
+</div>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Make sure that you can supply any number value
+    for the GenreId segment of the route and that it is appropriately displayed into the web
+    browser's console accompanied with the new name for the Genre as shown above.
+</p>
+
+<h3>Filtering Form Records</h3>
+<p>
+    This lesson is designed to demonstrate how to build a filtering component. However,
+    it will consume in-memory objects and will not be fully functional. We will complete
+    the MoviesSearch routable component in lesson on <a href="05-filters">Filters</a> of
+    the module named "Consuming the Api".
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Build a Blazor component to filter from
+    a collection of Movie items; e.g., a MoviesSearch routable component to search for
+    Movie item(s) based on certain parameters such as its Title, Genre, or Release category
+    (upcoming releases - in theaters). Make sure it complies with the following
+    specifications:
+</p>
+<ul>
+    <li>
+        For illustrative purposes, omit using an <code>&lt;EditForm/&gt;</code> component.
+    </li>
+    <li>Use the RepositoryInMemory service to create a collection of Movie items.</li>
+    <li>
+        Stack filter controls horizontally.
+    </li>
+    <li>
+        Include an &lt;input&gt; element type text for the Movie title and:
+        <ul>
+            <li>
+                Make sure its value is updated with each keystroke that the user types in.
+            </li>
+            <li>
+                Executes the event handler (method) for filtering the movies if the user
+                presses the "Enter" key.
+            </li>
+        </ul>
+    </li>
+    <li>
+        Include a &lt;select&gt; element for Movie.Genre options and:
+        <ul>
+            <li>
+                Instantiate a local collection of two or three Genre options.
+            </li>
+            <li>
+                Has a default value of "--Select Genre--".
+            </li>
+        </ul>
+    </li>
+    <li>
+        Include an &lt;input&gt; element type checkbox for "Upcoming Releases" and one for
+        "In Theaters" that:
+        <ul>
+            <li>
+                Have a default value of false.
+            </li>
+        </ul>
+    </li>
+    <li>
+        Add a &lt;button&gt; element named "Search Movie" that:
+        <ul>
+            <li>
+                Executes a SearchMovie event handler that displays, into the browser's console,
+                the values selected by the user for each HTML element control; e.g., Movie
+                Title, selected Genre, and true-false for the checkbox items.
+            </li>
+            <li>
+                The search function should be case insensitive.
+            </li>
+        </ul>
+    </li>
+    <li>
+        Add a &lt;button&gt; element named "Clear Fields" that:
+        <ul>
+            <li>
+                Resets all the field values and renders the full Movie collection into
+                the browser.
+            </li>
+        </ul>
+    </li>
+    <li>
+        Confirm that the component renders the Movie items:
+        <ul>
+            <li>
+                All movie items in the collection on initialized.
+            </li>
+            <li>
+                The movie items that match the &lt;input&gt; element type text for the
+                Movie title when the "Enter" key is pressed while this element has the
+                focus or when the <dfn>@@onclick</dfn> event of the Search Movie button
+                element is raised.
+            </li>
+            <li>
+                All movie items in the collection when the Clear Fields button is clicked.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the "MoviesSearch" routable component:
+</p>
+<ul>
+    <li>
+        Since it is Movie related, it should reside inside the BlazorMovies/Client/Pages/Movies
+        folder.
+    </li>
+    <li>
+        Update the <em>NavMenu</em> component to include a hyperlink to this component
+    </li>
+    <li>
+        Declare the markup code and the local variables for data binding with form fields;
+        i.e., the HTML elements: &lt;input&gt; type text, the &lt;select&gt;, both
+        &lt;input&gt; elements type checkbox, the Search Movie, and the Clear Fields
+        &lt;button&gt; element.
+    </li>
+    <li>
+        Define the functionality.
+    </li>
+</ul>
+<div class="image-lesson">
+    <img src="Images/06-forms/34-movies-search-input-elements.png" alt="Input elements for MoviesSearch component." />
+</div>
+<div class="image-lesson">
+    <img src="Images/06-forms/35-movies-search-button-elements.png" alt="Button elements for MoviesSearch component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/36-movies-search-back-end.png" alt="Back-end code for MoviesSearch component." />
+</div>
+
+<p>
+    So far, we have created all the markup needed for our form. The code shown above produces
+    the following UI:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/37-movies-search-UI.png" alt="UI for the MoviesSearch component's controls" />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> With all the markup in place, we can now
+    focus on the functionality. Let's start with the "Search Movie" &lt;button&gt; element
+    to display into the browser's console the values selected by the user for each HTML
+    control:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/38-search-movie-console.png" alt="Search Movie button displays HTML element values to console." />
+</div>
+
+<p>
+    The input values passed by the user are printed into the web browser's console:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/39-html-values-in-console.png" alt="HTML values passed by the user." />
+    <img src="Images/06-forms/39-html-values-in-console-two.png" alt="Browser's console with values." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> The Search Movie component should
+    display the full collection of movies when initialized and you might remember that we
+    have already created the <a href="02-components-part-four">MoviesCatalog</a> component
+    exactly for this purpose. Let's start by declaring an instance of the <em>MoviesCatalog</em>
+    component and then add some code, to the handler of the Search Movie &lt;button&gt;
+    element, that filters the full collection and extracts an item, if any, that matches
+    the Movie title passed by the user:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/06-forms/40-movie-title-markup.png" alt="Movie title markup." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/41-search-movie-handler.png" alt="Search movie event handler." />
+</div>
+<p>
+    The <em>string.Contains()</em> method overload used in the example is case sensitive.
+    You can use another overload that expects a StringComparison enum type:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/45-string-comparison-ignore-case.png"
+         alt="String comparison ignore case method overload." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Keep in mind that in a production application,
+    you should always limit the number of records for a given database query because dealing
+    with a large number of records can have a significant impact on bandwith and performance.
+    This subject matter is dealt with later in the <a href="08-pagination">Pagination</a>
+    section and in the final version of this component at the end of the <a href="05-filters">
+        Filters
+    </a> section.
+</p>
+<p>
+    Before going any further, test the success state of the Search Movie component. It should
+    render all the movies in the collection when initialized, it should filter the collection
+    using the Movie title passed by the user and it should display a message to the user if
+    there are no matches. The match should be valid even if the user enters only a fragment of
+    the Title.
+</p>
+
+<h4>Capturing Input Keyboard Events</h4>
+<p>
+    In Blazor, you can capture keyboard events by attaching the event handler (method) to
+    the keyboard events such as <strong><code>@@onkeydown</code></strong>,
+    <strong><code>@@onkeypress</code></strong>, or <strong><code>@@onkeyup</code></strong>
+    of an HTML input element (form field).
+</p>
+<p>
+    The only practical difference between <em>@@onkeydown</em> and <em>@@onkeypress</em>
+    is that <em>@@onkeypress</em> relays the character resulting from a keypress and is
+    only called if there is one. In other words, keys such as "Shift", "Ctrl", "Alt", "F1"
+    through "F12", and arrow keys do not directly result in calls to <em>@@onkeypress</em>.
+    Keys such as "Tab" (KeyChar='\t') or "Enter" (KeyChar='\r') do result in calls to
+    <em>@@onkeypress</em>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> According to MDN Web Docs, the
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/keypress_event">
+        <em>keypress</em>
+    </a> event is deprecated because although some browsers might still support it, it may
+    have already been removed from the relevant standards, may be in process of being dropped,
+    or may only be kept for compatibility purposes. Avoid using it, instead use <em>keydown</em>.
+</p>
+<p>
+    For more info visit <a href="https://www.syncfusion.com/faq/blazor/event-handling/how-to-capture-input-keyboard-events">
+        How to capture input keyboard events?,
+    </a>
+    <a href="https://stackoverflow.com/questions/1367700/whats-the-difference-between-keydown-and-keypress-in-net">
+        What's the difference between KeyDown and KeyPress in .Net?
+    </a>,
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers">
+        GlobalEventHandlers
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/event-handling?view=aspnetcore-5.0#event-arguments-1">
+        Event arguments
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Capture input keyboard events while the
+    Movie title &lt;input&gt; element has focus. Create and attach an event handler (method)
+    to the <code>@@onkeydown</code> event that when raised, invokes the SearchMovie() method.
+    Use a conditional statement that evalutates if the key pressed by the user is the "Enter"
+    key before invoking the SearchMovie() method:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/42-onkeydown-enter.png" alt="OnKeyDown event handler." />
+</div>
+<p>
+    Recall from lesson on <a href="02-components-part-one">Event Handling</a>, that for events
+    that support an event argument type, specifying an event parameter in the event method
+    definition is only necessary if the event type is used in the event handler (method) such
+    as the <em>@@onkeydown</em> event:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/44-keyboard-event-args.png" alt="OnKeyDown event argument type." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Define the code logic for the
+    <code>@@onclick</code> event of the Clear Fields &lt;button&gt; element. It should reset
+    all the HTML controls to their initial value:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/43-clear-fields.png" alt="Code logic to clear the input fields." />
+</div>
+
+<h3>Building Forms review</h3>
+<p>
+    So far, you have learned that in Blazor you can build forms using HTML input elements,
+    using the <code>&lt;EditForm/&gt;</code> component with built-in form validation
+    components (e.g., <em>InputText</em>, <em>InputDate</em>), or a combination of both.
+</p>
+<p>
+    You might have noticed that the Genre form component <em>submits</em> information to be
+    persisted into a server (or database). In this case <span class="mark">
+        <strong>
+            we chose to use the <em>EditForm</em> component because it provides callbacks for
+            handling form submission
+        </strong>
+    </span> (e.g., OnValidSubmit). Later on, we created a MoviesSearch routable
+    component which does not submit data to the server. Instead, it presents information to
+    the user and we chose to use HTML input elements for demonstrative purposes.
+</p>
+<p>
+    To perform data validation, we have used Data Annotations as attributes on the models
+    (or root entities) and on the models' members (or properties). Enabling data annotations
+    is accomplished with an instance of the <code>&lt;DataAnnotationsValidator/&gt;</code>
+    component inside an <em>&lt;EditForm/&gt;</em> component. The data validation provides
+    error messages that can be displayed to the user within a comprehensive list of all
+    errors with the <code>&lt;ValidationSummary/&gt;</code> component or you can use the
+    <code>&lt;ValidationMessage/&gt;</code> component to display error messages for a
+    specific input on the form.
+</p>
+<p>
+    Validation attributes used to decorate the models (or classes) let you specify the content
+    of the error message to be displayed for an invalid input. Besides the content of the
+    validation error message, you can define custom validation CSS class attributes for the
+    input elements; e.g., for an <em>&lt;InputText&gt;</em> built-in component. This can be
+    accomplished creating a class that derives from the built-in <code>FieldCSSClassProvider</code>
+    class and overriding its <code>GetFieldCssClass()</code> virtual method.
+</p>
+<p>
+    You also learned that you can re-purpose form components, such as the Genre form component,
+    to create or to edit an instance of a given model with the help of <em>EventCallback</em>
+    parameters to pass the appropriate functionality to a nested component (in this case the Genre
+    form) from the parent component (in this case either the Create Genre or the Edit Genre routable
+    component).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Replicate the procedure followed with the
+    "Create Genre" and "Edit Genre" routable components but this time with a model of type
+    Person with attributes such as Id, Name, Biography, Picture, and DateOfBirth. The idea
+    is to use this model to handle data related to directors, actors, staff, etc. Make sure
+    that it:
+</p>
+<ul>
+    <li>
+        Uses built-in Blazor form components to receive and validate user input.
+    </li>
+    <li>
+        User input for created person or edited person and the method invoked is
+        displayed into the browser's console when the user "submits" the form.
+    </li>
+    <li>
+        The Edit Person routable component defines a route constraint for the Person.Id
+        property.
+    </li>
+    <li>
+        Employs data annotations to decorate the model properties for data validation.
+    </li>
+    <li>
+        Defines custom content for validation error messages and conveys these messages
+        both as a comprehensive list and as a specific error for a given &lt;input&gt;
+        element (form field).
+    </li>
+    <li>
+        Specifies custom validation CSS class attributes for "valid" and "invalid" states
+        of a given field (e.g., Person.Name).
+    </li>
+    <li>
+        Consumes an UploadImage component that allows the user to upload a picture for
+        the current Person object. It should embed the picture into the browser using
+        Base64 encoding and assign the encoded value to the current Person.Picture object.
+    </li>
+    <li>
+        Provides a "Required" annotation for the Person.Picture field and confirm that
+        data validation error messages are updated when the user selects an image file
+        for the field.
+    </li>
+    <li>
+        Includes two text fields for the Person.Biography. One capable of receiving
+        <a href="https://www.markdownguide.org/">markdown</a> text and the other one
+        capable of sanitizing the <dfn>markdown</dfn> and rendering it as HTML.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span> Construct a type Person inside the
+    <em>BlazorMovies/Shared/EDM</em> folder:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/46-person-model.png" alt="Person model." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the type Person to create a PersonForm
+    component to enable a user to create or edit Person data. Start by defining fields for
+    Person Name and Person Date of Birth:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/47-person-form-front-end.png" alt="Person form front end." />
+    <img src="Images/06-forms/48-person-form-back-end.png" alt="Person form back end." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Consume the PersonForm component from
+    the PersonCreate routable component to test its UI and its functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/49-person-create.png" alt="Person Create routable component." />
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/50-person-create-ui.png" alt="Person create UI." />
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/51-person-create-console.png" alt="Person create console." />
+</div>
+
+<p>
+    So far, everything seems to be working fine. However, you might have noticed that the
+    "Date of Birth" field is initialized with a not so friendly date value. Its value is
+    day one, month one, and year one from our era. It can be quite cumbersome for the user
+    to fast forward the date picker UI a couple thousand years to our current date.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> To prevent the system from assigning this
+    value for an &lt;input&gt; element of type DateTime, you can <strong>
+        make the property nullable.
+    </strong> Recall that a nullable value type (DateTime) can represent the correct range
+    of values for its underlying value type, plus and additional null value:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/52-nullable-datetime.png" alt="Nullable DateTime." />
+</div>
+
+<p>
+    With this simple modification, the value for the Date of Birth field is null. Therefore,
+    the system defaults to DateTime.Today when the user clicks on the date picker:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/53-datetime-today.png" alt="Date of Birth field with a friendly value by default." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> Since the DateOfBirth property is now nullable,
+    you can decorate it with a "Required" attribute to force the user to pass a value for the
+    Date of Birth field:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/54-required-datetime.png" alt="DateOfBirth property decorated with Required attribute." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Consume the PersonForm component from
+    the PersonEdit routable component to test its UI and functionality:
+</p>
+
+<div class="image-lesson mb-3">
+
+    <img src="Images/06-forms/55-person-edit.png"
+         alt="PersonEdit consumes Person form component." />
+
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/56-person-edit-ui.png" alt="PersonEdit UI." />
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/57-person-edit-console.png" alt="PersonEdit console." />
+</div>
+
+<p>
+    After checking that everything functions as expected, we can start working on
+    the Picture property of the Person class. However, you need a little bit of history
+    in computing first.
+</p>
+
+<h4>Coding in <em>Base64</em></h4>
+<p>
+    Computers communicate in binary (0s and 1s) but people typically want to communicate
+    with more rich and readable forms such as text or images. In order to transfer this
+    data between computers, it first has to be encoded into 0s and 1s, sent, then decoded
+    again. To take text as an example, it would be much simpler if we could all agree on a
+    single encoding but sadly, this is not the case.
+</p>
+<p>
+    Originally, a lot of different encodings were created which used a different number of
+    bits per character until eventually ASCII became a standard with 7 bits per character.
+    However, most computers store binary data in bytes consisting of 8 bits each so ASCII is
+    unsuitable for transferring this type of data. Some systems would wipe the most
+    significant bit and in some cases, the difference in line ending encodings across systems
+    means that the ASCII character 10 and 13 were also sometimes modified.
+</p>
+<p>
+    To solve these problems Base64 encoding was introduced. This allows a developer to encode
+    arbitrary bytes to bytes which are known to be safe to send without getting corrupted
+    (ASCII alphanumeric characters and a couple symbols). The disadvantage is that encoding
+    the message using Base64 increases its length (every 3 bytes of data is encoded to 4 ASCII
+    characters).
+</p>
+<p>
+    In other words, Base64 is a group of binary-to-text encoding schemes that represent binary
+    data (more specifically a sequence of 8-bit bytes) in an ASCII string format. Common to all
+    binary-to-text encoding schemes, Base64 is designed to carry data stored in binary format
+    across channels that only reliably support text conent. <strong>
+        Base64 is particularly prevalent on the World Wide Web where its uses include the
+        ability to embed image files or other binary assets inside textual assets such as HTML
+        and CSS files.
+    </strong> Base64 is also widely used for sending e-mail attachments.
+</p>
+<p>
+    Base64 encoding of data is used in many situations to store or transfer data in environments
+    that, perhaps for legacy reasons, are restricted to US-ASCII data. Base encoding can also be
+    used in new applications that do not have legacy restrictions, simply because it makes it
+    possible to manipulate objects with text editors.
+</p>
+
+<h4>Embedding Images Directly Into HTML</h4>
+<p>
+    In almost every case that you want to include an image in a web page using HTML markup, you
+    use a line of code that looks something like this:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/58-img-tag.png" alt="img tag to insert images into a web page." />
+</div>
+
+<p>
+    But you can embed an image directly into the HTML without having to link to an external
+    file. When you include an image in the markup with a link to it (src), the browser
+    interprets it as encoded data in a format dictated by your tag. You can convert the image
+    directly to encoded data and put it directly into the (src) parameter.
+</p>
+<p>
+    Once you have converted the image to its text equivalent (Base64), in the place where you
+    normally insert the path for the image, <strong>
+        start by inserting the data type, the format (or file extension), and the type of
+        encoding, followed by the actual image encoded in Base64 which is basically text:
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/59-embedded-image.png" alt="Code example for embedding image with Base64 encoding." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The "image/png" string is technically known
+    as the <strong>MIME type</strong>. The Multi-purpose Internet Mail Extensions form a
+    standard way of classifying file types on the internet. They have two parts, a
+    <strong>type</strong> and a <strong>subtype</strong> separated by a slash (/).
+</p>
+<p>
+    In other words, a MIME type is a label used to identify a type of data. Its use allows
+    the software to know how to handle the data. It serves the same purpose on the internet
+    that file extensions do on Microsoft Windows.
+</p>
+
+<p>
+    For more info visit <a href="https://stackoverflow.com/questions/3538021/why-do-we-use-base64">
+        Why do we use Base64?,
+    </a>
+    <a href="https://en.wikipedia.org/wiki/Base64">
+        Wikipedia: Base64,
+    </a> and
+    <a href="http://www.techerator.com/2011/12/how-to-embed-images-directly-into-your-html/">
+        How to Embed Images Directly Into Your HTML
+    </a>
+</p>
+
+<h3>Inserting Images with a Component</h3>
+<h4>Security Considerations</h4>
+<p>
+    <span class="badge bg-danger">Danger:</span> Use caution when providing users with the
+    ability to upload files to a server. Attackers may attempt to:
+</p>
+<ul>
+    <li>
+        Execute <a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/denial-of-service">
+            denial of service attacks.
+        </a>
+    </li>
+    <li>Upload viruses or malware.</li>
+    <li>Compromise networks and servers in other ways.</li>
+</ul>
+<p>
+    Security steps that reduce the likelihood of a successful attack are:
+</p>
+<ul>
+    <li>
+        Upload files to a dedicated file upload area, preferable to a non-system drive. A
+        dedicated location makes it easier to impose security restrictions on uploaded
+        files. <a href="https://serverfault.com/questions/221227/how-to-deny-execute-permissions-on-a-share-folder-in-windows">
+            Disable execute permissions
+        </a> on the file upload location.
+    </li>
+    <li>
+        Do <strong>not</strong> persist uploaded files in the same directory tree as the app.
+    </li>
+    <li>
+        Use a safe file name determined by the app. Don't use a file name provided by the user
+        or the untrusted file name of the uploaded file. HTML encode the untrusted file name
+        when displaying it (Blazor automaticaly HTML encodes output). An attacker can provide a
+        malicious file name, including full paths or relative paths.
+    </li>
+    <li>
+        Allow only approved file extensions for the app's design specification.
+    </li>
+    <li>
+        Verify that client-side checks are performed on the server. Client-side checks are easy
+        to circumvent.
+    </li>
+    <li>
+        Check the size of an uploaded file. Set a maximum size limit to prevent large uploads.
+    </li>
+    <li>
+        When files shouldn't be overwritten by an uploaded file with the same name, check the
+        file name against the database or physical storage <strong>before</strong> uploading
+        the file.
+    </li>
+    <li>
+        <strong>Run a virus/malware</strong> scanner on uploaded content <strong>before</strong>
+        the file is stored.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-warning">Warning:</span> Uploading malicious code to a system is
+    frequently the first step to executing code that can:
+</p>
+<ul>
+    <li>
+        Completely gain control of a system.
+    </li>
+    <li>
+        Overload a system with the result that the system crashes.
+    </li>
+    <li>
+        Compromise user or system data.
+    </li>
+    <li>
+        Apply graffiti to a public UI.
+    </li>
+</ul>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/file-uploads?view=aspnetcore-5.0&source=docs#security-considerations">
+        Upload files in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal">
+        Antimalware Scan Interface (AMSI)
+    </a>,
+    <a href="https://www.meziantou.net/using-windows-antimalware-scan-interface-in-dotnet.htm">
+        Using Windows Antimalware Scan Interface in .Net
+    </a>
+</p>
+
+<h4>The <em>&lt;InputFile&gt;</em> component</h4>
+<p>
+    You can use the <strong><code>&lt;InputFile&gt;</code></strong> component to read
+    browser file data into .Net code. The <code>&lt;InputFile&gt;</code> component
+    renders an HTML <em>&lt;input&gt;</em> element of type <em>file</em>.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> Always follow security best practices
+    mentioned earlier when permitting users to upload files.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Keep in mind that we are working in a
+    Blazor WebAssembly environment which means that your code is running within the
+    boundary of the web browser. For actually uploading (write data) a file, we would
+    need to define an API controller in the Blazor/Server project to pass the file(s)
+    from client side to the server.
+</p>
+<p>
+    Since we haven't reached the <a 02-data-storage-options>Data Storage Options</a>
+    section of the course yet, we will demonstrate how to load a file into memory,
+    encode it to Base64 and save the string that represents the image file.
+</p>
+<p>
+    For examples on passing files from client side to server side visit
+    <a href="http://www.binaryintellect.net/articles/06473cc7-a391-409e-948d-3752ba3b4a6c.aspx">
+        Upload Files Using InputFile Component in Blazor
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal">
+        Antimalware Scan Interface (AMSI)
+    </a>,
+    <a href="https://www.meziantou.net/using-windows-antimalware-scan-interface-in-dotnet.htm">
+        Using Windows Antimalware Scan Interface in .Net
+    </a>
+</p>
+<p>
+    With the <em>&lt;InputFile&gt;</em> built-in component, by default, the user
+    selects a single file but you can add the <strong><em>multiple</em></strong>
+    attribute to permit the user to upload multiple files at once. The
+    <code>&lt;InputFile&gt;</code> component has an <code>InputFile.<strong>OnChange</strong></code>
+    property (or parameter) that gets or sets the event callback that will be
+    invoked when the collection of selected files changes; i.e., when the OnChange
+    event occurs. Note that the OnChange EventCallback&lt;TValue&gt; is generic
+    with a type parameter <em>InputFileChangeEventArgs</em>:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/60-input-file-on-change.png" alt="InputFile onchange parameter." />
+</div>
+
+<p>
+    The <code>InputFileChangeEventArgs</code> class derives from <em>EventArgs</em> and provides
+    access to the selected file list and details about each file:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/61-input-file-change-event-args.png" alt="InputFileChangeEventArgs class." />
+</div>
+
+<p>
+    When using the <code>InputFileChangeEventArgs.GetMultipleFiles()</code> method, you should
+    specify the maximum number of files to
+    <strong>
+        prevent a malicious user from uploading a larger number of files
+    </strong> than the app expects.
+</p>
+
+<p>
+    Recall that the signature of the event-handling method must be identical (compatible) to
+    the signature of the event handler delegate. In the image below, the
+    <em>LoadFiles(InputFileChangeEventArgs)</em> event handler (method) matches the signature
+    of the OnChange event delegate.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/62-input-file-example.png" alt="InputFile code example." />
+</div>
+
+<p>
+    In Blazor, the type <strong><code>IBrowserFile</code></strong> represents the actual
+    data of a file selected from an <em>InputFile</em> component. You <strong>should use</strong>
+    its <strong><code>IBrowserFile.OpenReadStream()</code></strong> method to open a stream
+    and read data from the returned stream.
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/63-IBrowserFile.png" alt="IBrowserFile class." />
+</div>
+
+<p>
+    <code>IBrowserFile.OpenReadStream()</code> method enforces a maximum size in bytes of
+    its stream. Reading one file or multiple files larger than 512,000 bytes (500KB) results
+    in an exception. The <em>maxAllowedSize</em> parameter can be used to specify a larger
+    size if required. <strong>
+        For Blazor Server in particular, beware of reading the entire stream into a memory
+        buffer unless you have passed a suitably low size limit,
+    </strong> since you will be consuming that memory on the server. Refer to
+    <em>D:\Programming\01_CSharp\Projects\03_CSharpAdvanced\</em>
+    <em>Section2\11_AsyncAwaitModel_PLinq_HttpClient\WebContent</em> for examples on how to
+    decode the Stream bytes in chunks of no more than a desired size one at a time.
+</p>
+
+<p>
+    <span class="badge bg-danger">Danger:</span> Avoid reading the incoming file stream
+    directly into memory. For example, don't copy file bytes into a <em>MemoryStream</em>
+    or read as a byte array. These approaches can result in performance and security
+    problems, especially in Blazor server. Instead, <strong>
+        consider copying file bytes to an external store,
+    </strong> such as a blob (Azure) or a file on disk. <strong>
+        If you need access to a stream that represents the file's bytes, use
+        <code>IBrowserFile.OpenReadStream()</code>
+    </strong> method.
+</p>
+<p>
+    The following approach is <strong>NOT recommended</strong> because the file's stream
+    content is read into a string in memory (StreamReader):
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/64-stream-not-recommended.png" alt="Reading an uploaded file stream incorrectly." />
+</div>
+
+<p>
+    The following approach is <strong>recommended</strong> because the file's stream is
+    provided directly to the consumer, a <em>FileStream</em> that creates the file at the
+    provided path:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/65-stream-recommended.png" alt="Reading an uploaded file stream correctly." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> A component that receives an image file
+    can call the <code>BrowserFileExtensions.RequestImageFileAsync</code> convenience method
+    on the file <strong>to resize the image</strong> within the browser's JS runtime before
+    the image is streamed into the app.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-5.0&pivots=webassembly#file-streams">
+        ASP.Net Core Blazor file uploads
+    </a>,
+    <a href="https://devblogs.microsoft.com/dotnet/asp-net-core-updates-in-net-5-release-candidate-1/#blazor-file-input-support">
+        Blazor file input support
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.io.stream?view=net-5.0">
+        Stream Class
+    </a> and
+    <a href="http://www.binaryintellect.net/articles/06473cc7-a391-409e-948d-3752ba3b4a6c.aspx">
+        Upload Files Using InputFile Component in Blazor
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create an <em>UploadImage</em> component
+    to allow the user to select an image file and insert the image into the web browser.
+</p>
+<p>
+    The idea is that the user should be able to select an image file for the Person object
+    currently cached in the PersonForm component and the UploadImage component should embed
+    the image into the web browser using Base64 encoding. Include an
+    <em>EventCallback&lt;string&gt;</em> in the UploadImage component to pass the text
+    representation of the image to its parent (consumer) component; e.g., to the Person
+    Create and/or Person Edit routable components and assign it to the cached Person object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/66-upload-image-front-end.png"
+         alt="Front-end code logic for UploadImage component." />
+</div>
+
+<p>
+    <span class="badge bg-success">Security:</span> The <strong><code>accept</code></strong>
+    attribute limits the type of data that the user can select to upload.
+</p>
+
+<p>
+    <span class="badge bg-info">Notice:</span> If you want to customize the default text:
+    "Choose File" label of the underlying &lt;input&gt; element of type <em>file</em>, you
+    can use the following code instead:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/67-input-custom-text.png" alt="Custom text InputFile component." />
+</div>
+
+<p>Back-end code logic for the UploadImage component:</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/68-upload-image-back-end.png"
+         alt="Back-end code logic for UploadImage component." />
+</div>
+
+<p>
+    As mentioned earlier, <strong>
+        for Blazor Server in particular, beware of reading the entire stream into a memory
+        buffer unless you have passed a suitably low size limit,
+    </strong> since you will be consuming that memory on the server. Refer to
+    <em>D:\Programming\01_CSharp\Projects\03_CSharpAdvanced\ </em>
+    <em>Section2\11_AsyncAwaitModel_PLinq_HttpClient\WebContent</em> for examples on how
+    to decode the Stream bytes in chunks of no more than a desired size at a time.
+</p>
+<p>
+    <span class="badge bg-danger">Danger:</span> <strong>
+        Always remember not to read the incoming file stream directly into memory.
+    </strong> For simplicity, the example above does read the stream directly into memory (into
+    a byte array). However, you should follow the approach shown a few paragraphs earlier where
+    the read stream is passed to a consumer stream responsible for creating a file. The file
+    should be located in an external location with executable permissions disabled. Once there,
+    it should be scanned with an antivurs/antimalware software and only then consumed (or read
+    into the application's memory). For more info visit
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-5.0&pivots=server#upload-files-to-a-server-1">
+        ASP.Net Core Blazor file uploads.
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal">
+        Antimalware Scan Interface (AMSI)
+    </a>,
+    <a href="https://www.meziantou.net/using-windows-antimalware-scan-interface-in-dotnet.htm">
+        Using Windows Antimalware Scan Interface in .Net
+    </a>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> A component that receives an image file
+    can call the <code>BrowserFileExtensions.RequestImageFileAsync</code> convenience method
+    on the file <strong>to resize the image</strong> within the browser's JS runtime before
+    the image is streamed into the app. For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-6.0&pivots=webassembly">
+        ASP.Net Core Blazor file uploads
+    </a> and
+    <a href="https://devblogs.microsoft.com/dotnet/asp-net-core-updates-in-net-5-release-candidate-1/#blazor-file-input-support">
+        Blazor file input support
+    </a>
+</p>
+<p>
+    Let's test the functionality achieved so far with the UploadImage component. Go to
+    the PersonForm component (consumer), create an instance of the UploadImage component,
+    and satisfy its ImageFieldName and OnImageSelected parameters:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/69-person-form-picture-field-front-end.png"
+         alt="PersonForm's picture field front-end code." />
+    <img src="Images/06-forms/70-person-form-picture-field-back-end.png"
+         alt="PersonForm's picture field back-end code." />
+</div>
+
+<p>
+    We are ready to test the PersonForm component that consumes the UploadImage component
+    to upload an image file selected by the user and embed it into the web browser after
+    encoding it to Base64 and storing it in the cached Person.Picture property. Go to the
+    Person Create routable component and try to upload an image:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/71-create-person-picture-field.png"
+         alt="Test of Picture field from Person Create component." />
+</div>
+
+<p>
+    <span class="badge bg-danger">Danger:</span> <strong>
+        Always remember not to read the incoming file stream directly into memory
+    </strong>. For simplicity, the example above does read the stream directly into memory (into
+    a byte array). However, you should follow the approach shown a few paragraphs earlier where
+    the read stream is passed to a consumer stream responsible for creating a file in an external
+    location with executable permissions disabled. Once there, it should be scanned with an
+    antivurs/antimalware software and only then consumed (or read into the application's memory).
+    For more info visit
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-5.0&pivots=server#upload-files-to-a-server-1">
+        ASP.Net Core Blazor file uploads.
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/windows/win32/amsi/antimalware-scan-interface-portal">
+        Antimalware Scan Interface (AMSI)
+    </a>,
+    <a href="https://www.meziantou.net/using-windows-antimalware-scan-interface-in-dotnet.htm">
+        Using Windows Antimalware Scan Interface in .Net
+    </a>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The UploadImage component has a "maxAllowedSize"
+    limit of 1MB for the Picture file. If the image is larger, it won't load the file because
+    an exception is thrown. However, unless the user inspects the browser's console, there is
+    no way of knowing what is happening. You should let know the user that the file size is
+    larger than allowed as will be demonstrated soon.
+</p>
+<p>
+    Now that the Person Create component is working properly, we can design the code logic
+    for scenarios where the user is editing an existing person object. In such cases, the
+    <em>Person.Picture</em> should be rendered into the web browser along with the rest of
+    the fields and their pertinent data.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Implement the functionality responsible for
+    checking if the current Person object has been assigned a Person.Picture and if so, display
+    it into the UI.
+</p>
+<p>
+    You might recall that the Person Edit routable component already loads a Person object
+    based on the route segment that specifies a Person.Id value. It employs the OnInitialized()
+    lifecycle method to do so:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/72-person-edit-component.png" alt="Person Edit routable component logic." />
+</div>
+
+<p>
+    The Person object is then passed to satisfy the Person parameter of the PersonForm
+    component which in turn consumes the UploadImage component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/73-person-form-component.png" alt="Person Form component." />
+</div>
+
+<p>
+    We should consider that currently, the UploadImage component is the one responsible for
+    embedding the image into the browser for rendering. There is no reason to provide that
+    same functionality to some other component. In fact, it is ideal to keep the rendering
+    of the image in the same place for future reference and maintenance.
+</p>
+<p>
+    To do so, we need a way to pass the existing Person.Picture data to the UploadImage
+    component so that it can render it. This can be achieved very easily with a Parameter
+    (or property) of type string. Then, the UploadImage component can evaluate if the parameter
+    is not null and given the case, it should render the existing Person.Picture into the browser:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/74-upload-existing-image-fe.png" alt="Conditional block in front end to render existing image." />
+    <img src="Images/06-forms/75-upload-existing-image-be.png" alt="Back-end code for loading an existing image when editing a Person object." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The UploadImage component does not alert the application user when trying to
+    select incompatible image formats and/or when the image file is bigger than
+    the max size allowed. The final version of the UploadImage component looks
+    something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/103-upload-image-warning.png"
+         alt="UploadImage component with alerts to inform user." />
+</div>
+<p>
+    The second conditional block consumes a third party JavaScript library to inform
+    the user when attempting to upload an image that exceeds the maximum size limit.
+    You can refer to the lesson on <a href="02-sweet-alert">SweetAlert</a> for more
+    info.
+</p>
+<p>
+    Update the PersonForm component that consumes the UploadImage component. Pass the
+    Person.Picture to satisfy its ImageUrl property (parameter):
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/79-image-url-parameter.png" alt="ImageUrl parameter satisfied with a Person.Picture" />
+</div>
+
+<p>
+    Before putting our changes to the test, we will need to hard code the image URL for
+    the Person object being edited. Eventually, it will be obtained from a database but
+    you might remember that for the time being, we are hard coding a Person object for
+    testing purposes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/76-person-edit-hard-coded.png" alt="Person image URL hard coded." />
+</div>
+
+<p>
+    Let's test the Person Edit component to make sure it pre-loads the existing Person.Picture
+    and that if the user uploads a new file, the existing one is replaced:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/77-pre-existing-picture.png" alt="Person Edit component pre-loads existing picture." />
+</div>
+
+<p>
+    The Person Edit routable component consumes the PersonForm component which in turn consumes
+    the UploadImage component to load an existing Person.Picture when initialized. No problems
+    there but let's select a new file and raise the "OnValidSubmit" event of the PersonForm by
+    clicking the "Save Changes" button element:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/78-replacing-person-picture.png" alt="UI after trying to replace a pre-loaded Person.Picture" />
+</div>
+
+<p>
+    The UploadImage component is rendering the image produced with the _imageBase64 variable and
+    the image produced with the ImageUrl parameter. This means that the ImageUrl is not null when
+    the component is re-rendered.
+</p>
+
+<p>
+    As you know, a Blazor component processes component lifecycle events (such as the
+    default "onchange" event of an &lt;input&gt; element) in a set of lifecycle methods.
+    Every time a field is modified, the StateHasChanged() <a href="02-components-part-two">
+        lifecycle method
+    </a> is invoked and the component is re-rendered.
+</p>
+<p>
+    This in turn invokes the OnParametersSetAsync() lifecycle method and updates the
+    respective property (parameter) values. In other words, since the browser is trying
+    to render two images, it means that the <em>ImageUrl</em> parameter of the UploadImage
+    component is not null. It is being updated every time the user selects a new image:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/79-image-url-parameter.png" alt="ImageUrl parameter satisfied with a Person.Picture" />
+</div>
+<p>
+    We need to devise a way to satisfy the ImageUrl parameter of the UploadImage component only
+    during initialization of the PersonForm component. The solution is quite simple, during
+    initialization, we can store the pre-existing Person.Picture into a local variable that is
+    set to null if and when the user uploads a new image file and raises the OnValidSubmit event
+    of the PersonForm by clicking its Save Changes button element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/80-image-url-local-variable.png" alt="Front end with local variable for ImageUrl parameter." />
+    <img src="Images/06-forms/81-image-url-local-variable-be.png" alt="Back end with local variable for ImageUrl parameter." />
+</div>
+
+<p>
+    If we go to the Person Edit routable component, select a new image file for the
+    current Person object and save the changes, we should no longer see the ImageUrl
+    image because it is being set to null. Everything is working as planned but we
+    are not done yet.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Optimize the PersonForm component to
+    avoid sending the image data every time the user edits a Person object.
+</p>
+<p>
+    Although we are not using a web API to communicate to a web server, not yet at least,
+    we should always strive to optimize our code to make it as efficient as possible. As
+    explained earlier, every time a form field is modified, the StateHasChanged() and
+    OnParametersSetAsync() lifecycle methods are executed to update the respective property
+    (parameter) values.
+</p>
+<p>
+    This means sending over and over again the image file through the web API which is
+    obviously not efficient at all. This is a complete waste of resources and it makes
+    the application slower.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> <strong>
+        Optimize the PersonForm component
+    </strong> so that it only sends the Person.Picture file back to the server when the
+    image is updated; i.e., when the user selects a new image.
+</p>
+<p>
+    The way to accomplish this is quite simple. We just have to set the cached
+    Person.Picture to null immediately after it is stored in a local variable
+    (_existingImageUrl). This change <strong>will have no impact in the database</strong>
+    because unless the user selects a new image file, the nulled Person.Picture will not
+    be sent through the web API:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/82-optimization-image-file.png" alt="Optimization of the image file." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Nulling out the Person.Picture will cause
+    a data validation error message for the Person.Picture field because the type's
+    property is decorated with a "Required" attribute. You have to choose between a more
+    efficient web API and having data validation for the Person.Picture field. We will
+    stick to data validation.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Provide a "Required" annotation for the
+    Person.Picture field and confirm that data validation error messages are updated when the
+    user selects an image file for the field.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Decorate the Person.Picture field with
+    a "Required" attribute and implement an EditContext validation every time the user
+    selects a new image for the Person.Picture field:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/83-required-picture.png" alt="Decorating the Person.Picture property." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> At the time of this lesson, the <code>&lt;InputFile&gt;</code>
+    component <strong>does not perform field-validation</strong>, it only executes form-validation
+    by default. This means that the data validation error message of the <em>&lt;InputFile&gt;</em>
+    will remain visible even after the user has selected an image file.
+</p>
+<p>
+    To <strong>ensure that the <code>&lt;InputFile&gt;</code> component validates its field</strong>,
+    you must <strong>force an <code>EditContext.Validate()</code></strong> when the user selects a
+    new image file.
+</p>
+<p>
+    Recall that the <em>OnChange</em> event callback of the <em>&lt;InputFile&gt;</em> has
+    an OnImageSelected() handler. Being an event callback, it obviously receives any desired
+    functionality from its parent (consumer) component <em>PersonForm</em>. Also, the PersonForm
+    component has instatiated an EditContext based on the Person object model:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/84-edit-context.png" alt="EditContext instantiation in PersonForm." />
+</div>
+
+<p>
+    You can use the <em>OnImageSelected()</em> handler to force an EditContext.Validate()
+    every time the user selects a new image file. Otherwise, the validation error message
+    for the Person.Picture field will remain indefinitely unless the user submits the
+    form:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/85-forced-validation.png" alt="Forced validation of the EditContext." />
+</div>
+
+<p>
+    That's it. With these modifications, validation error messages for the <em>&lt;InputFile&gt;</em>
+    built-in component will be re-validated every time the user selects a new image for the
+    Person.Picture field.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The StateHasChanged() method call in the UploadImage
+    component is apparently not needed. It was defined because at the time of this lesson, the
+    instructor included it. However, it does not update the Person.Picture validation error messages
+    and everything else seems to be working fine without it:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/86-no-state-has-changed.png" alt="No StateHasChanged() method call." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The UploadImage component does not alert the application user when trying to
+    select incompatible image formats and/or when the image file is bigger than
+    the max size allowed. The final version of the UploadImage component looks
+    something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/104-upload-image-warning.png"
+         alt="UploadImage component with alerts for the user." />
+</div>
+<p>
+    The second conditional block consumes a third party JavaScript library to inform
+    the user when attempting to upload an image that exceeds the maximum size limit.
+    You can refer to the lesson on <a href="02-sweet-alert">SweetAlert</a> for more
+    info.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Replace the "Create Movie" and "Edit Movie"
+    hyperlink items in the FlixManager component to navigate to the CreateMovie and EditMovie
+    routable components:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/87-flix-visualizer-anchors.png" alt="Anchor buttons for Flix Manager." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/88-flix-visualizer-ui.png" alt="Flix Manager UI." />
+</div>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Create an Index component for the People
+    section (e.g., IndexPeople) and one for the Genre section. Each index should have
+    anchor elements that navigate to their create and edit routable components. Then,
+    replace the "Create Person" and "Create Genre" hyperlinks with the Genres and People
+    routes:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/89-index-people.png" alt="IndexPeople routable component." />
+</div>
+<div class="image-lesson mb-4">
+    <img src="Images/06-forms/90-nav-menu.png" alt="Updated NavMenu and Indices UI." />
+</div>
+
+<p>
+    We can start working with the <em>Person.Biography</em> property by adding a
+    Biography field to the <em>PersonForm</em> component.
+</p>
+
+<h3>Markdown Component</h3>
+<p>
+    <dfn>Markdown</dfn> is a lightweight markup language for creating formatted text
+    using a <dfn>plain-text-editor</dfn>; it is a standarized way of formatting text
+    without having to resort to HTML that is appealing to human readers in its source
+    code form. Markdown is widely used in blogging, instant messaging, online forums,
+    collaborative software, documentation pages, and readme files.
+</p>
+<p>
+    In other words, markdown is a simple way to format text that looks great on any
+    device. It doesn't do anything fancy like changing the font-size, color, or type.
+    Just the essentials, using <a href="https://commonmark.org/help/">
+        familiar keyboard symbols
+    </a>:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/91-common-mark-org.png" alt="Markdown reference table." />
+</div>
+
+<p>
+    Given its nature, <dfn>markdown</dfn> supports HTML as part of a markdown document.
+    Although it is best not to use HTML in your markdown to keep it clean, there are a
+    few use cases that require embedding HTML; e.g., for images that require sizing or
+    alignment.
+</p>
+<p>
+    <span class="badge bg-danger">Danger:</span> If you accept user input as markdown,
+    <strong>treat the resulting HTML just as you would treat raw HTML input.</strong>
+    This means the generated HTML output <strong>requires HTML sanitation.</strong>
+    There is nothing in the markdown specification that says the HTML generated from
+    a markdown document has to be safe from cross site scripting attacks (XSS).
+</p>
+<p>
+    Users and more importantly untrusted bad actors will try to exploit any input form
+    on the open internet and try to hack into it. So if you accept markdown from your
+    users as input, <strong>be sure to sanitize the post generation HTML</strong>.
+</p>
+<p>
+    <dfn>Cross-Site Scripting</dfn> (XSS) is a well known technique to gain access to
+    private information of the users of a website. The attacker injects spurious (being
+    such in appearance only and made or manufactured with the intention of committing
+    fraud) HTML content (a script) on the web page which will read the user's cookies
+    and do something bad with it (like steal credentials).
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        As a countermeasure, you should <strong>always filter</strong> any content coming
+        from user input. Make sure to filter output (HTML) to render rather than filtering
+        the input. <strong>
+            After the input text is converted into full fledged HTML, you can then reliably
+            sanitize it to remove any dangerous or malicious content.
+        </strong>
+    </p>
+</div>
+<p>
+    <span class="badge bg-danger">Danger:</span> Client-side validations are not
+    reliable. Never trust data sent by the client. It is <strong>
+        critical to sanitize markdown and HTML server-side prior to writing it to
+        storage.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Creating a custom markdown component that
+    includes HTML sanitation logic ensures that every piece of markdown is properly
+    sanitized before attempting to render it and/or before attempting to write it to
+    disk. <a href="https://discoverdot.net/projects/markdig">Markdig</a> is a markdown
+    processor for .Net and <a href="https://github.com/mganss/HtmlSanitizer">HTMLSanitizer</a>
+    is a .Net library for cleaning HTML fragments and documents from constructs that can
+    lead to XSS attacks.
+</p>
+<p>
+    Suggested reading <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/f13d73y6(v=vs.100)">
+        Overview of Web Application Security Threats
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/zdh19h94(v=vs.100)">
+        Basic Security Practices for Web Applications
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/w1sw53ds(v=vs.100)">
+        Script Exploits Overview
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/a2a4yykt(v=vs.100)">
+        How to: Protect Against Script Exploits in a Web Application by Applying HTML encoding
+        to Strings
+    </a>, and
+    <a href="https://www.markdownguide.org/">Markdown Guide</a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Go to the PersonForm component and include
+    a Biography field capable of receiving markdown text and rendering it as HTML. It should
+    contain two sections. The one on the left for the user input and the one on the right
+    to render the resulting HTML produced with the markdown provided by the user. Make sure
+    you <strong>include a sanitizing mechanism.</strong>
+</p>
+<p>
+    Since the user input is simply a collection of strings, we can employ a built-in
+    form component named &lt;InputTextArea&gt;.
+</p>
+
+<h4>The <em>&lt;InputTextArea&gt;</em> component</h4>
+<p>
+    The <strong><code>&lt;InputTextArea&gt;</code></strong> built-in form component is a
+    multiline input component for editing <code>string</code> values. We can resolve the
+    field requirement for the Person.Biography by creating a custom <em>InputMarkdown</em>
+    component that employs an <em>&lt;InputTextArea&gt;</em> built-in component to receive
+    markdown from the user.
+</p>
+<p>
+    The custom InputMarkdown component should have two sections. The one on the left can
+    employ an &lt;InputTextArea&gt; built-in component to receive markdown input from the
+    user and the section on the right should consume another custom component (e.g.,
+    RenderMarkdown) responsible for converting markdown text to HTML, sanitizing it, and
+    rendering the result into the browser.
+</p>
+<p>
+    Your first instinct might be to encapsulate the &lt;InputTextArea&gt; form component
+    in an &lt;EditForm&gt; but recall that the PersonForm (parent component) already
+    defines an &lt;EditForm&gt; that encapsulates all its input elements responsible for
+    capturing field data filled out by the user.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Start by creating the markup for the
+    InputMarkdown custom component. For the time being, we can also employ an
+    &lt;InputTextArea&gt; for the output section on the right just to have something
+    to work with and visualize the UI:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/92-input-markdown-markup.png" alt="InputMarkdown component's markup." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The InputMarkdown component has a parameter
+    (Person) with a hard coded type: "Person". This limits its re-usability because it
+    can only be consumed by a PersonForm; i.e., it cannot be consumed from a MovieForm.
+    Later, we'll see how to add an abstraction layer to the component by deriving it
+    from a built-in form component. Of course, you could make the Person and Movie
+    entities implement an Interface and replace the hard coded Person type but that is
+    not the object of this chapter.
+</p>
+
+<p>
+    Consume the InputMarkdown component from the PersonForm created earlier and go to the
+    People/Create routable component to see what we have so far:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/93-input-markdown-UI.png" alt="InputMarkdown component UI." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create the RenderMarkdown component
+    responsible for converting the markdown to HTML, sanitizing the result, and rendering
+    it into the browser. For this task you can use
+    <a href="https://discoverdot.net/projects/markdig">Markdig</a>, a markdown processor
+    for .Net and <a href="https://github.com/mganss/HtmlSanitizer">HTMLSanitizer</a> for
+    cleaning the HTML fragments from constructs that can lead to XSS attacks.
+</p>
+<p>
+    Right click the client project (e.g., BlazorMovies/Client), select "Manage NuGet Packages"
+    and install the latest version of "Markdig" by Alexandre Mutel. Do the same for
+    "HTMLSanitizer" by Michael Ganss.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Although implementing <a href="03-routing">lazy loading</a>
+    might seem like a good idea, it is not possible to do so in our example. The reason is
+    that <em>lazy loading</em> is implemented through <dfn>routable</dfn> components that
+    consume "x" assemblies (.dll files). This time the RenderMarkdown component resides in
+    the BlazorMovies/Client/Shared folder and is available for any other component (routable or
+    not) that wants to employ it; i.e., it must be readily available at all times and not
+    just when navigating to a particular routable component.
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/94-project-file.png" alt="Project file with new .dll files." />
+</div>
+
+<p>
+    With the .dll files installed, we can create the RenderMarkdown component. Note that it
+    has a full property (MarkdownContent) that calls a method responsible for executing the
+    conversion and sanitizing the resulting HTML string as opposed to employing a lifecycle
+    method (e.g., OnParametersSet()) as we have been doing with the other input components:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/95-render-markdown-component.png" alt="RenderMarkdown Component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the InputMarkdown component and
+    replace the temporary sanitized HTML section (on the right) with an instance of the
+    RenderMarkdown component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/96-consuming-render-markdown.png" alt="Consuming RenderMarkdown component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to People/Create or People/Edit
+    routable components and test the Biography field:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/97-sanitized-html.png" alt="Sanitized HTML." />
+</div>
+
+<p>
+    The InputMarkdown component is working as expected but we are not done yet. Let's
+    demonstrate how to create a custom input component by taking advantage of existing
+    functionality of a built-in component. This approach will become a must in the next
+    chapter because it allows to postpone the definition of the (object) type to bind
+    the &lt;InputTextArea&gt; value to. It gives more flexibility because it transfers
+    that responsibility to its consumer; e.g., PersonForm or MovieForm.
+</p>
+
+<h4>Custom input component deriving from a built-in component</h4>
+<p>
+    You might recall that in Blazor, there is a standard collection of input components,
+    all descended from the <em>Microsoft.AspNetCore.Components.Forms.InputBase&lt;T&gt;</em>
+    base class. The <em>InputBase&lt;T&gt;</em> class has a <strong><code>CurrentValue</code></strong>
+    property that gets or sets the current value of the input; i.e., you can use this
+    property to gain access to the user input.
+</p>
+<p>
+    As mentioned earlier, it is
+    <strong>
+        recommended to descend (or derive) custom input components from the
+        <code>InputBase&lt;T&gt;</code>
+    </strong> class if you intend to use them as user input because this class provides
+    additional functionality above that of standard HTML &lt;input&gt; elements such as
+    validation and CSS styling based on the result of the validation.
+</p>
+<p>
+    However, an <strong>alternate option is to derive</strong> your custom input component
+    from another built-in form component. In our example, we can derive a custom input
+    component (e.g., <em>InputMarkdownDerived</em>) from the built-in
+    <em>&lt;InputTextArea&gt;</em> form validation component. The InputMarkdownDerived
+    component can also consume the RenderMarkdown component to process markdown into HTML
+    code and sanitize it before rendering it into the browser.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a custom input component (e.g.
+    InputMarkdownDerived) using a built-in <em>&lt;InputTextArea&gt;</em> form validation
+    component. It should have two sections. The one on the left employs the &lt;InputTextArea&gt;
+    built-in component to receive markdown input from the user and the section on the
+    right can consume the RenderMarkdown component to process markdown into HTML code
+    and sanitize it before rendering it into the browser.
+</p>
+<p>
+    Dont't forget to derive the InputMarkdownDerived component from an
+    <em>&lt;InputTextArea&gt;</em> built-in component and to bind the underlying
+    <em>&lt;InputTextArea&gt;</em> component to the <code>CurrentValue</code> property
+    of the base class to postone having to define the object type to bind to; i.e.,
+    transfer this responsibility to its consumer.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Before attempting to create our custom
+    input component by deriving it from a built-in component, let's study the structure
+    of the component we attempt to derive it from:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/98-input-text-area-component.png" alt="InputTextArea component." />
+</div>
+
+<p>
+    The InputTextArea built-in commponent derives from InputBase&lt;T&gt; class and its
+    BuildRenderTree method employs an inherited CurrentValue property to set the value of
+    the input. Let us dig a bit deeper and study a portion of its parent class:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/99-input-base-class.png" alt="InputBase parent class." />
+</div>
+
+<p>
+    The InputBaseClass has a Value parameter (property) that gets or sets the value of
+    the input. This property should be used with two way binding (e.g., bind-Value). The
+    Value property is updated whenever a new value is passed to the CurrentValue property.
+    The CurrentValue property employs an event callback (ValueChanged) to update the
+    current value for the Value property.
+</p>
+<p>
+    Also, notice that <strong>
+        the CurrentValue property has a "protected" access modifier. This
+        means that any class that derives from the InputBaseClass can have access to
+        the CurrentValue property;
+    </strong> i.e., the public interface of the base class (InputTextArea) used to
+    build (or derive) our InputMarkdownDerived component grants access to its
+    CurrentValue property and we can use this property to satisfy the "bind-Value"
+    parameter of the underlying InputTextArea instance and pass the responsibility of
+    satisfying this formal input parameter to the consumer of our InputMarkdownDerived
+    component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create an InputMarkdownDerived custom
+    input component that derives from an &lt;InputTextArea&gt; built-in input component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/100-input-markdown-derived.png" alt="Custom input component derived from built-in component." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> It may not be obvious yet but having
+    the InputMarkdownDerived component derive from the <em>&lt;InputTextArea&gt;</em>
+    built-in form component makes a great difference because it provides a layer
+    of abstraction. As already mentioned, it employs the CurrentValue property
+    inherited from the <em>&lt;InputTextArea&gt;</em> base class. This <strong>
+        allows you to postpone the definition for the type of the Model property
+        that the InputTextArea instance will be bound to.
+    </strong> The parameter with a hard coded type "Person" is no longer needed.
+</p>
+<p>
+    Being able to postpone the definition for the type permits re-using the
+    InputMarkdownDerived component with other types; e.g., MovieForm. The
+    InputMarkdown component can only be consumed by the PersonForm component
+    because it has a parameter with a hard coded type Person; i.e., it does
+    not allow you to postpone the definition of the type to bind to.
+</p>
+<p>
+    Of course, you could make the Person and Movie entities implement an interface
+    and replace the hard coded Person type but that is not the object of this
+    chapter and that solution is not as clean as deriving our component from
+    a built-in form component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the PersonForm component and
+    replace the InputMarkdown component with an instance of the InputMarkdownDerived
+    component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/101-consuming-derived-component.png" alt="Consuming a derived component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Implement data validation by defining the
+    field for which validation messages should be displayed:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/102-validation-error-message.png" alt="Validation error message config." />
+</div>
+
+<p>
+    Congratulations!!! This completes the PersonForm component responsible for
+    creating/editing a Person object. Now we can start working with a MovieForm
+    which happens to be very similar to what we've created so far. This is where
+    everything starts to fall into place. The next exercise will make you fully
+    aware of the power of Blazor components because one of their main
+    characteristics is that they are a reusable piece of UI.
+</p>
+<p>
+    You might recall from the lesson on <a href="01-blazor">Blazor Architecture</a>
+    that each component maintains its own state and specifies its own rendering logic.
+    This makes them very powerful.
+</p>
+<p>
+    For more info visit <a href="https://github.com/showdownjs/showdown/wiki/Markdown%27s-XSS-Vulnerability-(and-how-to-mitigate-it)#mixed-htmlmarkdown-xss-attack">
+        Markdown's XSS Vulnerability
+    </a>,
+    <a href="https://discoverdot.net/projects/markdig">
+        markdig
+    </a>,
+    <a href="https://github.com/mganss/HtmlSanitizer">
+        mganss/HTMLSanitizer
+    </a>,
+    <a href="https://uncommonbytes.com/blog/2019/01/27/safely-rendering-markdown-in-blazor/">
+        Safely Rendering Markdown in Blazor
+    </a>,
+    <a href="https://jonhilton.net/blazor-client-server-validation-with-fluentvalidation/">
+        Custom validation logic on client and server with Blazor?
+    </a>, and
+    <a href="https://www.markdownguide.org/">Markdown Guide</a>
+</p>
+

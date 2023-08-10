@@ -1,0 +1,12 @@
+﻿@page "/people/create"
+@attribute [Authorize (Policy = AuthZPolicies.ApiCreateContent)]
+
+<PageTitle>Create Actor</PageTitle>
+
+<div class="form-control">
+    <h3 class="mb-0">Create Person</h3>
+    <p class="small text-muted">(open the browser's console)</p>
+
+    <PersonForm Person="@_person" OnValidSubmit="CreatePerson" />
+
+</div>

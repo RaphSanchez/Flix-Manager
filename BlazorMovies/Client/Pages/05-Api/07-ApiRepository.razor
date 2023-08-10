@@ -1,0 +1,549 @@
+﻿@page "/07-api-repository"
+<PageTitle>API Repositories</PageTitle>
+
+<h2>Web Server-API - Adding the Repository and Unit of Work Patterns</h2>
+<h3>Tracking vs. No-Tracking Queries</h3>
+<p>
+    A <dfn>DbContext</dfn> is designed to represent a short-lived unit-of-work
+    or business transaction with the database but more on that later. Each
+    <dfn>DbContext</dfn> instance tracks changes made to entities. These tracked
+    entities in turn drive the changes to the database when the
+    <dfn>DbContext.SaveChangesAsync()</dfn> method is called.
+</p>
+<p>
+    Entity instances become tracked when they are:
+</p>
+<ul>
+    <li>
+        Returned from a query executed against the database.
+    </li>
+    <li>
+        Explicitly attached to the <dfn>DbContext</dfn> by <code>Add</code>,
+        <code>Attach</code>, <code>Update</code>, or similar methods.
+    </li>
+    <li>
+        Detected as new entities connected to existing tracked entities.
+    </li>
+</ul>
+<p>
+    Entity instances are no longer tracked when:
+</p>
+<ul>
+    <li>The DbContext is disposed.</li>
+    <li>The change tracker is cleared (EF Core 5.0 and later).</li>
+    <li>The entities are explicitly detached.</li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Keep in mind that we are working with the back-end of the application;
+        i.e., EF Core tracking behaviour described here applies within the scope of
+        an instance of a DbContext. As you will learn in next module, the server is
+        responsible for serializing the data so it can travel through the internet
+        to serve a request from the Application/Client. When the client deserializes
+        the response, the data is obviously not being tracked anymore because the
+        business transaction has been completed and the data is within a completely
+        different environment.
+    </p>
+</div>
+<p>
+    Tracking behaviour controls if EF Core will keep information about an entity
+    instance in its <dfn>change tracker</dfn>. If an entity is tracked, any changes
+    detected in the entity will be persisted to the database when calling the
+    <dfn>DbContext.SaveChangesAsync()</dfn> method. <strong>
+        EF Core will also fix up navigation properties (relationships) between the
+        entities in a tracking query result and the entities that are in the change
+        tracker.
+    </strong>
+</p>
+<p>
+    When the results are returned in a tracking query, EF Core will check if the
+    entity is already in the context. If EF finds an existing entity, then the
+    same instance is returned. EF Core won't overwrite current and original values
+    of the entity's properties in the entry with the database values. By default,
+    <strong>queries that return entity types are tracking.</strong> This means you
+    can make changes to those entity instances and have those changes persisted to
+    the database.
+</p>
+<p>
+    <strong><dfn></dfn>No-tracking queries</strong> are useful when the results are
+    used in a read-only scenario. They're quicker to execute because there is no need
+    to set up the change tracking information. <strong>
+        If you don't need to update the entities retrieved from the database, then a
+        <dfn>no-tracking</dfn> query should be used.
+    </strong>
+</p>
+<p>
+    No-tracking behaviour can be implemented at a local level within a given query
+    using the <strong><code>.AsNoTracking()</code></strong> queryable extension method
+    or it can be implemented as the default behaviour at the context instance level
+    with the <strong><code>QueryTrackingBehavior</code></strong> enum:
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Be careful with the <code><strong>.AsNoTracking()</strong></code> method because it
+        can cause issues during a create or an update operation.
+    </p>
+</div>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/82-tracking-examples.png"
+         alt="No-tracking implementation examples." />
+    <figcaption class="figure-caption text-center">Microsoft EF Core Resources</figcaption>
+</figure>
+<h4>Identity Resolution</h4>
+<p>
+    Since a <dfn>tracking query</dfn> uses the change tracker, EF Core will do
+    <strong>identity resolution</strong> in a tracking query. When materializing an
+    entity, EF will <strong>
+        return the same entity instance from the change tracker if it is already being
+        tracked.
+    </strong> <strong>No-tracking queries</strong> don't use the change
+    tracker and don't do identity resolution. This means they <strong>
+        return a new instance of the entity
+    </strong> even when the same entity is contained in the result multiple times.
+</p>
+<p>
+    Starting with EF Core 5.0, you can combine both behaviour in the same query.
+    That is, <strong>
+        you can have a no tracking query, which will do identity resolution in the
+        results
+    </strong> with the <strong><code>QueryTrackingBehavior</code></strong> enum. When
+    you configure the query to use identity resolution with no tracking, a stand-alone
+    change tracker is used in the background when generating a query result so each
+    instance is materialized only once. Since this change tracker is different from the
+    one in the context, the results are not tracked by the context:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/83-tracking-identity-resolution.png"
+         alt="No tracking with identity resolution." />
+    <figcaption class="figure-caption text-center">Microsoft EF Core Resources</figcaption>
+</figure>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/querying/tracking">
+        Tracking vs. No-Tracking Queries
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/change-tracking/">
+        Change Tracking in EF Core
+    </a>
+</p>
+<p>
+    Establishing a model with an efficient communication channel between the
+    client (requests information) and the server (responds with required data)
+    requires a clear understanding on how Entity Framework tracks entities when
+    performing a query.
+</p>
+<h4>The Repository Pattern</h4>
+<p>
+    Typically, the business logic accesses data from data stores such as
+    databases or web services. Directly accessing the data can result in:
+</p>
+<ul>
+    <li>Duplicate code (repeating code logic for similar queries).</li>
+    <li>A higher potential for programming errors.</li>
+    <li>Difficulty in centralizing data-related policies as caching.</li>
+    <li>
+        An inability to easily test the business logic in isolation
+        from external dependencies.
+    </li>
+</ul>
+<p>
+    The repository pattern allows us to separate the logic that retrieves
+    the data and maps it to the entity model from the business logic that
+    acts on the model. The business logic should be agnostic to the type
+    of data that comprises the data source layer. It mediates between the
+    data source layer and the business layers of the application.
+</p>
+<p>
+    It queries the data source for the data, maps the data from the data source
+    to a business entity, and persists changes in the business entity to the data
+    source. A repository is a bridge between the data store and the code logic to
+    perform those operations.
+</p>
+<p>
+    As mentioned in the Application Architecture title of the
+    <a href="05-api">05. Server-Api</a> section, in our application, the
+    Application/Client makes a data request, and the IApiService (abstract
+    layer) sends the HttpRequest to the Application/Server-Api/Controllers.
+</p>
+<p>
+    The Application/Server-Api/Controller employs the
+    Application/Client/IUnitOfWork (abstract layer) that exposes the business logic
+    methods to query the Application/Server-Api/DataStore database and, if necessary,
+    persist any changes made to in-memory objects during the business transaction.
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/37-ef-repository-diagram.svg"
+         alt="Application EF Repository diagram." />
+</div>
+<p>
+    Both abstract layers, the IApiService and the IUnitOfWork, adhere to the
+    contract (functionality) defined by the IRepository&lt;TEntity&gt; to expose
+    their interfaces and hide the actual implementation (code logic). The
+    operations exposed to the Application/Client (by the IApiService) mirror
+    (same signature) the operations exposed by the IUnitOfWork (business logic
+    and database operations):
+</p>
+<p>
+    Encapsulating business logic workflow:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/20-repository-workflow.png"
+         alt="Workflow of the business logic - repository pattern." />
+</div>
+<p>
+    Encapsulating Http requests/responses:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/21-repository-workflow-2.png"
+         alt="Workflow of the Api service logic - repository pattern." />
+</div>
+<p>
+    For this reason, both abstract layers employ a shared IEntityName
+    interface to expose and represent data entitites which in turn implement
+    a single (unique) IRepository&lt;TEntity&gt; interface which establishes
+    a contract for the required <strong>
+        general functionality applicable to all data entities.
+    </strong>
+</p>
+<p>
+    IEntityName interfaces not only implement the IRepository&lt;TEntity&gt;,
+    they also extend its functionality with operations that are specific
+    to the entity type that they represent. In other words, IEntityName interfaces
+    are exposed, and implemented in their own way, by the IApiService and the
+    IUnitOfWork interfaces.
+</p>
+
+<h3>Adding the Repository Pattern</h3>
+<p>
+    The Application/Server-Api/Repositories will be responsible for:
+</p>
+<ol>
+    <li>
+        <em>Encapsulating the business logic of the application.</em> They operate
+        as an intermediary between the Application/Server-Api/UnitOfWork and the
+        Application/Server-Api/DataStore (database).
+    </li>
+</ol>
+<p>
+    The repositories implement the same contract or protocol for the CRUD operations;
+    i.e., they implement the EfRepository&lt;TEntity&gt; which derives from
+    IRepository&lt;TEntity&gt; interface to:
+</p>
+<ul>
+    <li>Create &asymp; Post</li>
+    <li>Read &asymp; Get</li>
+    <li>Update &asymp; Put</li>
+    <li>Delete</li>
+</ul>
+
+<p>
+    The IRepository&lt;TEntity&gt; interface and its implementations
+    (EfRepository&lt;TEntity&gt; and ApiRepository&lt;TEntity&gt;) must be completely
+    generic; i.e., they must postpone the definition of an specific data entity type
+    so that they can be re-used in any application.
+</p>
+
+<p>
+    For now, we will work on encapsulating the business logic of the application
+    and leave the details of calling the RESTful-Api for later; i.e., once we have
+    actually created the RESTful service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create the repository pattern and
+    its implementation for the business logic of the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to Application/Client/ApiServices
+    and create a folder named IRepositories. Then go to the Application/Server-Api and
+    create a folder named Repositories.
+</p>
+<p>
+    Install the following NuGet packages to the Application/Server-Api project
+    to support EF Core:
+</p>
+<ul>
+    <li>
+        Microsoft.EntityFrameworkCore
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Add a generic
+    Application/Client/IRepository&lt;TEntity&gt; interface to establish a contract for
+    the basic functionality applicable to any in-memory collection of objects (data
+    entity) and equivalent to CRUD operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/22-iRepository-one.png"
+         alt="IRepository part one." />
+    <img src="images/08-ServerApi/22-iRepository-two.png"
+         alt="IRepository part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Repositories should <strong>not</strong>
+    return <dfn>IQueryable&lt;T&gt;</dfn> objects because they can be further used
+    to build new queries and they should <strong>not</strong> contain database
+    persistence methods (e.g., DbContext.SaveChanges()).
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Add an IEntityName interface for each
+    domain entity mapped to the database; i.e., for each <em>DbSet&lt;TEntity&gt;</em>
+    exposed in the DbContext derived class (AppDbContext). <strong>
+        Each interface establishes a contract for entity specific methods
+    </strong>; i.e., they extend the IRepository&lt;TEntity&gt; interface because they
+    include methods that do not fit in the previously defined IRepository&lt;TEntity&gt;
+    generic interface. For example, if you want to use the <em>"Include"</em> extension
+    to include related entities of a navigation property or perform a search operation 
+    using specific Entity.Properties.
+</p>
+<p>
+    These interfaces are application specific based on the requirements for more specific
+    functionality on a given entity type (root entity). Anything related to 'eager loading' 
+    and 'explicit loading' is data access concern and should be included here:
+</p>
+<p>
+    IRepositories complete folder tree:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/23-irepositories-folder-tree.png"
+         alt="IRepositories folder tree." />
+</div>
+<p>
+    For simplicity, we will only create the IGenres interface and leave the rest of the
+    specific functionality for later as needed.
+</p>
+<p>
+    Any method created here should be data entity type (Genre) specific. The IGenres
+    interface implements the IRepository&lt;TEntity&gt; generic interface and it also
+    extends its functionality with data entity type (Genre) specific functionality:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/24-igenres-interface.png"
+         alt="IGenres interface." />
+</div>
+<p>
+    IMovies interface (empty):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/25-imovies-interface.png"
+         alt="IMovies interface (empty)." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the
+    Application/Server-Api/Repositories folder and add a generic
+    <em>EfRepository&lt;TEntity&gt;</em> class that implements the functionality for the
+    generic IRepository&lt;TEntity&gt; interface. This EntityFramework (Ef) generic
+    repository encapsulates the business logic and the code to communicate with the
+    database (Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/26-ef-repository-one.png"
+         alt="Entity Framework repository implementation part one." />
+    <img src="images/08-ServerApi/26-ef-repository-two.png"
+         alt="Entity Framework repository implementation part two." />
+    <img src="images/08-ServerApi/26-ef-repository-three.png"
+         alt="Entity Framework repository implementation part three." />
+    <img src="images/08-ServerApi/26-ef-repository-four.png"
+         alt="Entity Framework repository implementation part four." />
+    <img src="images/08-ServerApi/26-ef-repository-five.png"
+         alt="Entity Framework repository implementation part five." />
+    <img src="images/08-ServerApi/26-ef-repository-six.png"
+         alt="Entity Framework repository implementation part six." />
+    <img src="images/08-ServerApi/26-ef-repository-seven.png"
+         alt="Entity Framework repository implementation part seven." />
+    <img src="images/08-ServerApi/26-ef-repository-eight.png"
+         alt="Entity Framework repository implementation part eight." />
+    <img src="images/08-ServerApi/26-ef-repository-nine.png"
+         alt="Entity Framework repository implementation part nine." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The access modifiers are important
+    because they control who or what has access to the EfRepository; i.e., who or
+    what has access to the implementation or code logic of the
+    IRepository&lt;TEntity&gt; interface.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> There is a .Net library named
+    <a href="https://automapper.org/">AutoMapper</a> built to map one object to
+    another. For the most part, it makes things much simpler because it handles
+    the mapping automatically. Nevertheless, in this course, we will do our
+    mapping manually to have an exact control of what goes where. "Episode 76.
+    Updating People" of the Programming in Blazor - ASP.Net Core 5 course in
+    <a href="https://www.udemy.com/share/102l0i3@vvD3iCwvDBzUqrFpZILkPYAUbCLeMg6JJFb7ppSQbTmXv2K0y0Ham4u3FaGAmdR9/">
+        Udemy
+    </a>, and Episodes "39. What is AutoMapper and using it in ASP Net Core"
+    and "40. Edit and Update in Blazor" of the <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        Blazor tutorial for beginners
+    </a> by Kudvenkat, have an example on how to download and implement.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Add an <dfn>EfEntityName</dfn>
+    class for each IEntityName interface. Each class should derive from the generic
+    EfRepository&lt;TEntity&gt; class to inherit the implementation of the general
+    functionality that is applicable to any entity type.
+</p>
+<p>
+    Additionally, each EfEntityName class must implement the entity specific
+    functionality defined in its corresponding IEntityName interface; i.e., any
+    methods that do not fit in the previously defined EfRepository&lt;TEntity&gt;
+    class. For example, if you want to use the "Include" extension to include related
+    entities of a navigation property or if you want to perform multiple queries on
+    different entity properties such as a search operation.
+</p>
+<p>
+    <dfn>EfEntityName</dfn> classes are application specific based on the
+    requirements for more specific functionality on a given entity type (root
+    entity). Anything related to eager loading and explicit loading is data access
+    concern and should be included here.
+</p>
+<p>
+    Application/Server-Api/Repositories complete folder tree:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/27-ef-manager-folder-tree.png"
+         alt="EFManager folder tree." />
+</div>
+<p>
+    Recall that the IEntityName interfaces (IGenres, IMovies, and IPeople)
+    will define specific functionality as required. For this reason, for the time being,
+    we only need to create the classes (EfGenres, EfMovies, and EfPeople) and they will
+    eventually contain the actual code logic (functionality) established by their
+    corresponding interfaces:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/28-ef-genres-class-one.png"
+         alt="EfGenres class part one." />
+    <img src="images/08-ServerApi/28-ef-genres-class-two.png"
+         alt="EfGenres class part two." />
+</div>
+<h3>Adding the Unit of Work Pattern</h3>
+<p>
+    A Unit of Work keeps track of everything you do during a business transaction that
+    can affect the database. When the business transaction is completed, it figures out
+    everything that needs to be done to alter the database because it maintains a list
+    of objects affected as a result of your work.
+</p>
+<p>
+    It coordinates the work of multiple repositories by creating a single database context
+    instance shared by all of them:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/29-unit-of-work-diagram.png"
+         alt="Unit of Work diagram." />
+    <figcaption class="figure-caption text-center">Microsoft ASP.Net Resources</figcaption>
+</figure>
+<p>
+    <span class="badge bg-primary">Task:</span> Create the unit of work pattern and
+    its implementation for the business logic of the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/ApiServices/IRepositories folder and add an IUnitOfWork interface
+    to establish a contract or protocol for persisting to the database any changes made
+    to in-memory objects (DbSet&lt;T&gt;s) during a business transaction. The IUnitOfWork
+    and its implementation (Application/Server-Api/Repositories/UnitOfWork) will:
+</p>
+<ul>
+    <li>
+        Expose each abstract IEntityName interface defined earlier based on the root
+        entities of the application. It should contain them as read-only properties.
+    </li>
+    <li>
+        Include a <dfn>SaveAsync()</dfn> or PersistToDbAsync() method which indicates
+        the end of a unit of work; i.e., the end of a business transaction to update
+        the database.
+    </li>
+    <li>
+        Implement IDisposable and IAsyncDisposable interfaces. When working with web
+        applications, a <strong>single</strong> <dfn>context instance</dfn> should be
+        used <strong>per request</strong> (business transaction).
+    </li>
+</ul>
+<p>
+    The IUnitOfWork interface is application specific in the sense that it exposes
+    (declares) one read-only property for each IEntityName created based on each root
+    entity that is mapped to a database table but it is also abstract in nature
+    because interfaces do not define any code logic (any specific implementation):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/30-i-unit-of-work-one.png"
+         alt="IUnitOfWork part one." />
+    <img src="images/08-ServerApi/30-i-unit-of-work-two.png"
+         alt="IUnitOfWork part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the
+    Application/Server-Api/Repositories folder and add a <dfn>UnitOfWork</dfn> class.
+    This class implements the IUnitOfWork interface (and its functionality) which should:
+</p>
+<ul>
+    <li>
+        Use constructor injection to initialize a concrete instance for each IEntityName
+        property defined in the IUnitOfWork interface.
+    </li>
+    <li>
+        Include the code logic for the PersistToDbAsync() method.
+    </li>
+    <li>
+        Include the implementations for IDisposable and IAsyncDisposable interfaces
+        to deterministically dispose of the DbContext derived class and "null" out
+        any in-memory entity instances.
+    </li>
+</ul>
+
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/31-unit-of-work-one.png"
+         alt="UnitOfWork class part one." />
+    <img src="images/08-ServerApi/31-unit-of-work-two.png"
+         alt="UnitOfWork class part two." />
+    <img src="images/08-ServerApi/31-unit-of-work-three.png"
+         alt="UnitOfWork class part three." />
+    <img src="images/08-ServerApi/31-unit-of-work-four.png"
+         alt="UnitOfWork class part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Configure the IUnitOfWork as a
+    service in the dependency injection container of the
+    Application/Server-Api/Program.cs class.
+</p>
+<p>
+    Go to the ConfigureServices() method in the Program.cs file and add the
+    IUnitOfWork service with a
+    <span class="mark"><strong>transient lifetime</strong></span> and the UnitOfWork
+    implementation. This will allow us to inject an IUnitOfWork service into the
+    Application/Server-Api controllers and use it to access the database (data source):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/32-i-unit-of-work-service.png"
+         alt="IUnitOfWork service configuration." />
+</div>
+<p>
+    With the business logic layer in place, we can start building the
+    Application/Server RESTful API service.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/previous-versions/msp-n-p/ff649690(v=pandp.10)?redirectedfrom=MSDN">
+        The Repository Pattern
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/mvc/overview/older-versions/getting-started-with-ef-5-using-mvc-4/implementing-the-repository-and-unit-of-work-patterns-in-an-asp-net-mvc-application">
+        Implementing the Repository and Unit of Work Patterns
+    </a>,
+    <a href="https://martinfowler.com/eaaCatalog/unitOfWork.html">
+        Unit of Work
+    </a>,
+    <a href="https://martinfowler.com/eaaCatalog/dataMapper.html">
+        Data Mapper
+    </a>,
+    <a href="https://stackoverflow.com/questions/30688909/how-to-get-primary-key-value-with-entity-framework-core">
+        How to get primary key value with EF Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/fundamentals/working-with-dbcontext#lifetime">
+        Working with DbContext - Lifetime
+    </a>
+
+</p>
+@code {
+
+}

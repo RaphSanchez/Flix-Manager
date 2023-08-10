@@ -1,0 +1,103 @@
+﻿@page "/genres"
+@attribute [Authorize]
+
+<PageTitle>Movie Genres</PageTitle>
+
+<h3 class="mb-4">Index Genres</h3>
+
+<!-- Create Genre button element. -->
+<AuthorizeView Policy="@AuthZPolicies.ApiCreateContent">
+    <Authorized>
+        <div class="input-group mb-3">
+            <a class="btn btn-success" id="create-genre" style="width: 140px"
+               href="genres/create">
+                Create Genre
+            </a>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+
+<!-- Genres table. -->
+<div>
+    <TestCollectionNullOrEmpty TItem="Genre" ItemsList="_dbGenres">
+        <WholeListTemplate>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Name</th>
+
+                        <AuthorizeView Policy="@AuthZPolicies.ApiEditContent">
+                            <Authorized>
+                                <th scope="col">Edit</th>
+                            </Authorized>
+                        </AuthorizeView>
+
+                        <AuthorizeView Policy="@AuthZPolicies.ApiDeleteContent">
+                            <Authorized>
+                                <th scope="col">Delete</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (Genre? g in _dbGenres!)
+                    {
+                        <tr class="align-middle">
+                            <th>@(_dbGenres.IndexOf(g) + 1)</th>
+                            <td>@g?.Name</td>
+
+                            <AuthorizeView Policy="@AuthZPolicies.ApiEditContent">
+                                <Authorized>
+                                    <td>
+                                        <a class="btn btn-outline-primary btn-sm"
+                                       id="edit-genre"
+                                       href="genres/edit/@g?.Id">
+                                            Edit
+                                        </a>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+
+                            <AuthorizeView Policy="@AuthZPolicies.ApiDeleteContent">
+                                <Authorized>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm"
+                                            id="delete-genre"
+                                            @onclick="@(() => DeleteGenre(g))">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </WholeListTemplate>
+    </TestCollectionNullOrEmpty>
+
+    <!-- Confirmation modal component to delete a Genre object. -->
+    <Confirmation @ref="_confirmation"
+                  Title="Confirmation Required"
+                  OnCancelCallback="@( CancelDelete )"
+                  OnConfirmCallback="@( PerformDelete )">
+        Please confirm your intention to delete
+        <strong>@_currentGenre?.Name</strong> genre.
+    </Confirmation>
+</div>
+
+<!-- Inactive element replaced by Genre table. -->
+@*<div class="input-group mb-3">
+    <a class="btn btn-primary" id="edit-genre" style="width: 140px"
+    href="genres/edit/@_genreId">
+    Edit Genre
+    </a>
+    <input type="number" class="form-control" placeholder="Genre Id"
+    aria-label="Navigate to edit genre."
+    @bind="_genreId" />
+    </div>*@
+
+
+

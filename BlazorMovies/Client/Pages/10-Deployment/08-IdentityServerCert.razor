@@ -1,0 +1,683 @@
+﻿@page "/08-id-server-cert"
+<PageTitle>ID Server Digital Certificate</PageTitle>
+
+<h2>Deployment - IdentityServer Digital Certificate</h2>
+<p>
+    As you know, our application integrates <a href="03-security-id-server">
+        Duende Identity Server (DIS) engine
+    </a>, responsible for authenticating Clients (Application/Client - web application) and/or
+    Users (end-user), with the Application/Server-Api project as the host.
+</p>
+<p>
+    Whether using <a href="10-external-id-providers">external identity providers</a>
+    (e.g., Google or Facebook) or not, Duende IdentityServer (DIS) engine is responsible
+    for granting (or not) to our web client application consent from the end-user to
+    his/her personal data (e.g., OpenID Connect scopes such as profile, email, phone
+    number, etc).
+</p>
+<p>
+    Besides OpenID Connect (OIDC), our application relies on OAuth 2.0 to control access
+    to its Application/Server-Api resources and the actions that a given user can perform
+    on the permitted resources.
+</p>
+<p>
+    In the lesson on <a href="03-security-id-server">Identity Server</a>,
+    we used the appsettings.json file of the Application/Server-Api project to define
+    the configuration for the Key that the IdentityServer should use to generate the
+    cryptographically signed security tokens. As we explained, the Key type can be any of
+    the following values:
+</p>
+<ul>
+    <li>
+        <strong><code>File</code></strong>: To specify the certificate file on disk.
+    </li>
+    <li>
+        <strong><code>Development</code></strong>: Indicates the system to generate
+        a temporary certificate.
+    </li>
+    <li>
+        <strong><code>Store</code></strong>: To specify a certificate in the certificate
+        store (store location).
+    </li>
+</ul>
+<p>
+    This is the current configuration for the IdentityServer engine to obtain the
+    certificate to sign the security tokens:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/23-key-to-sign-in.png"
+         alt="Development key." />
+</div>
+<p>
+    With the current configuration, the certificate to sign the security tokens is created
+    in-memory each time the application re-starts. Since the certificate is temporarily
+    stored in memory, it could be recycled and this would cause the invalidation of all the
+    tokens issued so far for logged in users.
+</p>
+<p>
+    The validity of the tokens issued for end-users that logged-in using their local account
+    credentials as well as for logged-in users that authenticated with an external identity
+    provider, would be lost. We need to establish a Key source for production environments
+    that is persistent through application resets. We can use a digital security certificate,
+    this certificate can:
+</p>
+<ul>
+    <li>
+        Be a self-signed certificate or a certificate provisioned through a CA authority.
+    </li>
+    <li>
+        Be generated through standard toolks like PowerShell, OpenSSL, or even Azure Key Vault.
+    </li>
+    <li>
+        Be installed into the certificate store on the target machines or deployed as a .pfx
+        file with a strong password.
+    </li>
+</ul>
+<p>
+    Keep in mind that you can add digital security certificates to either:
+</p>
+<ul>
+    <li>
+        Use in your application code (as is the case with the IdentityServer engine).
+    </li>
+    <li>
+        Secure custom DNS names (enable HTTPS with custom domains).
+    </li>
+</ul>
+<p>
+    In this lesson, we will use the Azure Key Vault to generate a Self-signed certificate.
+    The following table lists the options for you to add certificates in App Service:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/28-production-key/01-add-certificate-options.png"
+         alt="Options to add digital certificates in Azure App Service." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal">
+            Options to add digital certificates in Azure App Service
+        </a>
+    </figcaption>
+</figure>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        To create custom TSL/SSL bindings or enable client certificates for your App Service
+        app, your <a href="https://azure.microsoft.com/pricing/details/app-service/">App Service plan</a>
+        must be at least in the Basic tier.
+    </p>
+</div>
+<p>
+    A Key Vault (KV) certificate can be either created or imported into a key vault. When
+    a KV certificate is created, the private key is created inside the key vault and never
+    exposed to the certificate owner. There are <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/create-certificate#self-issued-certificate">
+        two options to create a certificate in Key Vault
+    </a>:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>Create a self-signed certificate:</strong> This will create a public-private
+            key pair and associate it with a certificate. The certificate will be signed by
+            its own key.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Create a new certificate manually:</strong> This will create a public-private
+            key pair and generate an X.509 certificate signing request (CSR). The signing
+            request can be signed by your registration authority or certification authority.
+        </p>
+        <p>
+            The signed X.509 certificate can be merged with the pending key pair to complete
+            the KV certificate in Key Vault.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the MSDN <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/quick-create-portal#add-a-certificate-to-key-vault">
+        documentation
+    </a> to use the Azure Key Vault service (<a href="06-https-cdn">kv-rsLanding</a>) to
+    create and manage a digital certificate that will be consumed by the IdentityServer engine
+    of the web application to generate the cryptographically signed security tokens.
+</p>
+<p>
+    If the digital certificate is imported into the key vault, the Key Vault service
+    creates a default policy by reading the X.509 certificate. Otherwise, to appropriately
+    manage the Azure Key Vault created certificate, you need to define a <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/about-certificates#certificate-policy">
+        certificate policy
+    </a> that contains information on how to create and manage the lifecycle of a Key Vault
+    certificate.
+</p>
+<p>
+    The policy specifies how to create this Key Vault certificate version or the next Key
+    Vault certificate version. After a policy has been established, it is not required with
+    successive create operations for future versions. There is only one instance of a policy
+    for all the versions of a Key Vault certificate.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Certificates blade of your Azure Key Vault service and click on "Generate/Import"
+    to create the digital certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/02-kv-create-certificate.png"
+         alt="Key Vault create certificate input." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Select the "Not Configured" link of the "Advanced Policy Configuration Field" to customize
+    the policy. Our example has the default values:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/03-kv-policy-config.png"
+         alt="Advance policy config with default values." />
+</div>
+<p>
+    At this point, the certificate is being created and it should take a couple minutes to
+    be enabled. Once enabled, click on it to see its properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/04-id-server-certificate.png"
+         alt="Certificate properties." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Update the Azure Key Vault access policy related to the Flix-Manager application to grant
+    your app access to Key Vault secrets.
+</p>
+<p>
+    In <a href="07-dynamic-website">last lesson</a>, we granted the web app access to the
+    key vault using a system assigned managed identity. But we only enabled access to Key
+    Vault secrets, we still have to enable access to key vault certificates. This is known as
+    <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/security-features#privileged-access">
+        granting access in the data plane
+    </a>.
+</p>
+<p>
+    Go to the Access Policies blade of the Azure Key Vault, select the flix-manager access policy
+    and the "Edit" icon to update its permissions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/05-updated-permissions.png"
+         alt="Key Vault access policy updated permissions." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        By using short-lived certificates or by increasing the frequency of certificate
+        rotation, you can help prevent access to your applications by unauthorized users.
+        Azure Key Vault Self-signed certificate permits auto-renewal.
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    If you didn't use the Azure Key Vault service to create your certificate, you first have to
+    import the certificate to key vault and then you can consume it. As mentioned earlier,
+    you can choose to import the certificate to Key Vault in which case, you can follow this
+    tutorial. However, if you choose not to use Key Vault and import the certificate directly
+    into the App Service, you can use the
+    <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+        Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+    </a> blog post by Felipe Gavilán.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the MSDN documentation to
+    <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#import-a-certificate-from-your-vault-to-your-app">
+        Import a certificate from your vault to your app
+    </a>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    At the time of this lesson, the documentation is a bit outdated because the TLS/SSL blade
+    of the App Service will eventually be replaced by the Certificates blade. In any case, the
+    steps to follow are very similar. In this example, we use the newer Certificates blade.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Certificates blade of the App Service, select Add Certificate, and "Import from
+    Key Vault" as the Source. Fill out the required fields:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/06-import-certificate.png"
+         alt="Import certificate from Key Vault." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Validate the certificate, you can choose a custom friendly name or leave the default, and
+    click the "Add" button control:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/07-certificate-validation.png"
+         alt="Certificate validation." />
+</div>
+<p>
+    When we published and deployed the BlazorMovies web app into the Azure app service, its
+    IdentityServer engine configuration (in appsettings.json source file) was configured for
+    the "Development" environment. Now we have to configure the application to employ a
+    "Production" certificate which will be persisted into a local store.
+</p>
+<p>
+    The MSDN documentation uses Windows Power Shell to create a Self-signed certificate in
+    the local machine, configure the app to load it when started, and finally redeploys the
+    app with the new digital certificate configuration.
+</p>
+<p>
+    As you know, we used the Azure Key Vault to create the digital certificate because this
+    provides added features such as automatic renewal and management of the certificate. For
+    this reason, the certificate already resides in Azure and is already available for the
+    App Service.
+</p>
+<p>
+    We have to download the certificate to the local machine, modify the
+    IdentityServer engine configuration for the digital certificate in the appsettings.json
+    file and redeploy the application with the new configuration that will instruct the
+    app to retrieve the certificate from the local store instead of creating a new certificate
+    each time the application is re-started.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Download the digital certificate from Azure Key Vault, store it in the local store for
+    certificates, and modify the appsettings.json file of the web app to retrieve the certificate
+    from a local store. You can use the
+    <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+        Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+    </a> blog post by Felipe Gavilan as some guidance.
+</p>
+<p>
+    As explained at the end of the <a href="04-security-config-client">Client App Configuration</a>
+    lesson of the Security module, you can go to the Application tab of the web browser's
+    devloper tools to evalutate the session storage. This is where the authentication
+    and authorization tokens for a given logged in user, created by the IdentityServer engine,
+    can be found.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application locally, login our admin user, go to the Application tab of the
+    browser's developer tools, and study the values for the "Session Storage":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/08-session-storage.png"
+         alt="Web browser's session storage." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Copy the authentication and the authorization tokens and use the
+    <a href="https://jwt.io">jwt.io</a> web site to decode them. You will realize that they
+    are working under the "development" environment configuration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/09-decoded-token.png"
+         alt="Decoded token." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Download the digital certificate from Key Vault into your desktop and store it in the
+    local computer <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/install/local-machine-and-current-user-certificate-stores">
+        Certificate Stores
+    </a>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    There are two local store options in a Windows based PC where you can store the certificate.
+    Open the "Control Panel" and search for certificates:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/14-control-panel.png"
+         alt="Control panel certificate store options." />
+</div>
+<p>
+    The "user certificates" is equivalent to the <strong><code>CurrentUser</code></strong>
+    store location:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/15-user-certificates-store.png"
+         alt="User certificates store location." />
+</div>
+<p>
+    The "computer certificates" is equivalent to the <strong><code>LocalMachine</code></strong>
+    store location:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/16-computer-certificates.png"
+         alt="Computer certificates store location." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Go to the Certificates blade of the Azure Key Vault service, select the digital
+    certificate that will be used by IdentityServer and select "Download in PFX/PEM format"
+    to download the certificate to your local machine with the private key included:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/10-downalod-cert.png"
+         alt="Download tab." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Digital certificates that will be consumed by the web application hosted in
+        Azure should be stored in "current user certificates" because this is the location
+        where an Azure App setting will <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate-in-code#load-certificate-in-windows-apps">
+            attempt to retrieve the certificate
+        </a> from.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Open "Manage User Certificates" from the search tab of the "Start" menu in your local
+    machine, right click the "Certificates-CurrentUser/Personal/Certificates" folder and select
+    "All Tasks", "Import" to open the Certificate Import Wizard and browse
+    to select the certificate file downloaded from key vault to your desktop. If you don't see
+    your certificate, select "All Files" at the right of the "File Name" from the dialog box:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/18-certificate-file.png"
+         alt="Browse to select certificate file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Click "Next" and <strong>leave blank the "Password" field</strong>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/19-no-password.png"
+         alt="No password for the private key." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4</span>
+    Select the "Personal" certificate store to import (place) the certificate into the
+    "Certificates Current User - Personal - Certificates" folder:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/11-user-certificates.png"
+         alt="Current user certificates with new imported cert." />
+</div>
+<p>
+    You can double click on the certificate to open its details; e.g., its "CN"
+    value:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/12-cert-details.png"
+         alt="Certificate details." />
+</div>
+<p>
+    With the certificate in place, you can use the control panel to access the location
+    for your certificate or you can also use the Windows PowerShell with elevated
+    privileges (as an administrator):
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/28-production-key/17-power-shell-certificates.png"
+         style="max-width: 105%"
+         alt="PowerShell to list available user and computer certificates." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-3.0#example-deploy-to-azure-app-service-1">
+        Configure the application
+    </a> to load the certificate stored in the certificate store.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Go to the Application/Server-Api appsettings.json source file and modify the
+    IdentityServer section to include the key details:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/13-appsettings-local-store.png"
+         alt="Appsettings.json file with new configuration." />
+</div>
+<p>
+    Where:
+</p>
+<ul>
+    <li>
+        The store name represents the name of the certificate store where the
+        certificate is stored. In this case, it points to the personal user store.
+        This is a built-in configuration name: "My".
+    </li>
+    <li>
+        The store location represents where to load the certificate from; e.g.,
+        <strong><code>CurrentUser</code></strong> or <strong><code>LocalMachine</code></strong>.
+    </li>
+    <li>
+        The name property on certificate corresponds with the distinguished subject
+        for the certificate.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Run the application locally, login our admin user, go to the Application tab of the
+    browser's developer tools, and study the values for the "Session Storage":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/20-session-storage.png"
+         alt="Web browser's session storage." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Copy the authentication and the authorization tokens and use the
+    <a href="https://jwt.io">jwt.io</a> web site to decode them. They are no longer within the
+    development environment configuration. In fact, the paylod includes the thumbprint of your
+    custom .pfx certificate downloanded from the Azure Key Vault.
+</p>
+<p>
+    Azure Key Vault certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/21-key-vault-thumbprint.png"
+         alt="Key Vault certificate thumbprint." />
+</div>
+<p>
+    Current User certificate store:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/22-current-user-store.png"
+         alt="Current user certificate store." />
+</div>
+<p>
+    Decoded Id token from local session storage:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/23-decoded-id-token.png"
+         alt="Decoded token." />
+</div>
+
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Keep in mind that the flix-managerCert (certificate) is managed and automatically
+        renewed in Azure by the Key Vault service. On the other hand, in the local machine
+        store, it is not automatically renewed so you might have to eventually download
+        a newer version of the certificate to run your application on a local host.
+    </p>
+</div>
+<p>
+    We have downloaded the certificate to the current user certificate store in a local
+    machine and we have modified the IdentityServer engine configuration for the digital
+    certificate in the appsettings.json file. It is time to redeploy the application with
+    the new configuration that will instruct the app to retrieve the certificate from the
+    local store instead of creating a new certificate each time the application is re-started.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0#update-the-app">
+        Redeploy
+    </a> the application to the cloud and configure the application in the Azure App
+    Service to use the certificate stored in the Key Vault to cryptographically sign the
+    security tokens. You can use the
+    <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+        Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+    </a> blog post by Felipe Gavilan and MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate-in-code#make-the-certificate-accessible">
+        make the certificate accessible
+    </a> as guidance.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0#update-the-app">
+        Redeploy
+    </a> the application to the cloud to update its IdentityServer engine settings.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Right click the Application/Server-Api project from the Solution Explorer in Visual Studio
+    and select "Publish" to open the Publish summary and click the Publish button:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/29-publish-summary.png"
+         alt="Publish summary" />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Once the publishing operation is completed successfully, the system will automatically
+    open a web browser and try to invoke the application but <span class="mark">
+        <strong>
+            the web application will not execute correctly because we haven't configured
+            it to access the certificate from the Azure App service.
+        </strong>
+    </span>
+</p>
+<p>
+    Close the web browser but make sure the application was published successfully by checking
+    the "Output" window in Visual Studio:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/30-publish-succeeded.png"
+         alt="Output window with publish succeeded message." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Configure the application settings in Azure App Service to use the Self-signed
+    certificate that resides in the Azure Key Vault service. You can use the
+    <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+        Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+    </a> blog post and
+    <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate-in-code">
+        Use a TLS/SSL certificate in your code in Azure App Service
+    </a> for guidance.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the Certificates blade of the Azure App service and select "Bring your own
+    certificates (.pfx)" to access the certificate that we previously imported from
+    key vault. Select its checkbox, click details, and copy its thumbprint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/31-certificate-thumbprint.png"
+         alt="Certificate thumbprint." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the Configuration blade of the Azure App service and select "+ New application setting".
+    Add a <strong><code>WEBSITE_LOAD_CERTIFICATES</code></strong> app setting and pass the
+    certificate thumbprint as the value for the setting to make the certificate accessible
+    from your app code:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/32-app-setting.png"
+         alt="App setting load the certificate for the app code." />
+</div>
+<p>
+    <strong>Do not forget to click the "Save" icon</strong> after registering the app setting
+    or the modifications will not be persisted.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    As mentioned earlier, saving any modifications to the Azure App service app settings will
+    trigger a re-start but just to be on the safe side, restart the application manually from
+    the Overview blade of the App Service. Wait a couple minutes and click the application
+    Url. The web app should be up and running.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Ensure that the thumbprint of the digital certificate used to cryptographically sign the
+    security tokens corresponds to the thumbprint of the flix-managerCert.
+</p>
+<p>
+    Log-in the admin user and go to the Session Storage section in the Application tab of the
+    web browser's developer tools. Copy the "id_token" and decode it using the <a href="https://jwt.io">
+        https://jwt.io
+    </a> web site:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/28-production-key/33-decoded-thumbprint.png"
+         alt="Decoded certificate thumbprint." />
+</div>
+<p>
+    Sucees!! We have completed the configuration of the digital certificate to cryptographically
+    sign the security tokens to authenticate/authorize operations with the Duende IdentityServer
+    engine.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-3.0#deploy-to-production-1">
+            Deploy to production
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal">
+            Secure connections by adding and managing TLS/SSL certificates in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/about-certificates">
+            About Azure Key Vault certificates
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/quick-create-portal#add-a-certificate-to-key-vault">
+            Quickstart: Set and retrieve a certificate from Azure Key Vault using the Azure portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/overview-renew-certificate">
+            Renew your Azure Key Vault certificates
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/install/local-machine-and-current-user-certificate-stores">
+            Local Machine and Current User Certificate stores
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate-in-code#load-certificate-in-windows-apps">
+            Load a certificate for Windows hosted app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#import-a-certificate-from-your-vault-to-your-app">
+            Import a certificate from your vault to your app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate-in-code">
+            Use a TLS/SSL certificate in your code in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://gavilan.blog/2020/08/18/blazor-using-a-self-signed-certificate-for-identityserver4-in-azure-app-service/">
+            Blazor: Using a Self-Signed Certificate for IdentityServer4 in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@00HBEH3EaKPVspLrXT4x7Hzd2xt6TihpHmUsJcDy21VjVUXvDSsVUkraiTMPb6zU/">
+            Episode 107.
+        </a>Deploying to Azure App Service - IdentityServer 4 of Udemy course "Programming in
+        Blazor - ASP.Net Core5" by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/publish-to-azure-webapp-using-vs?view=aspnetcore-7.0#update-the-app">
+            Update the app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/howto-create-self-signed-certificate">
+            Create a self-signed public certificate to authenticate your application
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/powershell/module/pki/new-selfsignedcertificate?view=windowsserver2022-ps">
+            New-SelfSignedCertificate
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/overview-renew-certificate">
+            Renew your Azure Key Vault certificates
+        </a>
+    </li>
+</ul>

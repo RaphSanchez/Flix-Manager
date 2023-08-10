@@ -1,0 +1,173 @@
+﻿
+@inject IStringLocalizer<MovieFormResources> Localizer
+@inject IStringLocalizer<SharedResources> LocalizerShared
+
+<!-- WARNING!! The UploadImage component does not scan the  -->
+<!-- uploaded file(s) with an antivirus/anti malware.       -->
+<!--                                                        -->
+<!-- This form uses an EditContext to be bound to a Movie   -->
+<!-- instance because it implements custom validation with  -->
+<!-- CSS class attributes. Otherwise it could instead define-->
+<!-- a "Model" attribute for the EditForm component.        -->
+<EditForm EditContext="@_editContext"
+          OnValidSubmit="OnDataAnnotationsValidated">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- Title field -->
+    <div class="row">
+        <div class="col-form-label-sm col-md-6">
+            <label class="form-label mb-0" for="movie-title">
+                @Localizer["Title"]:
+            </label>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <InputText @bind-Value="@Movie!.Title"
+                       class="form-control" id="movie-title" />
+            <ValidationMessage For="@( () => Movie!.Title )" />
+        </div>
+    </div>
+
+    <!-- InTheaters field -->
+    <div class="row ps-3 mb-3">
+        <div class="form-check col-md-6">
+            <label class="form-check-label small mb-0" for="in-theaters">
+                @Localizer["In Theaters"]:
+            </label>
+            <InputCheckbox @bind-Value="@Movie.InTheaters"
+                           class="form-check-input" id="in-theaters" />
+            <ValidationMessage For="@( () => Movie!.InTheaters )" />
+        </div>
+    </div>
+
+    <!-- Trailer field -->
+    <div class="row">
+        <div class="col-form-label-sm col-md-6">
+            <label class="form-label mb-0" for="movie-trailer">
+                @Localizer["Trailer"]:
+            </label>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <InputText @bind-Value="@Movie.TrailerUrl"
+                       class="form-control" id="movie-trailer" />
+            <ValidationMessage For="@( () => Movie.TrailerUrl )" />
+        </div>
+    </div>
+
+    <!-- ReleaseDate field -->
+    <div class="row">
+        <div class="col-form-label-sm col-md-6">
+            <label class="form-label mb-0" for="movie-release">
+                @Localizer["Release Date"]:
+            </label>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <InputDate @bind-Value="@Movie.ReleaseDate"
+                       class="form-control" id="movie-release" />
+            <ValidationMessage For="@( () => Movie.ReleaseDate )" />
+        </div>
+    </div>
+
+    <!-- Poster field -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <!-- Warning: UploadImage component does not    -->
+            <!-- scan files with an antivirus/anti malware. -->
+            <UploadImage ImageFieldName=@($"{Localizer["Poster"]}:")
+                         ImageUrl="@_existingPosterPathUrl"
+                         OnImageSelected="OnPosterSelected" />
+            <ValidationMessage For="@(() => Movie.PosterPath)" />
+        </div>
+    </div>
+
+    <!-- Summary field -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <!-- Consuming the InputMarkdownDerived component -->
+            <InputMarkdownDerived @bind-Value="@Movie.Summary"
+                                  FieldName=@($"{Localizer["Summary"]}:") />
+
+            <!-- Consuming the InputMarkdown component is not possible  -->
+            <!-- because it expects a Person object to satisfy one of   -->
+            <!-- its formal input parameters. The InputMarkdownDerived  -->
+            <!-- component inherits from InputTextArea and therefore has-->
+            <!-- access to its CurrentValue property which allows you to-->
+            <!-- postpone defining the Model.Property to bind to.       -->
+            @*<InputMarkdown FieldName="Biography:"
+            Person="Person" />*@
+
+            <ValidationMessage For="@(() => Movie.Summary)" />
+        </div>
+    </div>
+
+    <!-- Genres field -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <MultipleSelector FieldName=@($"{Localizer["Genres"]}:")
+                              MappedUnSelected="_mappedUnselectedOptions"
+                              MappedSelected="_mappedSelectedOptions" />
+        </div>
+    </div>
+
+    <!-- Actors field -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <!-- The type for the generic type parameter TSelectedItem of the       -->
+            <!-- TypeaheadDragSelect component must be explicitly defined to avoid  -->
+            <!-- having compiler issues because it cannot be inferred. The          -->
+            <!-- TSelectedItem generic type parameter is passed to satisfy the      -->
+            <!-- generic type parameter TItem of the Typeahead component; i.e., they-->
+            <!-- are the same type and are just being passed over so the final      -->
+            <!-- consumer defines the type (e.g., Person).                          -->
+            <!-- Another option is to define a lambda expression that explicitly    -->
+            <!-- defines the type and name of the type parameter.                   -->
+            <TypeaheadDragSelect TSelectedItem="Person"
+                                 FieldName=@($"{Localizer["Actors"]}:")
+                                 SelectedItems="SelectedActors"
+                                 SearchMethodFunc="@((string searchText) =>
+                                                   SearchActors(searchText))">
+
+                <!-- Styling provided in Typeahead component. -->
+                <SuggestionTemplate Context="person">
+                    <img style="width: 40px; max-height: 40px;"
+                         src="@person.PictureUrl"
+                         class="border border-secondary rounded me-2" />
+                    @person.Name
+                </SuggestionTemplate>
+
+                <!-- Styling provided in Typeahead component. -->
+                <NotFoundTemplate>
+                    @($"{Localizer["Actor Not Found"]}")
+                </NotFoundTemplate>
+
+                <!-- Styling provided in the TypeaheadDragSelect component. -->
+                <SelectedItemTemplate Context="selectedPerson">
+                    <img style="width: 40px; max-height: 40px;"
+                         src="@selectedPerson.PictureUrl"
+                         class="border border-secondary rounded me-2" />
+                    @selectedPerson.Name
+
+                    <input type="text" id="character-name"
+                           placeholder="Character name" class="ms-5"
+                           style="outline:none"
+                           @bind="selectedPerson.TempCharacterName" />
+                </SelectedItemTemplate>
+
+            </TypeaheadDragSelect>
+        </div>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit"
+            class="btn btn-success">
+        @LocalizerShared["Save Changes"]
+    </button>
+
+</EditForm>
+

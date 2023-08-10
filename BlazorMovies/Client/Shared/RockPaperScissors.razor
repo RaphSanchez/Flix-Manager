@@ -1,0 +1,185 @@
+﻿@using System.Timers
+@implements IDisposable
+
+<div class="d-flex justify-content-center">
+    <div class="form-control w-75 mb-3">
+        <h3>Rock - Paper - Scissors</h3>
+
+        @if (!string.IsNullOrEmpty(_gameResultMessage))
+        {
+            <h4 style="color: @_resultMessageColor">
+                @_gameResultMessage
+            </h4>
+        }
+
+        <button @onclick="PlayAgain"
+                class="btn btn-success">
+            Play Again
+        </button>
+
+        <div class="d-flex justify-content-center mb-3">
+            <img class="border border-info"
+                 src="@_systemHand.ImagePath"
+                 alt="Image of the current hand of the system." />
+        </div>
+
+        <div class="d-flex justify-content-around mb-3">
+            @foreach (Hand hand in possibleHandOptions)
+            {
+                <img class="border border-primary selectable-image"
+                     src="@hand.ImagePath"
+                     @onclick="@(() => EvaluatePlayerSelection(hand))" />
+            }
+        </div>
+    </div>
+</div>
+
+
+@code {
+
+    /// <summary>
+    /// System.Timer raises the Timer.Elapsed event when its defined interval
+    /// elapses. Your custom OnTimerElapsed event handler (method) executes an
+    /// iteration to the next available image index from (Rock, Paper, Scissors).
+    /// </summary>
+    private Timer timer;
+
+    /// <summary>
+    /// Used to iterate over the available Hand items in the List<Hand> collection.
+    /// It represents the System Hand at any given time. The current System Hand
+    /// is presented to the user with its rendered image using its ImagePath
+    /// property.
+    /// </summary>
+    private int _systemHandIndex = 0;
+
+    /// <summary>
+    /// The current Hand of the System iterations at any given time. This Hand is
+    /// compared with the Hand selected by the user (or player).
+    /// </summary>
+    private Hand _systemHand;
+
+    /// <summary>
+    /// Stores the result of the GetGameResult() method and is used to inform the
+    /// user (or player) its status (e.g., Victory, Loss, Draw).
+    /// </summary>
+    private string _gameResultMessage = string.Empty;
+
+    /// <summary>
+    /// The string is passed as a styling value for the 'color' attribute of the
+    /// message conveyed to the player (_gameResultMessage).
+    /// </summary>
+    private string _resultMessageColor = string.Empty;
+
+    /// <summary>
+    /// Defines the available Hand items (options) to choose from. One
+    /// for Rock, one for paper, and one for Scissors.
+    /// </summary>
+    List<Hand> possibleHandOptions = new List<Hand>() {
+
+        new Hand{ OptionSelected = Options.Rock,
+            WinsAgainst = Options.Scissors,
+            LosesAgainst = Options.Paper,
+            ImagePath = "Images/04-components/28-rock.png"},
+
+        new Hand{ OptionSelected = Options.Paper,
+            WinsAgainst = Options.Rock,
+            LosesAgainst = Options.Scissors,
+            ImagePath = "Images/04-components/29-paper.png"},
+
+        new Hand{ OptionSelected = Options.Scissors,
+            WinsAgainst = Options.Paper,
+            LosesAgainst = Options.Rock,
+            ImagePath = "Images/04-components/30-scissors.png"}
+    };
+
+    protected override void OnInitialized()
+    {
+        /// System Hand object's index starts at 0 which represents the
+        /// Options.Rock item.
+        _systemHand = possibleHandOptions[0];
+
+        timer = new Timer();
+        timer.Enabled = true;
+        timer.Interval = 500;
+        timer.Elapsed += OnTimerElapsed;
+        timer.Start();
+    }
+
+    /// <summary>
+    /// This is the event handler (method) for the System.Timer.Elapsed
+    /// event raised every time its defined interval elapses. It is
+    /// responsible for iterating over the available Hand items in the
+    /// collection of type List<Hand>. The iterations over the Hand items
+    /// represent the System hands and they are rendered as images to the
+    /// player.
+    /// </summary>
+    private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        _systemHandIndex++;
+
+        if (_systemHandIndex >= possibleHandOptions.Count)
+        {
+            _systemHandIndex = 0;
+        }
+
+        _systemHand = possibleHandOptions[_systemHandIndex];
+
+        /// Required to update the rendered image that corresponds to
+        /// the current System Hand.
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Event handler (method) for the onclick event raised by any of
+    /// the available (Hand) options presented to the player as images.
+    /// It is responsible for stoping the timer, passing the Hand object
+    /// selected by the player and calling the GetGameResult(systemHand)
+    /// method to compare the OptionSelected property of the System with
+    /// the OptionSelected property of the player and determine the
+    /// result of the Hand (or game).
+    /// </summary>
+    /// <param name="playerHand">The Hand object selected by the user by
+    /// clicking on any of the available images that represent a Hand
+    /// object.
+    /// </param>
+    private void EvaluatePlayerSelection(Hand playerHand)
+    {
+        timer.Stop();
+
+        GameResult result = playerHand.GetGameResult(_systemHand);
+
+        switch (result)
+        {
+            case GameResult.Victory:
+                _gameResultMessage = "You won!";
+                _resultMessageColor = "green";
+                break;
+            case GameResult.Loss:
+                _gameResultMessage = "You lost!";
+                _resultMessageColor = "red";
+                break;
+            case GameResult.Draw:
+                _gameResultMessage = "Draw";
+                _resultMessageColor = "black";
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Event handler for the onclick event of the Play Again button
+    /// element.
+    /// </summary>
+    private void PlayAgain()
+    {
+        timer.Start();
+        _gameResultMessage = string.Empty;
+        _resultMessageColor = string.Empty;
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}
+
+

@@ -1,0 +1,241 @@
+﻿@page "/01-extend-identity-user"
+<PageTitle>Extend Identity User</PageTitle>
+
+<h2>User Management - Identity Model Fundamentals</h2>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <span class="mark">
+            <strong>
+                absolutely necessary to update the NuGet packages for the entire
+                solution.
+            </strong>
+        </span> Otherwise, you might encounter compiler errors here and there related
+        to missing using directives or assembly references.
+    </p>
+</div>
+<p>
+    As you know, ASP.Net Core Identity provides a framework for managing and storing
+    User accounts in ASP.Net Core applications. By default, Identity makes use of an
+    Entity Framework Core data model.
+</p>
+<p>
+    Entity Framework Core uses a set of conventions to build a model based on the
+    shape of the <a href="04-forms-part-two">entity</a> classes. You can specify
+    additional configuration to supplement and/or override what was discovered by
+    convention.
+</p>
+<h4>The Identity model</h4>
+<p>
+    The Identity model consists of the following entity types:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/22-identity-user/01-entity-types.png"
+         alt="Entity types of the Identity model." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0#the-identity-model">
+            Microsoft ASP.Net Core Identity
+        </a>
+    </figcaption>
+</figure>
+<p>
+    Identity defines many <dfn>context classes</dfn> that inherit from <code>DbContext</code>
+    to configure and use the model and it also defines default CLR types for each of the
+    entity types listed above. These types are all prefixed with <em>"Identity"</em>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/02-default-entity-types.png"
+         alt="Identity model generic types." />
+</div>
+<p>
+    Rather than using the Identity types directly (e.g., IdentityUser, IdentityRole),
+    the types can be used as base classes for the application's own types. As shown in
+    the image above, the <code>DbContext</code> classes defined by Identity are generic
+    such that different CLR types can be used for one or more of the entity types in the
+    model. These generic types also allow the User primary key (PK) data type to be
+    changed.
+</p>
+<h4>Extend IdentityUser</h4>
+<p>
+    The starting point for model customization is to derive from the appropriate context
+    type. This context type is customarily called <dfn>ApplicationDbContext</dfn>.
+    Nevertheless, you might recall that in the lesson on <a href="06-api-db-support">
+        Adding Database Support
+    </a>, we named our derived class <code>AppDbContext</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/03-app-db-context.png"
+         alt="DbContext derived class." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        When <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0#customize-the-model">
+            overriding
+        </a> the <code>OnModelCreating</code> method, the
+        <code>base.OnModelCreating</code> should be <strong>called first</strong>
+        and the overriding configuration should be called next because EF Core
+        generally has a last-one-wins policy for configuration.
+    </p>
+</div>
+<h4>Custom User data</h4>
+<p>
+    Custom User data is supported by inheriting from <code>IdentityUser</code>. It is
+    customary to name this type <strong><code>ApplicationUser</code></strong>. You might
+    recall that we already prepared our Identity model for customization in the section
+    on "Configuring IdentityServer Engine in Application/Server" of the <a href="03-security-id-server">
+        Identity Server
+    </a> lesson:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/09-application-user.png"
+         alt="ApplicationUser class." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Add custom "FirstName" and "DateOfBirth" properties to the application User. Mark the
+    custom User data with the <strong><code>[PersonalData]</code></strong> attribute to
+    make it automatically available for download and deletion in the profile page of the
+    Identity UI to help meet the
+    <a href="https://ec.europa.eu/info/law/law-topic/data-protection/reform/what-does-general-data-protection-regulation-gdpr-govern_en">
+        EU General Data Protection Regulation (GDPR) requirements
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Update the IdentityUser derived class (ApplicationUser) with custom properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/04-custom-user-props.png"
+         alt="ApplicationUser class with custom properties." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Recall from the section
+    "Building Forms review" of the <a href="04-forms-part-one">
+        Forms Part One
+    </a> lesson that when making a DateTime (value type) nullable, the system 
+    defaults its value to DateTime.Today when rendering the entity property in
+    a form.
+</p>
+<p>
+    Properties decorated with the <code>[PersonalData]</code> attribute are:
+</p>
+<ul>
+    <li>
+        Deleted when the Application/Server Areas/Identity/Pages/Account/Manage
+        DeletePersonalData.cshtml Razor page calls <code>UserManager.Delete</code>.
+    </li>
+    <li>
+        Included in the downloaded data by the Areas/Identity/Pages/Account/Manage
+        DownloadPersonalData.cshtml Razor page.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Package Manager Console to <code>Add-Migration CustomUserData</code>
+    to the Identity model and <code>Update-Database</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/07-custom-user-data-migration.png"
+         alt="Add-Migration named CustomUserData" />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Update the Account/Manage/Index.cshtml page.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Update the Index.cshtml.cs (PageModel) in Areas/Identity/Pages/Account/Manage:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/05-index-page-model-one.png"
+         alt="Index.cshtml.cs updated part one." />
+    <img src="Images/22-identity-user/06-index-page-model-two.png"
+         alt="Index.cshtml.cs updated part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Update the Index.cshtml (view) in Areas/Identity/Pages/Account/Manage:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/08-index-page-view.png"
+         alt="Index page view." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Test the "view", "download", and "delete" user data operations. Run
+    the application, login with a valid User and Click on the User link in the
+    nav bar on top of the web page to navigate to the "Manage your account" page.
+    Select "Profile" and "Personal Data" to perform the desired operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/11-updated-profile.png"
+         alt="Updated user profile data." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Update the Account/Register.cshtml page.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Update the Register.cshtml.cs (PageModel) in Areas/Identity/Account Register:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/09-register-page-model-one.png"
+         alt="Register.cshtml.cs updated part one." />
+    <img src="Images/22-identity-user/10-register-page-model-two.png"
+         alt="Register.cshtml.cs updated part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Update the Register.cshtml (view) in Areas/Identity/Pages/Account Register.cshtml:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/12-register-page-view.png"
+         alt="Register page view." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Test the "register" user flow. Run the application and select the "Register" link
+    in the nav bar on top of the web page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/13-register-ui.png"
+         alt="Register page with custom user data." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The buttons for trusted external identity providers were customized in the
+    "Customize buttons for external login providers" section of the <a href="10-external-id-providers">
+        External ID Providers
+    </a> lesson.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0#customize-the-model">
+            Identity model customization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/ef/core/modeling/">
+            Creating and configuring a model
+        </a>
+    </li>
+    <li>
+        <a>
+            Add, download, and delete custom user data to Identity in an
+            ASP.Net Core project
+        </a>
+    </li>
+    <li>
+        Episode 77.
+        <a href="https://www.youtube.com/playlist?list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU">
+            Extend IdentityUser in ASP.Net Core
+        </a> of YouTube course "ASP.Net Core tutorial for beginners" by Kudvenkat.
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/gdpr?view=aspnetcore-6.0">
+            EU General Data Protection Regulation (GDPR) support in ASP.Net Core
+        </a>
+    </li>
+</ul>

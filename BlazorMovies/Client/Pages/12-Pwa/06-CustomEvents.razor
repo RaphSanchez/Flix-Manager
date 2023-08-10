@@ -1,0 +1,404 @@
+﻿@page "/06-pwa-custom-events"
+
+<PageTitle>PWAs - Custom Events</PageTitle>
+
+<h2>Progressive Web Apps - Custom Events</h2>
+<p>
+    As we explained at the end of <a href="05-pwa-sync-component">last lesson</a>, we
+    need a way to notify the PwaSync component when a new record is stored into an object
+    store of our custom IndexedDB as a result of the end user trying to perform a mutator
+    (POST, PUT, or DELETE) operation while the application is offline.
+</p>
+<p>
+    The notification should in turn trigger a call to the <em>
+        UpdateNumberOfPendingSynchronizationsAsync
+    </em> method responsible for retrieving the value from the IndexedDB and re-rendering
+    the PwaSync component to update the bell icon that informs the user. We can use a custom
+    event to achieve our goal.
+</p>
+<h4>ASP.Net Core Blazor State Management</h4>
+<p>
+    User state created in a Blazor WebAssembly app is held in the browser's memory.
+    Examples of user state held in browser memory include:
+</p>
+<ul>
+    <li>
+        <p>
+            The hierarchy of component instance and their most recent render output in
+            the rendered UI.
+        </p>
+    </li>
+    <li>
+        <p>
+            The values of fields and properties in component instances.
+        </p>
+    </li>
+    <li>
+        <p>
+            Data held in dependency injection (DI) service instances.
+        </p>
+    </li>
+    <li>
+        <p>
+            Values set through JSInterop calls.
+        </p>
+    </li>
+</ul>
+<p>
+    When users close and re-open their browser or reload the page, user state held in
+    the browser's memory is generally lost.
+</p>
+<p>
+    Typically, you should maintain state across browser sessions where users are actively
+    creating data, not simply reading data that already exists. The common locations to
+    persist state are:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly#server-side-storage-wasm">
+            Server-side storage
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly#url-wasm">
+            URL
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly#browser-storage-wasm">
+            Browser storage
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly#in-memory-state-container-service-wasm">
+            In-memory state container service
+        </a> (which will be demonstrated in this lesson).
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly#additional-approaches-wasm">
+            Other approaches
+        </a>
+    </li>
+</ul>
+<h4>Communication Between Components in Blazor</h4>
+<p>
+    In Blazor, there are 3 ways to communicate between components:
+</p>
+<ul>
+    <li>
+        <a href="02-components-part-one">
+            Event Callback - demonstrated in a previous lesson.
+        </a>
+    </li>
+    <li>
+        <a href="02-components-part-four">
+            Cascading Values and Parameters - demonstrated in a previous lesson.
+        </a>
+    </li>
+    <li>
+        In-memory state container service - will be illustrated in this lesson.
+    </li>
+</ul>
+<h4>In-memory State Container Service</h4>
+<p>
+    Nested and unnested components can share access to data using a registered in-memory
+    state container. A custom state container class can use an assignable event delegate
+    to notify components in different parts of the app of state changes.
+</p>
+<p>
+    Events in .Net are based on the delegate model. The delegate model follows the
+    <a href="https://learn.microsoft.com/en-us/dotnet/standard/events/observer-design-pattern">
+        observer design pattern
+    </a> which enables a <em>subscriber</em> to register with and receive notifications
+    from a provider (publisher).
+</p>
+<p>
+    An event sender (or publisher) pushes a notification that an event has happened and
+    an event receiver (or subscriber) receives that notification and defines a response
+    to it (a handler).
+</p>
+<p>
+    In our situation, we need a way to notify the PwaSync component when a new record is
+    stored into an object store of our custom IndexedDB as a result of the end user trying
+    to perform a mutator (POST, PUT, or DELETE) operation while the application is offline.
+</p>
+<p>
+    The notification should in turn trigger a call to the <em>
+        UpdateNumberOfPendingSynchronizationsAsync
+    </em> method responsible for retrieving the value from the IndexedDB and re-rendering
+    the PwaSync component to update the bell icon that informs the user. We can use a custom
+    event to achieve our goal.
+</p>
+<p>
+    In other words, the pieces of our observer design pattern are:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>State container class</strong>: A wrapper that defines the event handler
+            delegate and the event publisher method. We can name it <dfn>SynchronizationState.</dfn>
+        </p>
+        <p>
+            Since the state container class will be a registered service, we can use an
+            interface (ISynchronizationState) to provide an abstraction layer which will
+            enable us to easily replace its implementation further down the road.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Publisher</strong> or <strong>Event Sender</strong>: Any component
+            that sends (or raises) the event.
+        </p>
+        <p>
+            In our scenario, it will be any component that can attempt to send and
+            Http request for a mutator operation (POST, PUT or DELETE); e.g.,
+            Application/Client/Pages/Genres GenreCreate or
+            Application/Client/Pages/People PersonEdit routable components.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Subscriber</strong> or <strong>Event Handler</strong>: The
+            Application/Client/Shared PwaSync component is the receiver or event
+            handler because it subscribes to the event and when notified, performs
+            an action (updating the number of pending synchronization operations)
+            to handle the event.
+        </p>
+    </li>
+</ul>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Any component that subscribes to an event must implement <strong>
+            <code>
+                IDisposable
+            </code>
+        </strong> interface to unsubscribe from the event when the component is
+        disposed of. For more info refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0">
+            In-memory state container service
+        </a> and <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-7.0#component-disposal-with-idisposable-and-iasyncdisposable">
+            Component disposal with IDisposable and IAsyncDisposable
+        </a>.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Implement an UpdateNumberOfPendingOperationsAsync event to notify any subscribers
+    when a new record has been persisted into an object store of our IndexedDB as a
+    result of attempting to perform an Http mutator request while the application is
+    offline.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create an in-memory state container named <em>SynchronizationState</em> and register
+    it as a service in the dependency injection container.
+</p>
+<p>
+    Since the state container class will be a registered service, we can use an interface
+    to provide an abstraction layer which will enable us to easily replace its implementation
+    if needed further down the road.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Go to the Application/Client directory and add an "Events" folder where you will
+    create the custom in-memory state container interface and its implementation class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/01-events-folder-tree.png"
+         alt="Events folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Create the custom in-memory state container interface and its implementation class
+    which is a wrapper that defines the event handler delegate and the event publisher
+    method to notify components in different parts of the app when the event is raised;
+    i.e., when a new record is persisted into an object store of our custom IndexedDB:
+</p>
+<p>
+    ISynchronizationState interface establishes a contract or protocol to which any
+    implementation must adhere to:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/02-i-synchronization-state-one.png"
+         alt="ISynchronizationState part one." />
+    <img src="Images/44-custom-events/03-i-synchronization-state-two.png"
+         alt="ISynchronizationState part two." />
+</div>
+<p>
+    SynchronizationState class implements the ISynchronizationState interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/04-synchronization-state-one.png"
+         alt="SynchronizationState class part one." />
+    <img src="Images/44-custom-events/05-synchronization-state-two.png"
+         alt="SynchronizationState class part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3:</span>
+    Use the dependency injection container of the Application/Client to register
+    the ISynchronizationState as a <a href="02-components-part-two">service</a>
+    with a <a href="02-components-part-two">singleton</a> lifetime:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/06-di-register-service.png"
+         alt="Service registration in DI container." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Subscribe the PwaSync component to the UpdateNumberOfPendingOperationsAsync event,
+    assign its event handler method to update the number of pending synchronization
+    operations in its bell icon when notified, and implement the IDisposable interface
+    to ensure that the PwaSync component unsubscribes from the event when it is no longer
+    needed.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Rename the UpdateNumberOfPendingSynchronizationsAsync method to
+    <em>OnUpdateNumberOfPendingSynchronizationsAsync</em> to adhere to the common
+    convention of naming event handler methods with an "On" prefix. Its code logic does
+    not need any modifications:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/07-event-handler-method.png"
+         alt="Event handler method." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Refactor the OnInitializedAsync lifecycle method to subscribe the PwaSync component
+    to the UpdateNumberOfPendingOperationsAsync event during initialization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/08-on-initialized-lifecycle-method.png"
+         alt="OnInitializedAsync lifecycle method." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Implement the IDisposable interface to ensure that the PwaSync component unsubscribes
+    from the event when it is no longer needed.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/09-i-disposable.png"
+         alt="IDisposable implementation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Utilize the Application/Client/Pages/Genres GenreCreate routable component to
+    publish the event immediately after a record has been inserted into the
+    <em>createOperations</em> object store of the IndexedDB as a result of the end user
+    attempting to create a Genre object while the application is offline:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/10-genre-create-publisher-one.png"
+         alt="GenreCreate component calls event publisher method part one." />
+    <img src="Images/44-custom-events/11-genre-create-publisher-two.png"
+         alt="GenreCreate component calls event publisher method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Confirm that the UpdateNumberOfPendingOperationsAsync event is working as planned.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Clean and Rebuild the Application/Client project, run the application to a server that
+    supports Https and access the app in a browser at its secure Https address. PWA
+    service workers do no execute in regular Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab. Install any
+    <em>worker in waiting</em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), navigate to the IndexGenres routable component, and create a
+    new Genre object in offline mode:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/21-no-connection-message.png"
+         alt="No connection and operation stored message." />
+</div>
+<p>
+    The bell icon of the PwaSync component should appear on the bottom of the NavMenu
+    component and should inform that there is one pending operation for synchronization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/12-updated-bell-icon.png"
+         alt="Bell icon updated." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4:</span>
+    Bring the application back to online mode and click on the bell icon to initiate
+    a synchronization process. The "Synchronizing... " flag should be activated to
+    inform the user that the process is taking place:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/13-synchronization-flag.png"
+         alt="Synchronization flag." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.5:</span>
+    Click the OK button element of the dialog box to allow the flow of the application
+    to continue and complete the synchronization process. Once completed, there will
+    be no more pending operations to synchronize with the server; therefore, the there
+    should not be a bell icon nor a Synchronizing flag anymore.
+</p>
+<p>
+    Success!!! We have completed our custom state container responsible for notifying
+    any subscribers when the UpdateNumberOfPendingOperationsAsync event is raised.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 152. Comunicación entre componentes - Borrado en modo offline
+        of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@P_z_otCvbswCJciag5NxSmY35j18kowbLOCX8HqFrUZqiNaxg_M3YeBqkKGKTY0v/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/state-management?view=aspnetcore-7.0&pivots=webassembly">
+            ASP.Net Core Blazor state management
+        </a>
+    </li>
+    <li>
+        <a href="https://chrissainty.com/3-ways-to-communicate-between-components-in-blazor/">
+            3 Ways to Communicate Between Components in Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/events/">
+            Handle and raise events
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-7.0#component-disposal-with-idisposable-and-iasyncdisposable">
+            Component disposal with IDisposable and IAsyncDisposable
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/UvFmHWPB70g">
+            .Net 6 Blazor Component Communication (Parameter, EventCallback, &
+            State/Service)
+        </a> by Patrick God
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/5RpekEKW6E0">
+            Blazor .Net 6 - Custom Events - Multimedia Paste (Like in Twitter)
+        </a> by Felipe Gavilán.
+    </li>
+</ul>

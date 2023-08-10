@@ -1,0 +1,40 @@
+﻿
+@switch (_pushNotificationPermission)
+{
+    /// 'getStatusNotificationPermission' function in 'push-notifications.js'
+    /// file checks whether the current web browser supports push notifications.
+    /// If not, returns a 'not-supported' flag.
+    case "not-supported":
+        break;
+
+    /// If current push notification permission has a 'granted' status
+    /// before the user clicks the bell icon, then user has 'denied'
+    /// (removed) permission to receive web push notifications.
+    case "granted":
+        <button class="btn btn-outline-secondary btn-sm ms-3"
+                title="Disables the web push service to stop receiving notifications when a new movie is released."
+        @onclick="@UnsubscribeFromPushNotificationsAsync">
+            <i class="oi oi-bell"></i>
+        </button>
+        break;
+
+    /// If current push notification permission has a 'default' status before
+    /// the user clicks the bell icon, then user has neither 'granted' nor
+    /// 'denied' permission to receive web push notifications. Therefore, it
+    /// is requesting a subscription to the push service.
+    case "default":
+        <button class="btn btn-outline-primary btn-sm ms-3"
+                title="Enables the web push service to receive notifications when a new movie is released. You can disable at any time by clicking on the bell icon again."
+        @onclick="@SubscribeToPushNotificationsAsync">
+            <i class="oi oi-bell"></i>
+        </button>
+        break;
+
+        /// IF THE COMPONENT IS NOT SHOWN, IT IS VERY LIKELY THAT THE APPLICATION
+        /// USER SET A 'denied' PERMISSION.
+        ///
+        /// Go to the web browser's settings, search for push notifications, and
+        /// authorize push notifications for the Flix Manager web app to allow the
+        /// component to show.
+}
+

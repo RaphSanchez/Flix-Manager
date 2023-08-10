@@ -1,0 +1,147 @@
+﻿<!-- Replaces the MovieDetails component -->
+@page "/movies/bulletin/{MovieId:int}/{MovieTitle}"
+
+@using Microsoft.Extensions.Options
+@inject IOptionsSnapshot<RemoteAuthenticationOptions<ApiAuthorizationProviderOptions>> Options
+
+<PageTitle>Movie Details</PageTitle>
+
+@if (_dbMovieDto is null)
+{
+    <!-- Loading spinner. -->
+    <div class="mt-4">
+        <p class="text-center"><strong>Loading content...</strong></p>
+
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border"
+                 style="color: #1b6ec2; width: 3rem;
+                        height: 3rem;" role="status">
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Header: Title and Release Year. -->
+    <h2>
+        @_dbMovieDto?.Movie?.Title
+        <!-- Rendered inside parenthesis: -->
+        (@_dbMovieDto?.Movie?.ReleaseDate?.ToString("yyyy"))
+    </h2>
+
+    <!-- Genres with hypertext to MoviesSearch component. -->
+    for (int i = 0; i < _dbMovieDto?.Genres?.Count; i++)
+    {
+        <!-- If current Genre item not the last on the collection.-->
+        if (i < _dbMovieDto?.Genres?.Count - 1)
+        {
+            /// Employs the current Genre item to build the route
+            /// to the MoviesSearch component. It includes a query
+            /// string with a "genre" parameter.
+            <a href="movies/search?genre=@_dbMovieDto?.Genres?[i].Name">
+                @_dbMovieDto?.Genres?[i].Name
+            </a>
+
+            /// Includes a comma and an empty space after the
+            /// current Genre item.
+            <text>, </text>
+        }
+        else
+        {
+            /// Employs the current Genre item to build the route
+            /// to the MoviesSearch component. In includes a query
+            /// string with a "genre" parameter.
+            <a href="movies/search?genre=@_dbMovieDto?.Genres?[i].Name">
+                @_dbMovieDto?.Genres?[i].Name
+            </a>
+
+            /// If current Genre is the last in the collection,
+            /// no comma is added to the text.
+        }
+    }
+
+    <!-- Full Release Date to the right of Genres. -->
+    <text> | </text>
+    <span>
+        @(_dbMovieDto?.Movie?.ReleaseDate?.ToString("MMM dd, yyyy"))
+    </span>
+
+    <!-- Average score for the Movie to the right of release date. -->
+    <text> | Audience Score: </text>
+    <span>
+        @(_dbMovieDto?.MovieScoreAverage.ToString("0.#"))/5
+    </span>
+
+    <!-- User score for the Movie to the right of average score. -->
+    <text> | Your Score: </text>
+    <Ranking MaxScore="5"
+         SelectedScore="_dbMovieDto.UserScore"
+         OnScoreSelected="@((int scoreSelected) =>
+                                  OnScoreSelectedAsync(scoreSelected))" />
+
+    <!-- Movie Media -->
+    <div style="display: flex; flex-direction: column; margin-top: 10px;">
+        <!-- Movie Poster. -->
+        <span style="display: inline-block; margin: auto;">
+            <img style="max-width: 225px; max-height: 315px"
+                 src="@_dbMovieDto?.Movie?.PosterPath"
+                 alt="Poster image." />
+        </span>
+
+        <!-- Responsive iFrame for Movie Trailer. Employs CSS Isolation.-->
+        <!-- (custom behaviour in scoped CSS isolation file).           -->
+        <!-- https://support.google.com/youtube/answer/171780?hl=en     -->
+        <!-- https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe -->
+        <div class="iframe_container" style="margin-top: 10px">
+            <iframe class="movie_trailer"
+                    src="https://www.youtube-nocookie.com/embed/@_dbMovieDto?.Movie?.TrailerUrl"
+                    title="Movie Trailer."
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media;
+                gyroscope; picture-in-picture"
+                    allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Summary. -->
+    <div style="margin-top: 10px">
+        <h5>Summary</h5>
+        <div>
+            <!-- Custom component to render markdown. -->
+            <RenderMarkdown MarkdownContent="@_dbMovieDto?.Movie?.Summary" />
+        </div>
+    </div>
+
+    <!-- Actors. -->
+    <div style="margin-top: 10px">
+        <h5>Actors</h5>
+        <div style="display: flex; flex-direction: column">
+            @foreach (Person actor in _dbMovieDto?.Actors!)
+            {
+                <div style="margin-bottom: 2px;">
+                    <!-- actor image -->
+                    <img style="max-width: 50px;" src="@actor.PictureUrl" />
+
+                    <!-- actor name with hypertext to PersonDetails. -->
+                    <span style="display: inline-block; width: 150px; padding-left: 15px;">
+                        <a href="/people/details/@actor.Id/@actor.Name">@actor.Name</a>
+                    </span>
+
+                    <!-- Ellipsis to separate Actor name from CharacterName. -->
+                    <span style="display: inline-block; width: 45px;">
+                        ...
+                    </span>
+
+                    <!-- Character name of the role played by the current   -->
+                    <!-- actor in the Movie object loaded.                  -->
+                    <span>
+                        @actor.TempCharacterName
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+

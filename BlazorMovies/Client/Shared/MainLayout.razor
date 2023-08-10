@@ -1,0 +1,31 @@
+﻿
+@inherits LayoutComponentBase
+
+<div class="page">
+
+    <div class="sidebar pb-3" style="overflow: auto; min-width:fit-content;">
+        <NavMenu />
+        <PwaSync />
+    </div>
+
+    <main>
+        <div>
+            <LoginDisplay />
+        </div>
+        <hr style="margin-top: 0; margin-bottom: 0" />
+
+        <article class="content px-4 mb-3">
+            <!-- CascadingValue pre-built component wraps a subtree of
+            a component hierarchy and supplies a single value to all of
+            the components within its subtree. Each CascadingValue is
+            assigned a Name because both values are of the same type
+            "String" -->
+            <CascadingValue Value="StylingValues">
+                @Body
+            </CascadingValue>
+        </article>
+    </main>
+</div>
+
+
+

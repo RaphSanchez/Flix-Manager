@@ -1,0 +1,242 @@
+﻿@inject IJSRuntime _js
+@implements IDisposable
+
+<h5>DotNetFromJSDemo component:</h5>
+
+<!-- #region Static method invocation - JS function no Parameters -->
+
+<div class="border border-secondary rounded p-2 mb-2 bg-light">
+    @* JS function directly assigned to an onclick HTML attribute *@
+    <button class="btn btn-primary btn-sm" onclick="dotNetStaticInvocation()">
+        Invoke .Net Static Method from JS
+    </button>
+</div>
+
+<!-- #endregion -->
+
+<!-- #region Instance method invocation - JS function No Parameters -->
+
+<div class="border border-secondary rounded p-2 mb-2 bg-light">
+    @* CSharp method assigned to an onclick Blazor directive attribute *@
+    <button class="btn btn-primary btn-sm" @onclick="InvokeJSFunctionsNoParameters">
+        Invoke .Net Instance Method from JS
+    </button>
+
+    <TestCollectionNullOrEmpty ItemsList="@_returnedArray?.ToList()">
+        <NullLoadingTemplate>
+            <p style="font-size: .75rem">Array is null.</p>
+        </NullLoadingTemplate>
+
+        <EmptyTemplate>
+            <p style="font-size: .75rem">Array is empty.</p>
+        </EmptyTemplate>
+
+        <RenderItemTemplate Context="number">
+            <p style="background-color: @((_arrayPosition % 2 == 0 ? "#EBEBEB" : "white"));
+                  font-size: .75rem;">
+                Array position( @(++_arrayPosition) ) has value: ( @number )
+            </p>
+        </RenderItemTemplate>
+    </TestCollectionNullOrEmpty>
+</div>
+
+<!-- #endregion -->
+
+<!-- #region Instance method invocation - JS Function With Parameters -->
+
+<div class="border border-secondary rounded p-2 bg-light">
+    <label class="form-label">
+        Input Values: <input placeholder="Numbers & Letters" @bind="_inputItems" />
+    </label>
+
+    @* CSharp method assigned to an onclick Blazor directive attribute *@
+    <button class="btn btn-primary btn-sm" @onclick="InvokeJSFunctionWithParameters">
+        Invoke .Net Instance Method from JS with Parameters
+    </button>
+</div>
+<br />
+
+<!-- #endregion -->
+
+
+@code {
+
+    #region Static Method Invocation from JS function - No Parameters
+
+    /// <summary>
+    /// JSInvokable static method is consumed by a JS function from
+    /// the global .js file
+    /// </summary>
+    [JSInvokable]
+    public static Task<int[]> ReturnIntArrayStaticAsync()
+    {
+        return Task.FromResult(new int[] { 2, 4, 6, 8 });
+    }
+
+    #endregion
+
+    #region Instance Method Invocation from JS function
+
+    /// <summary>
+    /// Wraps the .Net instance (class) that contains the instance
+    /// method you want to invoke from a JS function. It implements
+    /// IDisposable interface.
+    /// </summary>
+    /// <remarks>
+    /// Declaring a separate DotNetObjectReference field allows you
+    /// to properly dispose of it inside a Dispose() method. Otherwise
+    /// you could employ a 'using' statement but this approach is
+    /// more clear, more readable for this introductory class.
+    /// </remarks>
+    private DotNetObjectReference<DotNetFromJSDemo> _objReference = null;
+
+    /// <summary>
+    /// Releases resources occupied by the DotNetObjectReference that wraps
+    /// the .Net instance (class) that contains the instance method you want
+    /// to invoke from a JS function. There are different options to dispose
+    /// the object reference or any disposable object for that matter:
+    /// 1. Declare a "DotNetObjectReference.dispose();" expression inside the
+    ///     JS function in the .js file to appropriately dispose of the resource.
+    /// 2. Wrap the _objectReference object inside a try-finally statement and
+    ///     calle the Dispose() method inside the finally block.
+    /// 3. Declare an '@implements IDisposable' Blazor directive and define its
+    ///     Dispose() method code logic (as shown here). The framework calls
+    ///     for unmanaged resource disposal when the component is removed from
+    ///     the UI. Note that at the time of this lesson, if a component
+    ///     implements both IAsyncDisposable and IDisposable interfaces, you
+    ///     should include the Dispose() code logic inside the IAsyncDispose()
+    ///     method logic; i.e, if you include both methods separately, it does
+    ///     not work as expected.
+    /// </summary>
+    public void Dispose()
+    {
+        _objReference?.Dispose();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        /// Every time a button element of this DotNetFromJSDemo
+        /// component raises its onclick event, new parameter values
+        /// are provided and the OnParametersSetAsync() method is
+        /// called. After parameters are updated, the
+        /// OnStateHasChanged() method is called and triggers a re-
+        /// render of the parent component. The hard coded logic
+        /// to update the _arrayPosition field inside the instance
+        /// of the TestCollectionNullOrEmpty component needs to be
+        /// re-set (to zeroe) or will keep incrementing and will
+        /// result in incorrect values.
+        _arrayPosition = 0;
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    #region JS function No Parameters
+
+    // its value is re-set in OnAfterRenderAsync:
+    private int _arrayPosition = 0;
+    private int[] _returnedArray;
+
+    /// <summary>
+    /// JSInvokable instance method (non-static) is consumed by a
+    /// JS function from the global .js file
+    /// </summary>
+    /// <returns></returns>
+    [JSInvokable]
+    public Task<int[]> ReturnIntArrayInstanceAsync()
+    {
+        return Task.FromResult(new int[] { 1, 3, 5 });
+    }
+
+    /// <summary>
+    /// Method is consumed as the handler for an @@onclick Blazor
+    /// directive attribute of the button element:
+    /// "Invoke .Net Instance Method from JS". This method invokes
+    /// two different JS functions that reside in the global .js
+    /// file. One has a return value, the other one doesn't. Neither
+    /// one of the JS functions has formal input parameters.
+    /// </summary>
+    public async Task InvokeJSFunctionsNoParameters()
+    {
+        /// Creates the instance that contains the instance method you
+        /// want to invoke from a JS function. The instance is passed
+        /// as an argument of the IJSRuntime.InvokeAsync() method.
+        _objReference = DotNetObjectReference.Create(this);
+
+        /// IJSRuntime.InvokeVoidAsync() method invokes the specified JS function
+        /// which in this case does not return a value.
+        await _js.InvokeVoidAsync("dotNetInstanceInvocation", _objReference);
+
+        /// IJSRuntime.InvokeAsync() method invokes the specified JS function
+        /// which in this case does return a value.
+        _returnedArray = await _js.InvokeAsync<int[]>(
+            "dotNetInstanceInvocationReturn", _objReference);
+    }
+
+    #endregion
+
+    #region JS function With Parameters
+
+    // bound to an HTML input element of type text
+    private string _inputItems;
+    private int[] _convertedArrayArguments;
+
+    [JSInvokable]
+    public Task<int[]> ReturnIntArrayInstanceParameterAsync()
+    {
+        char[] numberChars = new char[]
+        { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
+
+        /// Exception handling mechanism in case the user fails
+        /// to pass a value to the HTML 'input' element bound
+        /// to the _inputItems field. Note that instead of using
+        /// an input type 'text' you could use a type 'number'
+        /// but this exercise illustrates better how to perform
+        /// additional work on data entered by the user.
+        try
+        {
+            _convertedArrayArguments = _inputItems
+                .Where(c => numberChars.Contains(c))
+                .Select(Convert.ToInt32)
+                .ToArray();
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"{e.Message} \n Parameter: * Input Values * TextBox.");
+        }
+
+        return Task.FromResult(_convertedArrayArguments);
+    }
+
+    /// <summary>
+    /// Method is consumed as the handler for an @@onclick Blazor
+    /// directive attribute of the button element:
+    /// "Invoke .Net Instance Method from JS with Parameters". This
+    /// method invokes a JS function that resides in the global .js
+    /// file. The JS function has a formal input parameter of type
+    /// Int32[] (i.e., has access to the input passed by the user before
+    /// being transformed by the ReturnIntArrayInstanceParameterAsync()
+    /// method) and does not return a value.
+    /// </summary>
+    public async Task InvokeJSFunctionWithParameters()
+    {
+        /// Creates the instance that contains the instance method you
+        /// want to invoke from a JS function. The instance is passed
+        /// as an argument of the IJSRuntime.InvokeAsync() method.
+        _objReference = DotNetObjectReference.Create(this);
+
+        /// IJSRuntime.InvokeVoidAsync() method invokes the specified JS
+        /// function  which in this case does not return a value. The JS
+        /// function invoked here has a formal input parameter that we
+        /// satisfy by passing the _inputItems variable that holds the
+        /// data (string) supplied by the user.
+        await _js.InvokeVoidAsync("dotNetInstanceInvocationWithParameter",
+            _objReference, _inputItems);
+    }
+
+    #endregion
+
+    #endregion
+}
+
+

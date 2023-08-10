@@ -1,0 +1,959 @@
+﻿@page "/02-pwa-creation"
+
+<PageTitle>PWAs - Creation</PageTitle>
+
+<h2>Progressive Web Apps - Creation</h2>
+<p>
+    You can create a new Blazor WebAssembly App and select the Progressive Web Application
+    checkbox to have Visual Studio configure the PWA template:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/02-visual-studio-dialog-box.png"
+         alt="Visual Studio PWA checkbox option." />
+</div>
+<p>
+    You can also configure an app created from the ASP.Net Core Hosted Blazor WebAssembly
+    project template. The PWA standard is independent of the hosting model.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In case you enabled caching in your application as demonstrated in the
+        <a href="03-api-caching">Api Caching</a> lesson, it is <strong>strongly</strong>
+        recommended to disable this caching service in your application because the
+        PWA standard uses <dfn>service workers</dfn> which also cache content with the
+        added benefit to optionally make it available offline.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow MSDN documentation to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#convert-an-existing-blazor-webassembly-app-into-a-pwa">
+        convert an existing Blazor WebAssembly app into a PWA
+    </a> to transform our Flix Manager app into a PWA. You can also follow episodes
+    145. Creando una Aplicación de Blazor PWA, 146. Examinando la Plantilla PWA, and
+    147. Transformando una App Existente a PWA from Udemy course
+    <a href="https://www.udemy.com/share/101ZK23@sx1Gl71iJZOTbpaTDuh1HAUY7ln2xoWRmq65wGmaltiqpgHiycz59EiNx1sgwgsr/">
+        Programando en Blazor - ASP.Net Core 7
+    </a> by Felipe Gavilán.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a new hosted Blazor WASM application named "PwaDemo" and make sure you
+    select the following options:
+</p>
+<ul>
+    <li>Authentication Type: Individual Accounts.</li>
+    <li>Asp.Net Core Hosted.</li>
+    <li>Progressive Web Application.</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/03-example-demo-options.png"
+         alt="Example PWADemo options." />
+</div>
+<p>
+    This application will serve as an example of various configuration options for our Flix
+    Manager application. Therefore, it must be include these features to make them as similar
+    as possible.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Individually update all the NuGet packages of each and every project in both
+    solutions "PWADemo" and "Flix Manager".
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Client <a href="03-routing">project file</a> and add the
+    following <code>ServiceWorkerAssetsManifest</code> property to a
+    <code>Property Group</code>:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/41-pwa/04-service-worker-manifest-reg.png"
+         style="max-width: 110%"
+         alt="Service worker assets manifest registration." />
+</div>
+<p>
+    The <code>ServiceWorkerAssetsManifest</code> line of code is responsible for
+    requesting the generation of the <em>service worker assets manifest</em> file during
+    compilation of the project. The manifest lists all the static resources that the app
+    requires to function offline such a .Net assemblies, JavaScript files, and CSS,
+    including their content hashes.
+</p>
+<p>
+    The <em>service-worker-assets.js</em> file is placed in the web root directory. To
+    see the contents of this file, open the Application/Client/bin/Debug/net7.0/wwwroot
+    folder. Don't edit the file because it is regenerated with each build.
+</p>
+<p>
+    By default, this manifest file lists:
+</p>
+<ul>
+    <li>
+        Any Blazor-managed resources such as .Net assemblies and the .Net WebAssembly
+        runtime files required to function offline.
+    </li>
+    <li>
+        All resources for publishing to the app's wwwroot directory such as images,
+        stylesheets, and JavaScript files including static web assets supplied by
+        external projects and NuGet packages.
+    </li>
+</ul>
+<p>
+    You can include additional resources that are not present in the wwwroot directory
+    by <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#control-asset-caching">
+        defining extra MSBuild ItemGroup entries
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the Application/Client <a href="03-routing">project file</a> and add the
+    following <code>ServiceWorker</code> item to an <code>ItemGroup</code>:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/41-pwa/05-service-worker-interchangeable-files.png"
+         style="max-width: 135%"
+         alt="Service worker interchangeable files registration." />
+</div>
+<p>
+    The <code>ServiceWorker</code> item is responsible for including the
+    <dfn>service-worker.js</dfn> and <dfn>service-worker.published.js</dfn> files as
+    inputs to the build process.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Go to the web root folder (Application/Client/wwwroot) of the PWADemo solution and
+    copy the following files into the web root folder of the Flix Manager solution:
+</p>
+<ul>
+    <li>icon-192</li>
+    <li>icon-512</li>
+    <li>manifest.json</li>
+    <li>service-worker.js</li>
+    <li>service-worker.published.js</li>
+</ul>
+<p>
+    <span class="badge bg-warning">Warning:</span>
+    Use Visual Studio Solution Explorer to right click on the web root folder of the
+    Client project in the PWADemo solution and select "Open Folder in File Explorer".
+    Select and copy the files <strong>from the Windows file explorer dialog box</strong>.
+    If you fail to follow this process, problems may arise in the future.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/06-webroot-files.png"
+         alt="Copied files to web root directory." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Go to the <a href="02-components-part-two">host page</a> (Application/Client/wwwroot
+    index.html file) and add a <code>&lt;link&gt;</code> element for the manifest and
+    for the app icons:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/07-host-file-links.png"
+         alt="Host file links." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Add the following <code>&lt;script&gt;</code> tag inside the closing <code>&lt;/body&gt;</code>
+    tag immediately after the <code>blazor.webassembly.js</code> script tag:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/08-host-file-service-worker-reg.png"
+         alt="Host file service worker registration." />
+</div>
+<p>
+    The <code>&lt;script&gt;</code> tag is responsible for registering the service worker
+    files when the application is loaded.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Use the Application/Client/wwwroot manifest.json file to customize the PWA's window
+    title, color scheme, icon(s), and other details:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/09-manifest-file.png"
+         alt="Manifest.json file." />
+</div>
+<p>
+    The schema of the manifest.json file is defined by web standards. You can refer to
+    <a href="https://developer.mozilla.org/docs/Web/Manifest">
+        Web App Manifest
+    </a> for more info.
+</p>
+<h4>Cache-first Fetch Strategy</h4>
+<p>
+    The built-in <em>service-worker.published.js</em> service worker resolves requests
+    using a <em>cache-first</em> strategy. This means that the service worker prefers to
+    return cached content regardless of whether the user has network access or newer
+    content is available on the server.
+</p>
+<p>
+    The cache-first strategy is ideal because:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>It ensures reliability.</strong> Network access is not a boolean
+            state. A user is not simply online or offline.
+            <ul>
+                <li>
+                    <p>
+                        The user's device may assume it is online but the network
+                        might be so slow as to be impractical to wait for.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        The network might return invalid results for certain URLs
+                        such as when there is a captive WiFi portal that is currently
+                        blocking or redirecting certain requests.
+                    </p>
+                </li>
+            </ul>
+        </p>
+        <p>
+            This is why the browser's <strong><code>navigator.onLine</code></strong>
+            API <strong>is not reliable</strong> and should not be depended upon.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>It ensures correctness.</strong> When building a cache of offline
+            resources, the service worker uses content hashing to guarantee it has
+            fetched a complete self-consistent snapshot of resources at a single
+            instant in time.
+        </p>
+    </li>
+</ul>
+<p>
+    If you must prevent the browser from fetching <em>service-worker-assets.js</em>
+    from its Http cache, for example to resolve temporary integrity check failures
+    when deploying a new version of the service worker, <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#cache-first-fetch-strategy">
+        update the service worker registration
+    </a> in wwwroot/index.html with <code>updateViaCache</code> set to 'none'.
+</p>
+<p>
+    Before going any further, be aware that you should be familiar on how Blazor
+    handles URL requests to better understand the role of its <dfn>service worker</dfn>
+    and how it is implemented.
+</p>
+<p>
+    We will go through a quick review here. Nonetheless, it is strongly advised to
+    review the "Layouts" section in <a href="02-components-part-two">
+        Blazor Components Part - II
+    </a> lesson, the "ASP.Net Routing (client-side
+    routing)" section in
+    <a href="https://app.flix-manager.com/03-routing">
+        Blazor Routing
+    </a> lecture, the Deep Linking section in <a href="05-filters">Data Filtering</a> lesson,
+    and Chris Sainty's <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+        Introduction to Routing in Blazor
+    </a>.
+</p>
+<h4>Blazor Routing</h4>
+<p>
+    Traditional web applications (as opposed to Single Page Applications - SPAs such as
+    Blazor) are composed of pages and each page's address is based on its physical file
+    path in the project. When a browser makes a request to the page, the contents of the
+    page are dynamically rendered on the server. The rendering accounts for both the
+    page's HTML markup and its server controls.
+</p>
+<p>
+    This means that in order to load a web page, traditional web applications first need
+    to make an HTTP GET request to the web server. For example, by entering
+    https://chrissainty.com into the address bar of a web browser. The web server is then
+    going to respond and send back some content such as HTML, CSS, JavaScript, etc.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 550px; margin: auto;"
+         src="Images/41-pwa/32-browser-request-traditional.png"
+         alt="Traditional navigation request for initial page." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+            Chris Sainty's traditional navigation request for initial page.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    The browser will parse all the content of the response and load the web page but what
+    happens when we want to navigate to another page? Most often, we click on a link to
+    the new page, the browser makes a new request to the server and a new page and its
+    assets are sent back and displayed. Except for some of the CSS and JavaScript that
+    might have been cached, the whole process is repeated over and over.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 550px; margin:auto;"
+         src="Images/41-pwa/33-traditional-navigation-request-for-new-page.png"
+         alt="Traditional navigation request for subsequent page." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+            Chris Sainty's traditional navigation request for subsequent page.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    Single Page Applications - SPAs (such as Blazor) do not navigate between physical
+    pages as traditional web applications do. Navigation would be better described as
+    virtual navigation. Each "page" in the app is a routable component with one or more
+    specified routes (<code>@@page</code>).
+</p>
+<p>
+    Virtual navigation is achieved by dynamically adding and removing content from the
+    Document Object Model (DOM) depending on the route that has been requested; there is
+    only ever one page. Hence their name, Single Page Applications.
+</p>
+<p>
+    When SPAs <strong>
+        <span class="mark">initially</span> load a site, the process is very similar to
+        traditional web applications.
+    </strong> The browser makes an HTTP GET request to the web server, the server responds
+    with some content such as HTML, CSS, JavaScript, and any other static assets, and the
+    browser parses all the content to load the web page. These <strong>
+        initial requests
+        are known as <span class="mark"><dfn>navigation requests</dfn></span>
+    </strong> but more on that later.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 550px; margin:auto;"
+         src="Images/41-pwa/32-browser-request-traditional.png"
+         alt="SPA initial navigation request." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+            Chris Sainty's SPA initial navigation request.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    The <strong>
+        difference in navigation between traditional web applications and SPAs
+        starts when the end user clicks on a link to move to a different area of
+        the site.
+    </strong> This time the payload sent by the web server is just data. SPAs
+    typically download the whole application when the site is first loaded so
+    everything is already there.
+</p>
+<p>
+    These <strong>subsequent requests are known as:</strong>
+    <ul>
+        <li>
+            <strong><span class="mark">sub-resource requests</span></strong> when
+            dealing with images, stylesheets, or other files.
+        </li>
+        <li>
+            <strong><span class="mark">fetch/XHR requests</span></strong> when
+            dealing with API resources/data.
+        </li>
+    </ul>
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 550px; margin:auto;"
+         src="Images/41-pwa/34-spa-subsequent-requests.png"
+         alt="SPA subsequent navigation requests." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+            Chris Sainty's SPA subsequent navigation requests.
+        </a>
+    </figcaption>
+</figure>
+<p>
+    When changing between pages the only additional content that is required is the
+    data to be displayed. In fact, it is perfectly possible that a page in a SPA
+    might not even need to make any additional requests to the server at all.
+</p>
+<p>
+    When a link is clicked, that event is intercepted by Blazor in the JavaScript
+    world. This event is then passed into the CSharp world to the <strong>
+        <code>
+            NavigationManager
+        </code>
+    </strong> class. This in turn raises an event, with some metadata, which the
+    router component is listening for.
+</p>
+<p>
+    The router handles this event and uses the data supplied to check for any
+    routable components that match the requested route (e.g., @@page "/movies/flix-manager").
+    If the router finds a match, it will render the <code>Found</code> template of
+    the Router component passing the <code>RouteData</code> which contains the type
+    of component to render and any parameters it requires.
+</p>
+<p>
+    The router component knows when to intercept a <strong><dfn>navigation event</dfn></strong>
+    using the <strong><code>&lt;base href="/"&gt;</code></strong> tag defined in its
+    host page (Application/Client/wwwroot/index.html).
+</p>
+
+<p>
+    If a link which was clicked has an <code>href</code> which falls within the scope
+    of the <code>base href</code>, then Blazor will intercept the event from the JavaScript
+    world and pass it to the CSharp world. Otherwise, Blazor will trigger a traditional
+    navigation process.
+</p>
+<h4>Navigation Requests</h4>
+<p>
+    Navigation requests are requests for HTML documents made by the browser whenever
+    you enter a new URL in the navigation bar or follow a link on a page taking you
+    to a new URL. This is where <dfn>service workers</dfn> make their biggest impact
+    on performance.
+</p>
+<p>
+    If a <dfn>service worker</dfn> is used to respond to navigation requests without
+    waiting for the network, navigating between pages is reliably fast and resilient
+    when the network is unavailable. This is the single biggest performance win that
+    comes from a <dfn>service worker</dfn> versus <a href="03-api-caching">Http Caching</a>.
+</p>
+<p>
+    <strong>A <span class="mark"><dfn>navigation request</dfn></span> is the first</strong>
+    of potentially many requests made in the "waterfall" of network traffic. The HTML
+    that the browser loads via a <dfn>
+        navigation request
+    </dfn> initializes the flow of all other requests:
+</p>
+<ul>
+    <li>
+        <strong><span class="mark">sub-resource requests</span></strong> for
+        images, stylesheets, or other files.
+    </li>
+    <li>
+        <strong><span class="mark">fetch/XHR requests</span></strong> for API
+        resources/data.
+    </li>
+</ul>
+<p>
+    Inside of a service worker's <code>fetch</code> event handler, it can be determined
+    whether a request is a <dfn>navigation</dfn> by checking the <code>request.mode</code>
+    property on the <code>FetchEvent</code>. <strong>
+        <span class="mark">
+            If it is set to <code>'navigate'</code>, then it is a
+            <dfn>navigation request.</dfn>
+        </span>
+    </strong>
+</p>
+<p>
+    As we explained earlier, SPAs perform a 'virtual' or 'simulated' navigation because
+    they only modify the current URL in the web browser's address bar as the user
+    interacts with the web application with subsequent requests (sub-resource requests
+    and/or fetch/XHR requests).
+</p>
+<p>
+    Nevertheless, the <strong>
+        initial navigations are real; i.e., they are a <dfn>navigation request</dfn>
+    </strong> because the browser makes an HTTP GET request to the web server, the
+    server responds with some content such as HTML, CSS, JavaScript, and any other
+    static assets, and the browser parses all the content to load the web page.
+</p>
+<p>
+    In Blazor, the default <dfn>service worker</dfn> contains special case logic for
+    <dfn>navigation requests</dfn>. The <dfn>service-worker</dfn> resolves these type
+    of requests by returning the cached content for the
+    <a href="https://app.flix-manager.com/02-components-part-two">host page</a>
+    (Application/Client/wwwroot/index.html), regardless of the requested URL.
+</p>
+<p>
+    The host page starts up the Blazor router to intercept the requested URL and
+    map it to the appropriate routable component. This logic is implemented in the
+    <code>onFetch</code> event handler inside the <em>service-worker.published.js</em>
+    file.
+</p>
+<p>Data Sources</p>
+<ul>
+    <li>
+        YouTube playlist
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/">
+            Get started with Progressive Web Apps
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/handling-navigation-requests/#:~:text=Navigation%20requests%20are%20requests%20for,you%20to%20a%20new%20URL.">
+            Handling navigation requests
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#support-server-rendered-pages">
+            Support server-rendered pages
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/service-workers">
+            Use Service Workers to manage network requests
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Request/mode#value">
+            Request: mode property
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/learn/pwa/service-workers/">
+            Service Workers
+        </a>
+    </li>
+</ul>
+<h4>service-worker.js & service-worker.published.js Files</h4>
+<p>
+    As we mentioned earlier, the <dfn>service worker</dfn> is responsible for intercepting
+    events, such as when the application attempts to send an Http request to the web server,
+    and perform asynchronous activities in a separate thread.
+</p>
+<p>
+    Let's take a look to the Application/Client/wwwroot service-worker.js file that we
+    copied from the PWADemo solution created to use as an example for transforming our
+    Flix Manager app:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/10-service-worker-file.png"
+         alt="service-worker.js file." />
+</div>
+<p>
+    It is just one line of code with a <code>fetch</code> event listener which is raised
+    every time an Http request is sent from the application. It intercepts Http requests
+    but it does not perform any additional activities.
+</p>
+<p>
+    In other words, the offline support is not enabled in development mode because
+    it would interfere with the usual development cycle of making changes and testing
+    them. Therefore, by default, offline support is only enabled for published apps.
+</p>
+<p>
+    Now, let's examine the Application/Client/wwwroot service-worker.published.js file
+    that we copied from the PWADemo solution created to use as an example for transforming
+    our Flix Manager app:
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This is not the final of the <code>offlineAssetsInclude</code> local reference
+        in the service worker files (<em>service-worker.js</em> and
+        <em>service-worker.published.js</em>). After some testing, it was determined
+        that any image related files should not be loaded to the 'offline-cache' during
+        initial install of service worker because the application has too many files and
+        it was taking too long for the application to start. This is unacceptable. Refer
+        to the "Loading Image Files to 'dynamic-cache'" section at the end of the
+        <a href="04-pwa-mutator-requests">Mutator Requests</a> lecture.
+    </p>
+</div>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/41-pwa/11-service-worker-published-one.png"
+         style="max-width: 120%"
+         alt="service-worker.published.js file part one." />
+    <img src="Images/41-pwa/12-service-worker-published-two.png"
+         style="max-width: 120%"
+         alt="service-worker.published.js file part two." />
+    <img src="Images/41-pwa/13-service-worker-published-three.png"
+         style="max-width: 120%"
+         alt="service-worker.published.js file part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice 1:</span>
+    The service-worker.published.js file includes a line of code responsible for
+    caching the authentication configuration.
+</p>
+<p>
+    You might recall from the <a href="03-security-id-server">IdentityServer</a>
+    lesson that we created an OidcConfigurationController responsible for
+    retrieving the Client instance making the Http request. It is provisioned to
+    serve OIDC parameters defined in the appsettings.json configuration source
+    file.
+</p>
+<p>
+    <span class="badge bg-dark">Step Nine:</span>
+    Modify the name of the "Client" to match the name of your Application/Client
+    .dll file.
+</p>
+<p>
+    Visual Studio Solution Explorer Folder Tree:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/19-client-name.png"
+         alt="Application/Client name." />
+</div>
+<p>
+    onInstall event with correct Application/Client name:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/41-pwa/20-correct-client-name.png"
+         style="max-width: 110%"
+         alt="OnInstall event with correct Application/Client name." />
+</div>
+<p>
+    <span class="badge bg-info">Notice 2:</span>
+    The service-worker.published.js file includes a block of code responsible for
+    supporting server-rendered pages.
+</p>
+<h4>Support Server-Rendered Pages</h4>
+<p>
+    As mentioned earlier, the <dfn>service worker</dfn> resolves the requests by
+    returning the cached content for /index.html, regardless of the requested URL.
+    This logic is implemented in the <code>onFetch</code> function inside the
+    service-worker.published.js file.
+</p>
+<p>
+    If the application has certain URLs that must return server-rendered HTML and
+    not serve /index.html from the cache, then we need to edit the logic in the
+    service worker. For example, you might recall from the <a href="03-security-id-server">
+        IdentityServer
+    </a> lesson that ASP.Net Core provides ASP.Net Core Identity as a Razor class
+    library.
+</p>
+<p>
+    The UI library includes Razor pages for operations like login, register, logout,
+    two factor authentication, account confirmation, password recovery, etc. <strong>
+        These pages must be server-rendered because they control the
+        authentication/authorization operations to access the Application/Server-Api 
+        resources.
+    </strong>
+</p>
+<p>
+    For this reason, any URL that includes the "/connect" and/or "/Identity" segments
+    is handled as a regular (traditional) online-only request to the server.
+</p>
+<p>
+    Login page UI:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/14-login-ui.png"
+         alt="Login UI." />
+</div>
+<p>
+    Network tab for Login page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/16-connect-segment.png"
+         alt="Network tab for Login page." />
+</div>
+<p>
+    Asp.Net Core Identity folder tree:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/15-asp-net-core-identity-folder-tree.png"
+         alt="Asp.Net Core Identity folder tree." />
+</div>
+<p>
+    Keep in mind that if the application is appropriately configured to work offline
+    and the application user successfully logged in while there was a valid connection
+    to the network, Http requests to Application/Server-Api resources can be served
+    as expected but more on that later.
+</p>
+<p>
+    Although the built-in service-worker.published.js file includes the '/connect' and
+    '/Identity' segments, we still have to include a couple more segments for URLs that
+    must be handled as regular online-only requests to the server.
+</p>
+<p>
+    In the lesson on <a href="10-external-id-providers">External ID Providers</a>,
+    we configured Google and Facebook as trusted external identity providers to allow
+    users to sign-in to the application using their Google/Facebook credentials.
+</p>
+<p>
+    Network tab for Login page with Google as external ID provider:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/17-signin-google-segment.png"
+         alt="Network tab for Login page with Google as external ID provider." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Nine:</span>
+    Add the 'signin-google' and 'signin-facebook' segments to the URLs that must be
+    handled as regular (traditional) online-only requests to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#support-server-rendered-pages">
+        support these server-rendered pages
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/18-external-signin-segments.png"
+         alt="External signin segments." />
+</div>
+<p>
+    At this point, we have implemented the basic configuration to convert our Flix Manager
+    application to a PWA with <strong>partial offline support</strong>. It only caches static
+    assets that are served for "GET" Http requests. It <strong>
+        does not cache any dynamic content
+    </strong> required for the "GET", "POST", "PUT", and/or "DELETE" Http requests.
+</p>
+<p>
+    We can now put it to the test. However, we mentioned that during development, we typically
+    want to see each change reflected immediately in the browser without going through a
+    background update process. Therefore, Blazor's PWA template enables offline support
+    only when the application is published.
+</p>
+<p>
+    For this reason, we can either <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/?view=aspnetcore-7.0#publish-the-app">
+        publish the application
+    </a> to a local folder or we can modify the built-in configuration to enable off-line
+    support during development.
+</p>
+<p>
+    <span class="badge bg-dark">Step Ten:</span>
+    Modify the <dfn>service workers</dfn> built-in configuration to enable off-line support
+    during development. Simply copy-paste the content of the <em>
+        Application/Client/wwwroot
+        service-worker.published.js
+    </em> file to the <em>service-worker.js</em> file.
+</p>
+<h4>Testing Offline Support</h4>
+<p>
+    As mentioned earlier, by default, apps created using the PWA template option have
+    support for running offline. Users must first access the application while they
+    are online. The web browser automatically downloads and caches all of the static
+    resources required to operate offline.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#offline-support">
+        offline support
+    </a> documentation to test the application to ensure that it
+    serves static resources while a connection to the server is unavailable (offline).
+    You can also refer to Episode 147. Transformando una App Existente a PWA of Udemy
+    course <a href="https://www.udemy.com/share/101ZK23@LIW1isY_DR7iN0iKzehiuA09aLeywmW5GtRAbdLiPDazf7XOlD_mDtnbnXLW7vfJ/">
+        Programando en Blazor - ASP.Net Core 7</a> by Felipe Gavilán.
+</p>
+<p>
+    We could <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/?view=aspnetcore-7.0#publish-the-app">
+        publish the application
+    </a> to a local folder. Instead, in step ten above, we modified the built-in
+    configuration to enable offline support during development.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application to a server that supports Https and access the app in a browser
+    at its secure Https address. PWA service workers do not execute in regular HTTP
+    protocol.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/21-service-worker-running.png"
+         alt="Application tab of dev tools." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Reload the page and examine the Network tab. Service Worker or memory cache are listed
+    as the sources for all of the page's assets:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/22-sources-page-assets.png"
+         alt="Network tab of dev tools." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the Network tab to simulate offline mode and select any of the lessons'
+    submenus with pages that require static content to work:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/23-network-offline.png"
+         alt="Network tab with offline mode enabled." />
+</div>
+<p>
+    All the lessons' pages continue to function normally even though the application
+    is offline:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/24-lessons-submenus.png"
+         alt="Lessons' submenus." />
+</div>
+<p>
+    As explained earlier, the <em>service-worker-assets.js</em> file lists
+    all the static resources that the app requires to function offline such as
+    .Net assemblies, JS files, and CSS, including their content hashes.
+</p>
+<p>
+    The resources list is loaded by the <em>service worker</em> so that it knows
+    which resources to cache. You can examine the static assets that have been
+    cached by going to the "Cache Storage" section in the Application tab of the
+    web browser's developer tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/25-offline-cache.png"
+         alt="Cache storage - offline-cache." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    While still in offline mode, navigate to either one of the application sections
+    that require Application/Server-Api resources. For example, navigate to the
+    Flix Manager:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/26-offline-cache-no-dynamic.png"
+         alt="Flix Manager UI in offline mode." />
+</div>
+<p>
+    The initial <dfn>navigation request</dfn> is handled as expected because the
+    browser makes an HTTP GET request to the web server, the <dfn>service-worker</dfn>
+    intercepts the request and fetches the cached content (HTML). However, we have not
+    configured the service worker to store the dynamic content that matches the
+    URL of the request. For example, the dynamic content required by the Flix-Manager 
+    routable component.
+</p>
+<p>
+    In fact, if we go to the Console tab of the dev tools, we can observe that an
+    exception is thrown because the operation fails to fetch the dynamic data; i.e.,
+    the fetch/XHR subsequent request fails:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/27-console-exception.png"
+         alt="Console tab with exception thrown." />
+</div>
+<p>
+    This is what me meant when we said that not all apps should attempt to support
+    offline use. Offline support adds significant complexity, while not always being
+    relevant for the use cases required.
+</p>
+<p>
+    At this point you have two choices:
+</p>
+<ul>
+    <li>
+        <p>
+            Implement an adequate exception handler mechanism that informs the user
+            that a connection with the web server must be available to serve the
+            requested resources.
+        </p>
+    </li>
+    <li>
+        <p>
+            Implement offline support for dynamic resources; i.e., implement a dynamic
+            cache capable of storing dynamic resources to serve any related Http requests.
+        </p>
+    </li>
+</ul>
+<p>
+    In the interest of learning, we will demonstrate how to implement a full offline
+    support system in the following lessons.
+</p>
+<h4>Publish and Deploy a PWA Application</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    <a href="07-dynamic-website">Publish and deploy</a> the Flix Manager web app into
+    the Azure app service created in previous lessons, test its offline support, and
+    ensure that it can be downloaded/installed to function as a PWA.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/28-install-icon.png"
+         alt="Install icon for PWA applications." />
+</div>
+<div class="alert alert-warning mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You might encounter a problem when trying to publish and deploy the application
+        to the Azure App Service. After deployment, the application might not be able
+        to complete the initialization process in the web browser.
+    </p>
+</div>
+<p>
+    Given the case, it is likely that the Console tab of the web browser's developer
+    tools shows one or more errors like the ones shown below:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/29-intregrity-failure.png"
+         alt="Error: Integrity failure for resource." />
+</div>
+<p>
+    Apparently, after multiple build ups, the publish/deploy process fails to pick up
+    the new SHA for the static resources. The files containing the SHAs are called
+    <dfn>blazor.boot.json</dfn> and they are generated deep inside the <dfn>obj</dfn>
+    folder of the Application/Client project:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/30-blazor-boot-json-folder-tree.png"
+         alt="Folder tree for blazor.boot.json files." />
+</div>
+<p>
+    Extract of the content of a blazor.boot.json file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/31-blazor-boot-json-extract.png"
+         alt="blazor.boot.json file content." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Force the build process to produce new SHAs following the steps enlisted below:
+</p>
+<ul>
+    <li>
+        <p>
+            Use Visual Studio Solution Explorer to "Open Folder in File Explorer".
+            We need to open a Windows File Explorer dialog box to access the directories
+            for the Visual Studio Solution.
+        </p>
+    </li>
+    <li>
+        <p>
+            Close Visual Studio.
+        </p>
+    </li>
+    <li>
+        <p>
+            Delete the <code>obj</code> and <code>bin</code> folders from all the
+            projects in the solution.
+        </p>
+    </li>
+    <li>
+        <p>
+            Start Visual Studio and use it to open the Flix Manager solution.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use Visual Studio Solution Explorer to "Rebuild Solution". Do not run the
+            application locally.
+        </p>
+    </li>
+    <li>
+        <p>
+            You might need to clear the cache of your web browser. You can do so with
+            'Ctrl + Shift + Delete' keys.
+        </p>
+    </li>
+    <li>
+        <p>
+            Go to the Azure app service, 'Restart' your application, and give it a 
+            minute or so to reload.
+        </p>
+    </li>
+    <li>
+        <p>
+            Try to "Publish" again.
+        </p>
+    </li>
+</ul>
+<p>
+    You should be able to Publish/Deploy the application to the Azure app service.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        "Episodes 145. Creando una Aplicación de Blazor PWA" to "147. Transformando una
+        App Existente a PWA" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@SzI9hVRj770EIU6WZsB6zsVkvt1utni1MLF9Yy_yM1pIlLdatFgmxwLbE7GPinyS/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#create-a-project-from-the-pwa-template">
+            Create a project from the PWA template
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#convert-an-existing-blazor-webassembly-app-into-a-pwa">
+            Convert an existing Blazor WebAssembly app into a PWA
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API">
+            Service Worker API
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Tutorials/js13kGames/Offline_Service_workers">
+            Making PWAs work offline with Service Workers
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/69926878/failed-to-find-a-valid-digest-in-the-integrity-attribute-for-resource-in-blazo">
+            Failed to find a valid digest in the 'integrity' attribute for resource
+            in Blazor app
+        </a>
+    </li>
+</ul>

@@ -1,0 +1,181 @@
+﻿<!-- MoviesList component was replaced by MoviesCatalog component for more advanced lessons.-->
+<!-- Its DeleteMovie handler produces a Bootstrap modal instead of a window.Confirm() dialog-->
+<!-- box.                                                                                   -->
+@inject IJSRuntime _jsRuntime
+
+<div class="form-control mb-3">
+    <h5>MoviesList Component</h5>
+
+    <!-- #region Comments -->
+    <!-- Implements an onchange DOM event and an event handler (method) responsible -->
+    <!-- for updating the value of the _renderDeleteButtons variable. Replaced by   -->
+    <!-- code below.                                                                -->
+    <!-- #endregion -->
+    @*<input type="checkbox" id="button-delete-movie" @onchange="@UpdateCheckboxValue" />*@
+
+    <!-- #region Comments -->
+    <!-- Checkbox control implements data binding to synchronize the                -->
+    <!-- _renderDeleteButtons variable with an HTML element                         -->
+    <!-- #endregion -->
+    <div>
+        <label for="checkbox-enable-delete" class="small">Enable Delete</label>
+        <input type="checkbox" id="checkbox-enable-delete" @bind="@_renderDeleteButtons" />
+    </div>
+
+    <!-- #region Comments -->
+    <!-- Generic templated component tests a collection for nullability and         -->
+    <!-- emptiness. Depending on the collection state renders dynamic UI content    -->
+    <!-- invoking the corresponding RenderFragment parameter.                       -->
+    <!-- #endregion -->
+    <TestCollectionNullOrEmpty ItemsList="Movies">
+
+        <!-- RenderFragment parameter renders dynamic UI content if collection null. -->
+        <NullLoadingTemplate>
+            <div class="spinner"></div>
+            <text style="color: blue; font-style: italic">Loading Image...</text>
+        </NullLoadingTemplate>
+
+        <!-- RenderFragment parameter renders dynamic UI content if collection empty.-->
+        <EmptyTemplate>
+            <text style="color: blue; font-style: italic">No records to show!</text>
+        </EmptyTemplate>
+
+        <!-- #region Comments -->
+        <!-- Generic RenderFragment<T> parameter. Renders dynamic UI content        -->
+        <!-- if collection is neither null nor empty. Consumes another component    -->
+        <!-- that represents a segment of UI content.                               -->
+        <!-- #endregion -->
+        <RenderItemTemplate Context="movie">
+            <!-- UI template to render dynamic UI content on each Movie item        -->
+            <SingleMovie Movie="movie"
+                         RenderDeleteButtons="_renderDeleteButtons"
+                         DeleteMovie="DeleteMovie">
+            </SingleMovie>
+        </RenderItemTemplate>
+    </TestCollectionNullOrEmpty>
+
+    <Confirmation @ref="confirmComponent"
+                  Title="Confirm Delete"
+                  OnCancelCallback="OnCancel"
+                  OnConfirmCallback="OnConfirm">
+        <p class="mb-0">
+            Are you sure you want to delete <strong>@(_importedMovieToBeDeleted.Title)</strong>?
+        </p>
+    </Confirmation>
+
+</div>
+
+@code {
+
+    /// <summary>
+    /// Stores a reference to the Confirmation component. It is made
+    /// possible with an @ref Blazor directive. The reference is used to
+    /// invoke its Show/HideConfirmComponent() methods to ask the user
+    /// for a confirmation before deleting a Movie item.
+    /// </summary>
+    private Confirmation confirmComponent;
+
+    /// <summary>
+    /// The specific Movie item to be deleted at a given time is passed as
+    /// an argument to satisfy the RenderFragment<TItem> parameter named
+    /// RenderItemTemplate of the TestCollectionNullOrEmpty component
+    /// instance created here. This field is used to locally store a
+    /// reference to that Movie item because the Confirmation component
+    /// uses it to display its title for confirmation before deletion.
+    /// </summary>
+    private Movie _importedMovieToBeDeleted;
+
+    /// <summary>
+    /// MoviesList.razor component expects a collection of List<Movie> to satisfy
+    /// its formal input parameter. The component is responsible for using an
+    /// iteration to display (or render) the Movie items.
+    /// </summary>
+    [Parameter]
+    public List<Movie> Movies { get; set; } = null;
+
+    /// <summary>
+    /// Stores the flag value set by the UpdateCheckboxValue() event handler (method).
+    /// </summary>
+    private bool _renderDeleteButtons = false;
+
+    /// <summary>
+    /// Sets the flag value to true or false dependent on the state of the Checkbox
+    /// control. No longer needed because the input type checkbox implements data binding
+    /// to the _renderDeleteButtons variable with an @bind Blazor directive.
+    /// </summary>
+    public void UpdateCheckboxValue()
+    {
+        _renderDeleteButtons = !_renderDeleteButtons;
+    }
+
+    /// <summary>
+    /// This method is executed when a delete button element of the
+    /// SingleMovie component raises an @onclick event. The @onclick
+    /// event is bound to this method with an EventCallback<Movie>
+    /// parameter.
+    /// </summary>
+    /// <remarks>Note that it also uses a Confirmation component reference
+    /// to invoke its ShowConfirmComponent() method.
+    /// </remarks>
+    private void DeleteMovie(Movie movieToBeDeleted)
+    {
+        // Calls your custom extension method that wraps the JS function
+        // invocation.
+        //bool confirmed = await _jsRuntime.ConfirmDeleteDialogBox<bool>($"Please confirm deletion of {movieToBeDeleted.Title}");
+
+        _importedMovieToBeDeleted = movieToBeDeleted;
+        confirmComponent.ShowConfirmComponent();
+    }
+
+    /// <summary>
+    /// Satisfies the OnCancelCallback event callback parameter of the
+    /// Confirmation component.
+    /// </summary>
+    /// <remarks>Note that it also uses a Confirmation component reference
+    /// to invoke its HideConfirmComponent() method.
+    /// </remarks>
+    private void OnCancel()
+    {
+        _importedMovieToBeDeleted = null;
+        confirmComponent.HideConfirmComponent();
+    }
+
+    /// <summary>
+    /// Satisfies the OnConfirmCallback event callback parameter of the
+    /// Confirmation component.
+    /// </summary>
+    /// <remarks>Note that it also uses a Confirmation component reference
+    /// to invoke its HideConfirmComponent() method.
+    /// </remarks>
+    private void OnConfirm()
+    {
+        Movies.Remove(_importedMovieToBeDeleted);
+        _importedMovieToBeDeleted = null;
+        confirmComponent.HideConfirmComponent();
+    }
+
+    // Lifecycle methods of a component
+    protected override void OnInitialized()
+    {
+        /// make sure to include the null conditional operator on the parameter
+        /// of type List<Movie> or you might receive an exception while loading
+        /// the page
+        Console.WriteLine($"On Initialized: Movies.Count = {Movies?.Count}");
+    }
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"On ParametersSet: Movies.Count = {Movies?.Count}");
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        Console.WriteLine($"On AfterRender: First Render = {firstRender}");
+    }
+
+    protected override bool ShouldRender()
+    {
+        return true;
+    }
+}
+

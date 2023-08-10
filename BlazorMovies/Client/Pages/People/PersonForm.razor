@@ -1,0 +1,88 @@
+﻿<!-- WARNING!! The UploadImage component does not scan the   -->
+<!-- uploaded file(s) with an antivirus/anti malware software-->
+<!-- #region                                                -->
+<!-- This form uses an EditContext to be bound to a Person  -->
+<!-- instance because it implements custom validation with  -->
+<!-- CSS class attributes. Otherwise it could instead define-->
+<!-- a "Model" attribute for the EditForm component.        -->
+<!-- #endregion                                             -->
+<EditForm EditContext="@EditContext" OnValidSubmit="OnValidSubmit">
+    <!-- ChildContent element of 'AuthorizeView' uses the same parameter-->
+    <!-- name: "context" as its enclosing ChildContent element of       -->
+    <!-- 'EditForm'. Conflict resolved with new 'Context name'.         -->
+    <ChildContent Context="editFormContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <!-- Name field -->
+        <div class="row">
+            <div class="col-form-label-sm col-md-6">
+                <label class="form-label mb-0">Name:</label>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <InputText @bind-Value="@Person.Name"
+                           class="form-control" />
+                <ValidationMessage For="@( () => Person.Name )" />
+            </div>
+        </div>
+
+        <!-- Date of Birth field -->
+        <div class="row">
+            <div class="col-form-label-sm col-md-6">
+                <label class="form-label mb-0">Date of Birth:</label>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <InputDate @bind-Value="@Person.DateOfBirth"
+                           class="form-control" />
+                <ValidationMessage For="@( () => Person.DateOfBirth )" />
+            </div>
+        </div>
+
+        <!-- Picture field -->
+        <div class="row mb-3">
+            <div class="col col-md-6">
+                <!-- Warning: UploadImage componenet does not   -->
+                <!-- scan files with an antivirus/antimalware.  -->
+                <UploadImage ImageFieldName="Picture:"
+                             ImageUrl="@_existingImageUrl"
+                             OnImageSelected="OnImageSelected" />
+                <ValidationMessage For="@(() => Person.PictureUrl)" />
+            </div>
+        </div>
+
+        <!-- Biography field -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <!-- Consuming the InputMarkdown component -->
+                <InputMarkdown FieldName="Biography:"
+                               Person="@Person" />
+
+                <!-- Consuming the InputMarkdownDerived component -->
+                @*<InputMarkdownDerived @bind-Value="Person.Biography"
+                FieldName="Biography:" />*@
+
+                <ValidationMessage For="@(() => Person.Biography)" />
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <AuthorizeView Policy="@_authorizationPolicy">
+            <Authorized>
+                <button type="submit"
+                        class="btn btn-success">
+                    Save Changes
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    
+    </ChildContent>
+</EditForm>
+
+<!-- For demonstration only. Renders the authorization policy applied.  -->
+<!-- Dependent on whether the component was called to "Create" or "Edit"-->
+<p>Authorization policy required: <strong>@_authorizationPolicy</strong></p>
+

@@ -1,0 +1,100 @@
+﻿/* NOTE: if the component does not explicitly define an HTML element
+    there is no use to target it from the scoped css file because
+    it won't be bound
+*/
+
+
+/* #region General Purpose Elements */
+
+.brand-slogan {
+    font-weight: bolder;
+    font-style: italic;
+}
+
+/* #endregion */
+
+
+/* #region Content */
+
+.section {
+    padding: 0 1rem;
+}
+
+.content-area {
+    background-color: white;
+    border-top: 1px solid var(--color-nav-hover);
+    border-bottom: 1px solid var(--color-nav-hover);
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+}
+
+.container {
+    box-sizing: border-box;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+}
+
+.main-content {
+    box-sizing: border-box;
+    padding-top: 1rem;
+    width: 70%;
+}
+
+.my-sidebar {
+    background-color: var(--color-sidebar);
+    box-sizing: border-box;
+    padding: 1rem 1rem;
+    width: 30%;
+}
+
+/* #endregion */
+
+
+/* #region Footer */
+
+footer p {
+    font-size: .85rem;
+    text-align: center;
+}
+
+/* #endregion*/
+
+
+/* #region Responsive Layout */
+
+/* Small Viewport tablet portrait view */
+@media screen and (min-width: 768px ) {
+    .main-content {
+        width: 80%
+    }
+
+    .my-sidebar {
+        width: 20%;
+    }
+}
+
+/* Medium Viewport laptop-tablet landscape */
+@media screen and (min-width: 1024px ) {
+    .section {
+        padding: 0 2rem;
+    }
+}
+
+/* Large Viewport desktop */
+@media screen and (min-width: 1280px) {
+
+    .main-content {
+        width: 85%
+    }
+
+    .my-sidebar {
+        width: 15%;
+    }
+}
+
+/* #endregion */
+
+

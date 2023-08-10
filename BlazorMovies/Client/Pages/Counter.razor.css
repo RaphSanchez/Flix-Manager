@@ -1,0 +1,10 @@
+﻿
+h1 {
+    /* Note that this color is being overridden with a Cascading Value 
+        defined in the StylingValues.cs, the MainLayout component as
+        the ancestor and the Counter component as the child that consumes
+        the cascading values. 
+    */
+    color: greenyellow;
+    font-family: Segoe UI, Helvetica, sans-serif;
+}

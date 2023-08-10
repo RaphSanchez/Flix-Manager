@@ -1,0 +1,472 @@
+﻿@page "/04-secure-user-manager"
+<PageTitle>Secure User Manager</PageTitle>
+
+<h2>User Management- Secure User Manager</h2>
+<p>
+    It is mandatory that you have a clear understanding on <a href="07-policy-based-authz">
+        Policy-based authorization
+    </a> for this lesson because its purpose is to secure access to any user management
+    resources. Only authorized users should be granted access to application resources
+    that allow modification of application users.
+</p>
+<p>
+    The procedure we will follow is very similar to the one implemented in the
+    "Claims-based AuthZ server-side" and "Claims-based AuthZ client-side" topics
+    of the <a href="07-policy-based-authz">Policy-based authorization</a> lecture.
+</p>
+<p>
+    The idea is to create a set of "UserApi" <dfn>authorization policies</dfn> to control
+    access to:
+</p>
+<ul>
+    <li>
+        Application/Server-Api/Controllers UsersController resources which model
+        the functionality related to user management such as adding/removing claims,
+        editing user data, etc.
+    </li>
+    <li>
+        Application/Client/Pages/Users pages which provide the GUI and communicate
+        with the back-end to request any user management related operations.
+    </li>
+</ul>
+<h4>Creating Shared Authorization Policies</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Build and register <a href="07-policy-based-authz">shared authorization policies</a> to
+    control access to any user management related resources dependent on the kind of operation
+    (or resource) to execute. These operations should be equivalent to claims that the User
+    must hold to be granted access to "create", "read", "update", or "delete" actions.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Shared/AuthZHelpers/Claims directory and create an ApiUsersClaims
+    type with custom authorization claims for controlling access to the
+    Application/Server-Api/Controllers Users controller resources and to the Application/Client
+    Razor components designed for the user manager GUI.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Go to the ApiUserClaims class and create a custom authorization claim type
+    (e.g., ApiUserClaim) that represents a System.Security.Claims.Claim type to
+    control access to user management resources. It should derive from AuthZClaim
+    class.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Include custom ApiUserClaim properties that represent the type and value for
+    an authorization claim that identifies the bearer as an application user manager
+    authorized to perform a given operation type such as create, read, update, or
+    delete:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/34-api-user-claims-one.png"
+         alt="ApiUserClaims part one." />
+    <img src="Images/23-user-manager/35-api-user-claims-two.png"
+         alt="ApiUserClaims part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Include a missing "ApiUserReader" claim with type "user.reader" and value "reader"
+    to control access to resources that retrieve application users from the data store.
+    Don't forget to register the new claim in the "AllApiUserClaims" field of the
+    Application/Shared/AuthZHelpers AuthZClaims class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Add a set of "UserApi" <a href="07-policy-based-authz">shared authorization policies</a>
+    to the Application/Shared/Helpers AuthZPolicies class. Make sure to use CSharp
+    constants to represent authorization policy names to avoid hard coding
+    the authorization policy names when applying them to user api resources such as action
+    methods or routable components.
+</p>
+<p>
+    These policies will control access to the UserApi resources dependent of
+    the kind of operation (or resource) to execute. These operations should
+    be equivalent to claims that the User must hold to be granted access to
+    "create", "read", "edit", or "delete" actions.
+</p>
+<p>
+    Make sure to include the code logic to define the authorization policy
+    names, build the actual authorization policies, and to add them to the ASP.Net
+    Core Identity authorization service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/36-user-authz-policies-one.png"
+         alt="Shared AuthZPolicies for UserApi resources part one." />
+    <img src="Images/23-user-manager/37-user-authz-policies-two.png"
+         alt="Shared AuthZPolicies for UserApi resources part two." />
+    <img src="Images/23-user-manager/38-user-authz-policies-three.png"
+         alt="Shared AuthZPolicies for UserApi resources part three." />
+    <img src="Images/23-user-manager/39-user-authz-policies-four.png"
+         alt="Shared AuthZPolicies for UserApi resources part four." />
+    <img src="Images/23-user-manager/40-user-authz-policies-five.png"
+         alt="Shared AuthZPolicies for UserApi resources part five." />
+    <img src="Images/23-user-manager/41-user-authz-policies-six.png"
+         alt="Shared AuthZPolicies for UserApi resources part six." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Include a missing "ApiReadUser" authorization policy to control access to
+    resources that retrieve application users from the data store.
+</p>
+<p>
+    Recall that in lesson <a href="07-policy-based-authz">Policy-based authorization</a>,
+    we added the authorization policies to the authorization services registered in
+    the dependency injection container of the Application/Client and the
+    Application/Server-Api projects.
+</p>
+<p>
+    Application/Server-Api:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/18-authz-policy-builder-server-side.png"
+         alt="Call to AddAuthZPolicies from the dependency injection container." />
+</div>
+<p>
+    Application/Client:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/19-authz-policy-builder-client-side.png"
+         alt="Call to AddAuthZPolicies from the dependency injection container." />
+</div>
+<h3>Seeding a Power User</h3>
+<p>
+    Before applying the authorization rules, it is advisable to create an
+    application user with full access to the application resources. Otherwise,
+    <strong>
+        regular application users won't be able to access user management resources
+        to assign/remove custom authorization claims.
+    </strong> 
+</p>
+<p>
+    There are many approaches to create the power user. Nevertheless, <strong>
+        it is mandatory to include a migration responsible for
+        creating the power user that holds all the available custom authorization
+        claims.
+    </strong> 
+</p>
+<p>
+    This way, the user with full credentials will be
+    included when we create the SQL Server database in Azure during deployment
+    of the application.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an application user with full access to the application resources; i.e.,
+    with all the custom authorization claims registered in the
+    Application/Shared/AuthZHelpers AuthZClaims class.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application and navigate to the Register component to register a new
+    User with the following properties:
+</p>
+<ul>
+    <li><strong>Email:</strong> admin@email.com</li>
+    <li><strong>First Name:</strong> Admin</li>
+    <li><strong>Password:</strong> Pass123$</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/47-register-power-user.png"
+         alt="Register UI with new power user input." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the SQL Server Object Explorer to go to the dbo.ASPNetUsers table to
+    manually confirm its email account and copy its Id:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/45-new-power-user.png"
+         alt="Database table with new power user." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the SQL Server Object Explorer to go to the dbo.ASPNetUserClaims table
+    to manually assign the power user all the available custom authorization claims:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/46-power-user-claims.png"
+         alt="Power user with all the custom authorization claims available." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Add a migration named AdminUser with the SQL queries to insert the user
+    and to attach the custom authorization claims.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Go to the Package Manager Console and <code>Update-Database</code> to make
+    sure there are no migrations pending. Use the following command to
+    add the migration: <code>Add-Migration AdminUser</code>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Use the SQL Server Object Explorer to go to the dbo.ASPNetUsers database
+    table, select the complete row of the power user, right click and select
+    "Script" to generate the SQL Script. Copy the script and paste it in the
+    recently added migration.
+</p><p>
+    <span class="badge bg-dark bg-opacity-50">4.3</span>
+    Use the SQL Server Object Explorer to go to the dbo.ASPNetUsersClaims
+    database table, select the complete rows with the claims related to the
+    power user, right click and select "Script" to generate the SQL Script.
+    Copy the script and paste it in the recently added migration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/48-migration-admin-user-one.png"
+         alt="SeedAdminUser migration with SQL Scripts part one." />
+    <img src="Images/23-user-manager/49-migration-admin-user-two.png"
+         alt="SeedAdminUser migration with SQL Scripts part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4</span>
+    Test the scripts inserted into the AdminUser migration. Go back to the
+    dbo.ASPNetUsers database table to delete the power user row and to the
+    dbo.ASPNetUsersClaims database table to confirm that the related custom
+    authorization claims were removed.
+</p>
+<p>
+    Use the Package Manager Console to <code>Update-Database</code> and
+    check that the admin user is inserted into the database with its
+    custom authorization claims.
+</p>
+<p>
+    Data Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@j4ctMaw1HKONgU8dhzTqpxruA_OMbxHwWqbfi_vUhznb1ruKVHINdqXqOuld9EfM/">
+            Episode 95.Implementing Roles
+        </a> of Udemy course: "Programming in
+        Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+</ul>
+<h3>Claims-based AuthZ server-side</h3>
+<p>
+    Authorization policies can be applied as authorization rules to Razor pages,
+    MVC controllers, or actions within a controller. Authorization policies
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0#authorize-attribute-and-razor-pages">
+        cannot be applied
+    </a> at the Razor Page handler (methods) level, they must be applied to the Page
+    (PageModel level).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Designate authorization policies to control access to Application/Server-Api
+    resources dependent on the kind of operation (or action) to execute. These operations
+    should be equivalent to claims that the User must hold to be granted access to
+    "create-post", "read-get", "edit-update", or "delete" actions.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Decorate the UsersController actions with authorization policies according to the
+    operation they are meant to perform and test the result:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/42-secured-users-controller.png"
+         alt="UsersController with authorization policies applied." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Test the authorization policies applied to the actions in the UsersController.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Run the application, login with any application user that has not been
+    assigned custom UserApi authorization claims, and try to navigate to the
+    IndexUsers routable component. You should not be granted access because
+    the current user does not have the required custom authorization claim
+    to satisfy the authorization policy (<code>AuthZPolicies.ApiReadUser</code>)
+    designated for actions decorated with an HttpGet attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/43-users-denied-access.png"
+         alt="UI does not display application users." />
+</div>
+<p>
+    The "Default There are no records to show" message is displayed because
+    we employed the <a href="02-components-part-one">TestCollectionNullOrEmpty</a>
+    component to handle the expected collection of application users but the
+    Http response did not provide any users. The Network tab of the web
+    browser's developer tools has more information on the issue:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/44-401-unauthorized.png"
+         alt="StatusCode 401 Unauthorized." />
+</div>
+<p>
+    The authorization rules enforced are working as intended but that is not the
+    only element blocking access to the UsersController resources. As mentioned
+    in the <a>policy-based authorization</a> lesson, both OIDC and OAuth use
+    Bearer Authentication which uses bearer tokens to authenticate/authorize
+    access.
+</p>
+<p>
+    Besides providing the required custom authorization claims to a given User,
+    we need to configure the Application/Client/ApiServices/ApiManager ApiUsers
+    class to include the claims in the security tokens generated for the user
+    during login (authentication).
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Configure the Application/Client/ApiServices/ApiManager ApiUsers class to
+    <a href="07-policy-based-authz">add the custom authorization claims</a> to
+    the security tokens created by the IdentityServer engine after authenticating
+    a given user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/10-api-users-one.png"
+         alt="ApiUsers class with JWTOptions.IncludeJWTs part one." />
+    <img src="Images/23-user-manager/50-api-users-with-jwt-two.png"
+         alt="ApiUsers class with JWTOptions.IncludeJWTs part two." />
+    <img src="Images/23-user-manager/51-api-users-with-jwt-three.png"
+         alt="ApiUsers class with JWTOptions.IncludeJWTs part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The image shown above for the ApiUsers class does not include the complete
+    code for brevity and simplicity.
+</p>
+<p>
+    It is mainly focused in demonstrating how to request our custom
+    <a href="06-security-protect-api">typed HttpClient</a> service that includes
+    the authorization tokens (JWTs) when building the Http requests because tokens
+    allow the IdentityServer engine to validate that the Http request originates
+    from a User that holds valid credentials to access a protected API resource.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Run the application, login with the power user credentials (username:
+    <em>admin@email.com</em>, password: <em>Pass123$</em>) and navigate to
+    the IndexUsers routable component. You should be able to see all the
+    current application users. Click on any of the "Edit" button elements and
+    assign/remove custom authorization claims to an application user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/52-edit-user-claims.png"
+         alt="UserEdit component." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Deployment of the application should <span class="mark">
+            <strong>
+                include a notice or message to the client
+            </strong>
+        </span> that he or she must replace the power user attributes. Specially
+        the email and password. This can be easily done by clicking the user
+        link that appears after authentication in the nav bar on top.
+    </p>
+</div>
+<h3>Claims-based AuthZ client-side</h3>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the ApiUser authorization policies to control access to Application/Client
+    routable components dependent on the kind of operation (or resource) that
+    the component is built for. These operations should be equivalent to claims that
+    the User must hold to be granted access to the component or to an element within
+    the Razor component; e.g., "create", "read", "edit", or "delete" user data.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Secure Application/Client/Pages/Users IndexUsers routable component.
+</p>
+<p>
+    Recall from the lesson on <a href="05-security-protect-client">Secure Client</a>,
+    that we used an <code>&lt;AuthorizeView&gt;</code> component to selectively display
+    to the User the "Edit" and "Delete" button elements of the Flix Manager routable
+    components.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Use the <code>&lt;AuthorizeView&gt;</code> component to <a href="05-security-protect-client">
+        selectively display
+    </a> the "Edit" button element dependent on the authentication state and the authorization
+    credentials of the User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/53-index-users-authorize-view.png"
+         alt="AuthorizeView component for IndexUsers items." />
+</div>
+<p>
+    This approach only removes the list item from the rendered output. It <strong>
+        does not prevent the User from navigating to the component (UserEdit)
+    </strong> by manually typing the resource URL into the address bar.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Use the <a href="05-security-protect-client">authorize attribute directive</a>:
+    <coe>@@attribute [Authorize]</coe> to protect the IndexUser routable component.
+    Include a definition with the appropriate authorization policy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/54-index-users-authorize-attribute.png"
+         alt="Authorize attribute directive to protect IndexUsers component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Secure Application/Client/Pages/Users UserEdit routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Use the <code>&lt;AuthorizeView&gt;</code> component to <a href="05-security-protect-client">
+        selectively display
+    </a> the "Update" button element dependent on the authentication state and the authorization
+    credentials of the User:
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Use the <a href="05-security-protect-client">authorize attribute directive</a>:
+    <coe>@@attribute [Authorize]</coe> to protect the UserEdit routable component.
+    Include a definition with the appropriate authorization policy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/55-user-edit-secured.png"
+         alt="UserEdit secured and selectively displays the Update button." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Compare the difference of the three levels of protection implemented for the Index
+    routable components of the Movie, Person, and ApplicationUser data entities:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/56-comparing-security-rules.png"
+         alt="Comparison of security level implementations." />
+</div>
+<ul>
+    <li>
+        The FlixManager component does not have an authorization rule. Any
+        application user, authenticated or not, can have access to the component.
+    </li>
+    <li>
+        The IndexPeople component has an authorize attribute but does not
+        define a specific authorization policy. By default, any application
+        user that has been authenticated can have access to the component.
+    </li>
+    <li>
+        The IndexUsers component has an authorize attribute with a
+        specific authorization policy that requires a specific custom
+        authorization claim to be granted access to the resource. The
+        content of the routable component is much more sensitive and
+        should be treated as such.
+    </li>
+</ul>
+<p>
+    We are not done yet. As mentioned in the <a href="03-user-manager">user manager</a>
+    lesson, the term <dfn>User Management</dfn> refers to the ability for application
+    administrators to manage the application users' access to various server-API
+    resources. Only the application users with proper credentials (authorizatin claims)
+    should be able to see the "Users" submenu.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Client/Shared NavMenu component to selectively display the
+    <code>&lt;NavLink&gt;</code> element that allows the users to navigate to the user
+    manager GUI dependent on the authorization claims of the bearer:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/57-nav-menu-secured.png"
+         alt="Securing the NavLink item to navigate to the UserManager UI." />
+</div>
+<p>
+    Success! We have secured our application both Client-Side and Server-Side.
+</p>

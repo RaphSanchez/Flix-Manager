@@ -1,0 +1,1683 @@
+﻿@page "/02-components-part-two"
+@inject IRepository _inMemoryRepository
+<PageTitle>Blazor Components - II</PageTitle>
+<h2>Blazor Components - Part Two</h2>
+<br />
+<h3>Lifecycle of a Component</h3>
+<p>
+    A Razor component processes Razor component lifecycle events in a set of
+    synchronous and asynchronous lifecycle methods. The
+    <strong>
+        lifecycle methods can be overridden to perform additional operations
+    </strong>in components throughout different stages of the component lifecycle
+    (e.g., during the initialization event or a rendering event).
+</p>
+
+<h5>Component lifecycle events:</h5>
+<ul>
+    <li>
+        <p>When a component is requested for the first time:</p>
+        <ul>
+            <li>The component instance is created.</li>
+            <li>
+                The <code>SetParametersAsync()</code> method sets parameters supplied by the
+                component's parent in the render tree or from route parameters.
+            </li>
+            <li>
+                The <code>OnInitializedAsync()</code> method is invoked when the component is
+                ready to start, having received its initial parameters.
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>When a component has been previously rendered:</p>
+        <ul>
+            <li>
+                The <code>OnParametersSetAsync()</code> method is invoked after the
+                OnInitializedAsync() method and/or when the parent component re-renders.
+            </li>
+            <li>
+                The <code>OnAfterRenderAsync(Boolean)</code> method is called after a component
+                has finished rendering.
+            </li>
+            <li>
+                The <code>ShouldRender()</code> method is called each time a component is
+                rendered to manage UI refreshing based on the return type of its implementation.
+            </li>
+            <li>
+                The <code>StateHasChanged()</code> method notifies the component that its state
+                has changed. It causes the component to be re-rendered and is called automatically
+                for <a href="02-components-part-one">EventCallback methods</a>.
+            </li>
+        </ul>
+
+    </li>
+</ul>
+
+<h5>SetParametersAsync() method</h5>
+<p>
+    The default implementation of SetParametersAsync() sets the value of each property
+    with the <a href="02-components-part-one">[Parameter]</a> or <a href="02-components-part-four">
+        [CascadingParameter]
+    </a> attribute that has a corresponding value in the ParameterView. Parameters that
+    don't have a corresponding value are left unchanged.
+</p>
+<p>
+    By overriding the SetParametersAsync() method, developer code can interact directly
+    with ParameterView's parameters.
+</p>
+
+<h5>OnInitializedAsync() method</h5>
+<p>
+    OnInitialized() and OnInitializedAsync() are invoked <strong>only once</strong> when
+    the component is initialized after having received its initial parameters in
+    SetParametersAsync(). While a Blazor app is pre-rendering, certain actions, such as
+    calling into JavaScript aren't possible.
+</p>
+<p>
+    At this stage <strong>one can trigger an HTTP request to the server</strong> to obtain
+    the data that will be rendered in the component.
+</p>
+
+<h5>OnParametersSetAsync() method</h5>
+<p>
+    Executes when the component has received all parameters and their values have been
+    assigned to the respective properties. This method executes in the initialization
+    stage (when a component is requested for the first time) and it also
+    <strong>executes every time the parameters are updated</strong>. The StateHasChanged()
+    method is automatically called.
+</p>
+
+<h5>OnAfterRenderAsync(Boolean) method</h5>
+<p>
+    Method <strong>executes each time the component is rendered</strong>; i.e., when the
+    HTML is already displayed. This is the <strong>ideal</strong> stage
+    <strong>
+        to perform additional initialization steps
+    </strong> with the rendered content, such as JavaScript interop calls that
+    interact with the rendered DOM elements. For example, using a JS library to perform
+    additional work on any of the HTML elements.
+</p>
+<p>
+    Its <code>firstRender</code> parameter is set to <code>true</code> the first time that
+    the component instance is rendered and it can be used to ensure that initialization
+    work is only performed once.
+</p>
+
+<h5>ShouldRender() method</h5>
+<p>
+    Belongs to the rendering stage and is <strong>called each time a component is rendered.</strong>
+    Override it to manage UI refreshing; e.g., maybe you don't want a component to re-render
+    after its initial rendering. If its implementation returns <code>true</code>, the UI is
+    refreshed. Note that even if it is overridden, the component is always initially rendered.
+</p>
+
+<h5>OnStateHasChanged() method</h5>
+<p>
+    Allows you to trigger a render at any time. However, you should be cautious not to call
+    OnStateHasChanged() unnecessarily due to performance costs. For example, in general terms,
+    you shouldn't call it when handling events, when overriding OnInitializedAsync(), and/or
+    OnParametersSetAsync() because ComponentBase class automatically triggers a render.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Define non-async versions of OnInitialized(),
+    OnParametersSet(), OnAfterRender(), and ShouldRender() lifecycle methods in the
+    MoviesList component. Each should include code logic to display a string into the
+    browser's Console with their name and related functionality.
+</p>
+<p>
+    For example, "OnInitialized: Movies.Count", "OnParametersSet: Movies.Count",
+    "OnAfterRender: First Render = firstRender", and "ShouldRender: true/false". Modify
+    parameter values and study their behaviour.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/41-lifecycle-methods.png" alt="Lifecycle methods." />
+</div>
+<br />
+
+<p>
+    Go to a routable component (higher level component) such as this webpage and declare
+    an instance of the MoviesList component. Run the application to study the behaviour of
+    each lifecycle method in the browser's console. If you receive unhandled exceptions, it
+    might be because the OnInitialized() method executed in the routable component is async
+    and has a delay. Change either one of the methods to match the other:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/42-console-result-one.png" alt="Console results of OnInitialized." />
+</div>
+<br />
+
+<p>
+    The MoviesList component has been rendered and the browser's console displays that:
+</p>
+<ol>
+    <li>
+        The OnInitialized() method is executed and the component received its initial
+        parameters in SetParametersAsync() because it has access to the Movies parameter
+        from inside the OnInitialized() method.
+    </li>
+    <li>
+        The OnParametersSet() method is executed after the OnInitialized() method and also
+        has access to the Movies parameter.
+    </li>
+    <li>
+        The OnAfterRender() method calls the First Render method and its value is true
+        because it is the first (or initial) render of the component.
+    </li>
+</ol>
+
+<p>
+    What do you think would happen if you interact with any of the DOM elements; e.g., if
+    you click the Enable Delete Checkbox?
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/43-console-result-two.png" alt="Console results after interacting with a DOM element." />
+</div>
+<br />
+
+<p>
+    The OnAfterRender(bool) executes again because the component was rendered again. Recall
+    that when the state of a component is changed, the StateHasChanged() method notifies the
+    component and causes it to be re-rendered. This time its firstRender parameter value is
+    set to false.
+</p>
+<p>
+    Now what should we expect to happen if we change the ShouldRender() method to return
+    false, build the application, and interact one more time with the Enable Delete Checkbox
+    to change its state?
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/44-console-result-three.png" alt="Console results with ShouldRender() returning false." />
+</div>
+<br />
+
+<p>
+    The UI was not refreshed after changing the state of the Checkbox. The component was not
+    re-rendered even though the state of a DOM object was changed. The changes took place but
+    they were not reflected in the UI. This is <strong>
+        useful when you will perform extensive operations and you want to disable rendering
+        temporarily. For now, let's switch back the ShouldRender() method's return value to true.
+    </strong>
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Implement an add movie method in this
+    higher level component, create a Button element and pass the recently created
+    method as the event handler for its onclick event. Run your application, raise the
+    click event of the button element and study the browser's console:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/45-console-result-four.png" alt="Console results with parameter values changes." />
+</div>
+<br />
+
+<p>
+    The component is re-rendered and the new movie item is displayed. On the Console,
+    we can see that the OnParametersSet() method was executed because this method is
+    called every time the parameters are updated and the count for the number of movie
+    items has also been updated to four. Also, the OnAfterRender(bool) method was executed
+    again because the component was rendered after its parameter values were updated and
+    the firstRender parameter of the OnAfterRender(bool) lifecycle method is set to false.
+</p>
+
+<div>
+    <MoviesList Movies="_movies" />
+
+</div>
+<div>
+    <button @onclick="AddMovie"
+            class="btn btn-primary">
+        Add new movie
+    </button>
+</div>
+<br />
+
+<p>
+    We have experienced the behaviour of a component's lifecycle methods. OnInitialized()
+    executed only once when the component was initialized, OnParametersSet() executed on
+    the initialization stage after OnInitialized() method, and every time a parameter
+    was updated. OnAfterRender() method executed each time the component was rendered.
+    Furthermore, we used the ShouldRender() method to prevent (or not) the component from
+    re-rendering.
+</p>
+<p>
+    For more info visit: <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-5.0">
+        ASP.Net Core Razor component lifecycle
+    </a>
+</p>
+
+<h3>Dependency Injection (Services)</h3>
+<p>
+    ASP.Net core (including Blazor) supports the dependency injection (DI) design
+    pattern which is a technique for achieving Inversion Of Control (IoC) between
+    classes and their dependencies. A dependency is an object that another object
+    depends on and it is typically implemented through a class's constructor but
+    it <strong>can also be done through a property</strong> as will be demonstrated
+    soon.
+</p>
+<p>
+    In dependency injection terminology, <strong>a service is an object</strong>
+    (e.g., class or interface) that provides a service to other objects and is
+    not related to a web service (although the service may use a web service).
+    <strong>Blazor supports dependency injection for accessing services</strong>
+    configured in a <strong>central location</strong>; i.e., all services are
+    configured in one place and then you can access those services throughout the
+    application.
+</p>
+
+<h5>Lifetime of a Service</h5>
+<p>
+    Two important questions to ask when using dependency injection are:
+    How long will the instances of these dependencies live, and how many
+    other objects have access to the same instance?
+</p>
+<p>
+    The answer depends on a number of factors. The first factor, and possibly
+    the easiest to understand, is the <em>Scope</em> the dependency was
+    registered with. The three scopes defined by
+    <em>Microsoft.Extensions.DependencyInjection.ServiceLifetime</em> are:
+</p>
+<dl>
+    <dt>1. Scoped</dt>
+    <dd>
+        In ASP.Net core apps, a scope (or context) is created around each server
+        request (e.g., HTTP request). After the request completes, the service is
+        disposed. The <em>scoped</em> configuration specifies that a
+        <strong>new instance</strong> of the service will be created
+        <strong>
+            for each scope
+        </strong> and will live
+        within a certain context (HTTP request, Entity Framework context).
+    </dd>
+    <dd>
+        In Blazor WebAssembly client side, the <strong><em>scoped</em></strong>
+        configuration <strong>behaves like <em>singleton</em></strong> because the
+        client side does not work in the context of an HTTP request. The code is in
+        the user's browser; i.e., there is no connection to the server.
+    </dd>
+    <dd>
+        The Blazor Server hosting model does have a context which is the connection
+        between the user and the app in the server. It supports the <em>scoped</em>
+        lifetime across HTTP requests but not across SignalR connection messages among
+        components that are loaded on the client. For example, Razor pages (routable
+        components) in Blazor server create a new instance of a <em>scoped</em> service
+        on each HTTP request when navigating among <span class="mark">pages</span>.
+    </dd>
+    <dd>
+        However, in Blazor server, when navigating among <span class="mark">components</span>
+        on the client, <em>scoped</em> services aren't reconstructed (create a new
+        instance) because communication to the server takes place over the SignalR
+        connection, not via HTTP requests.
+    </dd>
+
+    <dt>2. Singleton</dt>
+    <dd>
+        DI creates a <strong>single instance</strong> of the service. All components
+        requiring a service with a <em>singleton</em> configuration, receive the
+        <strong>same instance</strong> of the same service. In a WebAssembly application,
+        this is the lifetime of the current application that is running in the current
+        tab of the browser.
+    </dd>
+    <dt>3. Transient</dt>
+    <dd>
+        Specifies that <strong>different instances</strong> of the service will be
+        created <strong>each time</strong> the service is requested. Registering an
+        injectable dependency as transient makes the dependency container act as a
+        factory for instances of that type. The same instance cannot be automatically
+        injected into more than one consuming entity; i.e., every injected instance
+        will be unique.
+    </dd>
+    <dd>
+        <strong>
+            Only register services (classes) as <em>transient</em> if they do not
+        </strong> implement <em>IDisposable</em>; i.e., if they do not need to be disposed
+        deterministically (immediately after they are no longer needed) because a Blazor
+        app lives within a browser's tab and will not be disposed until that tab is closed.
+        Otherwise your application will leak memory. For more info refer to <a href="https://blazor-university.com/dependency-injection/dependency-lifetimes-and-scopes/transient-dependencies/">
+            Blazor University: Transient dependencies.
+        </a>
+    </dd>
+</dl>
+
+<h5>Default Services</h5>
+<p>
+    The Blazor Framework includes 3 default services that don't need to be configured:
+</p>
+
+<dl>
+    <dt>1. <code>HttpClient</code></dt>
+    <dd>
+        Description: Provides methods for sending HTTP requests and receiving HTTP
+        responses from a resource (server).
+    </dd>
+    <dd>Lifetime: Scoped</dd>
+
+    <dt>2. <code>IJSRuntime</code></dt>
+    <dd>
+        Description: Allows to perform operations with JavaScript. It represents an
+        instance of a JS runtime where JS calls are dispatched.
+    </dd>
+    <dd>Lifetime Blazor WebAssembly: Singleton</dd>
+    <dd>Lifetime Blazor Server: Scoped</dd>
+
+    <dt>3. <code>NavigationManager</code></dt>
+    <dd>
+        Description: Allows to work with the navigation system from source code. E.g.,
+        redirecting the user to a different section of the application.
+    </dd>
+    <dd>Lifetime Blazor WebAssembly: Singleton</dd>
+    <dd>Lifetime Blazor Server: Scoped</dd>
+</dl>
+
+<h5>Configuring Custom Services</h5>
+<p>
+    <span class="badge bg-primary">Task: </span> Demonstrate the difference between
+    <em>singleton</em> and <em>transient</em> by creating one service for each
+    lifetime configuration. The services should contain only one property of type
+    Int32 named Value. Configure each service, request (or inject) the services
+    from the DataBindCounter component created in a previous <a href="02-components-part-one">lesson</a>,
+    and render the value for each instance of the service into the browser window.
+    Increase the count on each element, navigate to a different routable component
+    (or page) that consumes the DataBindCounter component and compare the values for
+    transient and singleton. Come back to this webpage and again compare the values.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One.</span> Before injecting a dependency (service),
+    we need to create it. As mentioned earlier, a service is an object (class or
+    interface) that provides a service to other objects. Go to the Helpers folder
+    in the Client project and create a class for each intended service:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/46-my-custom-services.png" alt="Customs services (classes)." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two.</span> Configure your classes as services in the
+    dependency injection (DI) system of the Client project. <strong>
+        When a Blazor application runs through its startup code, one of the things
+        it does for us is to configure a dependency injection container
+    </strong> responsible for building up instances of classes (and instances of their
+    dependencies). The collection of <strong>services</strong> needed for a Blazor
+    <strong>WebAssembly</strong> application are <strong>
+        configured in the Main method of the Program class
+    </strong> that belongs to the Client project:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/47-config-custom-services.png"
+         alt="Configuration of custom services." />
+</div>
+<br />
+
+<p>
+    Most of the code shown above is created by default. It is recommended to create
+    a <strong>private static</strong> ConfigureServices(IServiceCollection) method to
+    configure your custom services. You can add any services through an instance of
+    the formal input parameter of type IServiceCollection. In our example, we are
+    registering a class as injectable but you can also register an interface as
+    injectable as will be shown later in this lesson.
+</p>
+<p>
+    Then, still inside the Main() method of the program class, you can simply call
+    your ConfigureServices(IServiceCollection) method and pass the
+    <em>builder.Services</em> property (created by the System) as an argument to
+    satisfy its formal input parameter. The Services property gets or sets the service
+    collection for your application.
+</p>
+<p>
+    Before .Net 6, the DI system in ASP.Net Core was configured through the Startup class but
+    that was not the case in a Blazor WebAssembly application which used a Program class. However,
+    as of .Net 6 and later, both the Client project (Application/Client) and the Server project
+    (Application/Server), which is an ASP.Net Core Web API, have a Program class to configure
+    the DI system among other things but that is a topic for a later lesson.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/48-services-configuration-object-explorer.png"
+         alt="Blazor Server Startup class and Blazor WebAssembly Program class." />
+</div>
+<br />
+
+<p>
+    Note that if you ever decide to implement a custom service provider (which is
+    not the case here), it <strong>does not</strong> automatically provide the default
+    services mentioned earlier (e.g., HttpClient, IJSRuntime, and NavigationManager).
+    If you use a custom service provider and require any of these services, add the
+    required services to the new service provider.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three.</span> Request the recently created services
+    from a component such as the DataBindCounter component created earlier; i.e.,
+    inject a dependency for each service into your component. After services are
+    added (configured) in the application's service collection,
+    <strong>
+        you can inject services into a component with either one of two approaches:
+    </strong>
+</p>
+
+<ol>
+    <li>
+        Using Razor mark-up with the <strong><code>@@inject</code></strong> Razor
+        directive. Include the type (class or interface) of the service to inject
+        and a name for the property receiving the injected dependency (service).
+        With this approach, the property does not require manual creation because
+        the transpiler creates the property internally. You can think of @@inject as
+        adding a property to the component and populating the property using DI.
+    </li>
+    <li>
+        Using CSharp code with a read-write property decorated with an
+        <strong><code>[Inject]</code></strong> attribute.
+    </li>
+</ol>
+<p>
+    These two approaches are identical. In fact, the <code>@@inject</code> syntax
+    is simply shorthand for the <code>[Inject]</code> syntax.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/49-injecting-services.png" alt="Injecting services into a component." />
+</div>
+<br />
+
+<p>
+    Behind the scenes, the <strong>
+        DI system creates an instance of the type (or class) of the service requested
+    </strong> with either approach. Then you can use that instance to access any of
+    its type members.
+</p>
+<p>
+    If you create an instance of the DataBindCounter component inside this routable
+    component (or webpage), raise the onclick event of its button element to increment
+    the property values and navigate to <a href="Counter">another component</a>
+    that also consumes the DataBindCounter component, you will find that the Singleton
+    property value is preserved in memory because the <em>singleton</em> lifetime
+    configuration for a service creates a single instance of a service and all components
+    receive the same instance. The Transient's property value on the other hand will not
+    be preserved because it uses a new instance of the service (class).
+</p>
+
+<div>
+    <DataBindCounter />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task: </span> Go to the Index (Home) routable component,
+    or any other routable component, inject the SingletonService service and define some
+    markup to render its value. It should be the same value in every component because the
+    same instance is shared throughout the application. Demonstrate dependency injection
+    using an @@inject Razor directive and using an [Inject] attribute.
+</p>
+<p>
+    Finally, note that if you close the application and then come back to re-start the
+    application, the Singleton service creates a new instance because it is a new session
+    in the application.
+</p>
+
+
+<h5>Configuring Custom Services with Interfaces</h5>
+<p>
+    As you know, Object Oriented Programming (OOP) is based on a loose coupling
+    principle where objects only have as many dependencies as needed. What's more,
+    <strong> object dependencies should be on interfaces which are abstract in nature</strong>
+    as opposed to concrete objects. In a poor software application design, high
+    level classes use directly and depend heavily on low level classes. A more
+    appropriate approach to design your applications is to <strong>
+        introduce a level of abstraction
+    </strong> (abstraction layer) between high level and low level entities.
+</p>
+<p>
+    Take for example the utility class that defines the functionality to create a
+    collection of movies for our components. Currently, the MoviesCreator
+    class contains a method that creates a hard coded collection. What's more,
+    we have consumed that class by creating a new instance and calling its
+    GenerateMoviesList() method on every routable component where we consumed
+    the MoviesList component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/50-class-coupling.png" alt="Component consumes class directly. No abstraction layer." />
+</div>
+<br />
+
+<p>
+    This means that if later on you decide to change the source of the data, you
+    would have to modify each and every instance where you called the
+    MoviesCreator.GenerateMoviesList() static method. You could also change the
+    functionality of the MoviesCreator.GenerateMoviesList() method but what if later
+    on you decide you need to go back to the original source of data? This is obviously
+    not a good practice.
+</p>
+<p>
+    Instead, you could use an interface to add a service to the dependency injection
+    system. This would allow you to switch to a different source of data with just one
+    modification because the dependency injection container is a centralized location
+    that provides any required services throughout the app.
+</p>
+<p>
+    A custom service with an interface would also allow you to keep different
+    classes (services) with functionality to provide data from different sources
+    for different situations. E.g., from in-memory collections for testing and
+    from a database for production.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Create a service that mimics the
+    functionality of the MoviesCreator class and include an abstraction layer using
+    an interface that will allow you to replace the functionality to create the
+    collection of movies from a centralized location (from the dependency injection
+    container). This way, you will be able to serve that service with any class that
+    has previously implemented the interface and any changes will be reflected on any
+    component that consumes the service.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One.</span> Go to the Helpers folder in the Client project
+    and create an interface named IRepository with a member (method) that specifies the
+    signature of the functionality that any class that implements this interface must
+    define:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/51-irepository-interface.png" alt="IRepository interface defines functionality." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two.</span> Create a class that implements the IRepository
+    interface:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/52-repository-inmemory-class.png" alt="RepositoryInMemory class." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three.</span> Configure the service in the dependency injection
+    system:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/53-service-config-interface.png" alt="Service configuration with an interface." />
+</div>
+<br />
+
+<p>
+    We configured the IRepository service in a way such that when a component
+    requests the IRepository service, it will be served an instance of the
+    RepositoryInMemory class. It is mandatory to define the type (class) because
+    CSharp does not allow to create an instance of an interface. Therefore, you must
+    configure the class that will be served. When the interface is requested through
+    dependency injection, the system creates an instance of this type (class).
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Inject the IRepository service into
+    the component that will consume the service (e.g., this routable component) and
+    name it as you feel like. The name you assign to the instance of the injected
+    service is used to access any of its members:
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The "_inMemoryRepository" identifier is
+    not a good name for the service because if later on you decide to change the
+    source of the data (e.g., from a data base, web server, etc), the name could be
+    misleading. It was chosen here to make it easier to identify for the purpose of
+    this lesson but it is not ideal for a production app.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/54-consuming-interface-service.png" alt="Consuming a service configured with an interface." />
+</div>
+<br />
+
+<p>
+    We have successfully configured a service with an interface as an abstraction layer.
+    This extra layer of abstraction provides a lot of flexibility. For example, in the future,
+    we will configure a service that will request data using an <em>http</em> request that
+    is handled through our web API (through the server project). The new service configuration
+    will be easily implemented; you only have to pass another class to serve the IRepository service:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/55-irepository-service.png" alt="Location to change functionality for the IRepository service." />
+</div>
+<br />
+
+<p>
+    This simple modification can completely change the functionality of the IRepository
+    service because we passed a new implementation (class) of the IRepository interface. As
+    mentioned earlier, your applications should not depend on concrete objects, they should
+    depend on abstractions.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Make sure everything is working fine.
+    Create an instance of the MoviesList component and satisfy its formal input parameter,
+    expecting a collection of movies, with the collection created using the IRepository
+    service:
+</p>
+
+<div>
+    <MoviesList Movies="_movies" />
+</div>
+
+<p>
+    For more info visit: <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/dependency-injection?view=aspnetcore-5.0&pivots=server">
+        ASP.Net Core Blazor dependency injection
+    </a> and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-6.0#register-groups-of-services-with-extension-methods">
+        Register groups of services with extension methods
+    </a>
+</p>
+
+<h3>Splitting Components</h3>
+<p>
+    So far, we have separated CSharp logic from HTML (Razor markup syntax) inside a
+    single file. We used the <em>@@code{ }</em> Razor directive to do it. However, as
+    your applications grow in size and complexity, you will have more and more HTML
+    and CSharp code. This can become harder and harder to maintain. In an effort to
+    keep your codebase clean, you can separate Razor markup from CSharp logic into
+    different files but still related to each other.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Using different files to separate Razor markup from CSharp logic not only
+        facilitates keeping your codebase clean and easier to maintain. XML comments
+        in scoped classes are displayed by Intellisense when hovering the mouse
+        pointer over component instances and/or component members.
+    </p>
+</div>
+<p>
+    There are two approaches to split component HTML (markup language) and CSharp
+    code into their own respective file:
+</p>
+<ol>
+    <li>Partial classes.</li>
+    <li>Base classes.</li>
+</ol>
+<h4>Partial classes</h4>
+<p>
+    Using <em>partial</em> classes you can declare the same classes in different
+    files and share their members. This works because, as you might recall,
+    components are transpiled into <em>partial</em> classes. Therefore, if you
+    want to place the code inside an <em>@@code{ }</em> Razor directive in a
+    separate file, you can with partial classes. You can think of the code that
+    resides inside an <code>@@code{ }</code> block as being the back-end and the
+    rest of the code as being the front-end of your component.
+</p>
+<p>
+    For more info visit episodes <a href="https://youtu.be/KseDLejhYi0">
+        4. ASP NET core razor components
+    </a> and <a href="https://youtu.be/4CeEFuY_ieg">
+        5. Split razor components into separate files
+    </a> of the "ASP.NET Core Blazor Tutorial" by Kudvenkat.
+</p>
+<p>
+    <span class="badge bg-primary">Task. </span> Go to the DataBindCounter component and
+    separate the CSharp logic from the Razor markup.
+</p>
+<p>
+    <span class="badge bg-dark">Step One. </span> Create a <strong><code>partial</code></strong>
+    class with the <strong>exact same name</strong> as the component. Make sure it is
+    created in the same folder where the component file resides (e.g., Shared folder):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/56-partial-class.png" alt="Partial class with exact same name as component." />
+</div>
+<br />
+
+<p>
+    The DataBindCounter.razor.cs file is automatically nested into the
+    DataBindCounter.razor component file because it was given the exact same name as
+    the component. This is very important or the partial class will not be bound.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two. </span> Go to the DataBindCounter.razor file and cut
+    any CSharp logic defined inside any @@code{} Razor directive. Paste the CSharp logic
+    inside the partial class that is directly related to the component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/57-csharp-code-logic.png" alt="CSharp code logic." /><br />
+    <img src="Images/02-components/58-csharp-logic-to-partial.png" alt="CSharp logic moved to partial class." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task:</span> Make sure that the DataBindCounter component is
+    still working by creating an instance and testing it:
+</p>
+
+<div>
+    <DataBindCounter />
+</div>
+<br />
+
+<p>
+    As you can see, everything is working as expected. Nevertheless, we are not done yet. The
+    DataBindCounter component implemented two approaches for dependency injection. The
+    SingletonService was injected using an @@inject Razor directive and the Transient service
+    was injected using an explicit declaration of a full property. To keep things clean and
+    uniform, <strong>you should use the same dependency injection approach</strong> for all
+    your services.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Modify your code so that DI is implemented by
+    either one of the available approaches but make sure both implement the same technique.
+    We left both implementations for illustrative purposes but in real life you should adhere
+    to the same technique to keep things as clear and readable as possible.
+</p>
+
+
+<h3>Layouts</h3>
+<h5>Blazor Structure</h5>
+<p>
+    Traditional web applications, such as ASP.Net Web Forms, are composed
+    of pages and each page's address is based on its physical file path in the
+    project. When a browser makes a request to the page, the contents of the page
+    are dynamically rendered on the server. The rendering accounts for both the
+    page's HTML markup and its server controls.
+</p>
+<p>
+    Unlike ASP.Net Web Forms projects, not all files in a Blazor project can be
+    requested as static files. <strong>Only</strong> the files in the
+    <span class="mark"><strong><code>wwwroot/</code> folder</strong></span> are
+    web-addressable. This folder is referred to as the
+    <span class="mark"><strong>application's "web root"</strong></span>. Anything
+    outside of the app's web root is not web-addressable. This setup provides an
+    additional level of security that prevents accidental exposing of project files
+    over the web.
+</p>
+<p>
+    In Blazor, each page in the app is a component, typically defined in a .razor
+    file, with one or more specified routes (<code>@@page</code>). Routing mostly
+    happens client-side, and is handled by the <em>Router</em> component.
+    <strong>
+        The browser first makes a request to the root address of the app. A
+        <span class="mark">root <code>Router</code></span> component in the Blazor
+        app then handles intercepting navigation requests and routing them to the
+        correct component.
+    </strong>
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/61-folder-tree-router-component.png" alt="Alternate Text" />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/02-components/60-router-component.png" alt="Router component." />
+</div>
+<br />
+
+<p>
+    The <em>Router</em> component is typically used (consumed) <strong>
+        in the <span class="mark">root component of the application (App.razor)</span>.
+    </strong> The <em>Router</em> component discovers
+    the routable components in the specified <em>AppAssembly</em> and when the
+    browser navigates, the <em>Router</em> intercepts the navigation and renders the
+    contents of its <strong><code>Found</code></strong> parameter with the extracted
+    <strong><code>RouteData</code></strong> if a route matches the address. Otherwise
+    the <em>Router</em> renders its <strong><code>NotFound</code></strong> parameter.
+</p>
+<p>
+    The <strong><code>RouteView</code></strong> component handles rendering the matched
+    component specified by the <em>RouteData</em> with a specific layout if it has one
+    explicitly defined with an <strong><code>@@layout</code></strong> directive. If the
+    matched component doesn't have a layout, then the optionally specified
+    <span class="mark"><strong>DefaultLayout</strong></span> is used.
+</p>
+
+<h5>Blazor Host Page</h5>
+<p>
+    In a Blazor WebAssembly app, <strong>
+        the <span class="mark">host page</span> is a simple static HTML file
+    </strong> under <strong><code>wwwroot/index.html</code></strong>. The
+    <strong>root HTML elements</strong> (e.g., &lt;html&gt;, &lt;head&gt;, and
+    &lt;body&gt;) <strong>are typically defined inside the host page</strong>
+    because it is used to render the initial HTML content for the application.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/62-host-page.png" alt="Web Assembly host page." />
+</div>
+<br />
+
+<p>
+    The <em>&lt;div&gt;</em> element with and id attribute value of
+    <span class="mark"><strong><code>app</code></strong></span> is used to
+    <strong>
+        indicate where the <code>RouteData</code> found by the <code>Router</code>
+        component in the root component (App.razor), should be rendered.
+    </strong> Obviously, the id's attribute value can be changed to whatever you like
+    as long as you pass that same value (or name) to the HostBuilder explained later
+    in this lesson.
+</p>
+<p>
+    The <strong><span class="mark"><code>blazor.webassembly.js</code></span></strong>
+    script is provided by the framework and handles downloading the .Net runtime,
+    the application, and the application's dependencies. It is also responsible for
+    initialization of the runtime to run the app. Given the nature of &lt;script&gt;
+    tags, that get loaded once and then cannot be changed, <strong>
+        all &lt;script&gt; tags should be added to the application's host page.
+    </strong>
+</p>
+<p>
+    Beware <strong>not to confuse</strong> this index.<strong>html</strong> addressable
+    static host page (application's entry point) with the Index.<strong>razor</strong>
+    component which is the routable component that the <em>Router</em> will render if
+    the browser wants to navigate to Home or Index:
+</p>
+<div class="image-lesson">
+    <img src="Images/02-components/63-folder-tree-host-page.png" alt="Folder tree of Index static page vs Index component." />
+</div>
+<br />
+
+<p>
+    The <strong>root component to render (App.razor) is specified</strong> in the
+    application's Main() method of the Program class:
+</p>
+
+<div class="image-lesson">
+    <img src="images/02-components/64-root-component.png" alt="Location and definition of the root component." />
+</div>
+<br />
+<p>
+    <span class="badge bg-info">Notice:</span> Blazor also supports <a href="05-filters">
+        deep linking
+    </a>. Deep linking occurs when the browser makes a request to a specific route other than
+    the root of the app. Requests for deep links sent to the server are routed to the Blazor
+    app, which then routes the request client-side to the correct component.
+</p>
+<p>
+    It is strongly advisable that you take a look to Chris Sainty's <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+        Introduction to Routing in Blazor
+    </a>
+</p>
+<h5>Layout Components</h5>
+<p>
+    Before diving into the world of Blazor layouts, it is essential to keep in
+    mind the difference between HTML and CSS code. CSS stands for Cascading Style
+    Sheets and it is the way to add color, design, and style to your components.
+    HTML describes the structure of your components and consists of a series of
+    elements that provide semantic meaning to a component's content (e.g., this is
+    a heading, this is the body, a footer, this is a paragraph, etc). The main focus
+    of this section is to introduce <strong>
+        layouts as a means to implement a reproducible semantic structure for your
+        components.
+    </strong>
+</p>
+<p>
+    Most web applications have a common layout that provides the user with a consistent
+    experience as they navigate from page to page. The layout typically includes common
+    UI sections such as the app header, navigation bars, menu elements, body, and footer:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/59-UI-layout.png" alt="Common UI layout example." />
+</div>
+<br />
+
+<p>
+    Placing a copy of the markup for these sections into all of the components of an
+    app is not efficient at all. Every time that one of these elements is updated,
+    every component that uses the element must be updated. This approach is costly to
+    maintain and can lead to inconsistent content if an update is missed. <em>Layouts</em>
+    solve these problems.
+</p>
+<p>
+    <strong>A Blazor layout is a Razor component</strong> (.razor file) that shares markup
+    (HTML) with components that reference it. Layout components have 3 main characteristics:
+</p>
+<ol>
+    <li>
+        <strong>Usually placed</strong> in the application's
+        <strong><em>Client/Shared</em></strong> folder so they can be shared across the
+        application's components. However, layouts can be placed in any location accessible
+        to the components that use it. E.g., a layout can be placed in the same folder
+        as the components that use it.
+    </li>
+    <li>
+        <strong>Must inherit from <em>LayoutComponentBase</em></strong> class using an
+        <strong><code>@@inherits</code></strong> Razor directive. This class defines a
+        <strong><em>Body</em></strong> property of type
+        <a href="02-components-part-one">RenderFragment</a> to give its consumer
+        the ability to dynamically provide specific UI content to render inside the layout
+        (e.g., the body or main content).
+    </li>
+    <li>
+        <strong>Require</strong> an <strong><code>@@Body</code></strong> expression to
+        specify the location in the layout markup where the (body) content is rendered.
+    </li>
+</ol>
+
+<p>
+    Layouts in Blazor don't typically define root HTML elements (e.g.; &lt;html&gt;,
+    &lt;head&gt;, and &lt;body&gt;) for a page. As mentioned earlier, the root HTML
+    elements are defined in a Blazor app's host page, which is used to render the
+    initial HTML content for the application.
+</p>
+<p>
+    Components in Blazor, including routable components, cannot render &lt;script&gt;
+    tags. This rendering restriction exists because &lt;script&gt; tags get loaded once
+    and then cannot be changed. Unexpected behaviour may occur if you try to render the
+    tags dynamically using Razor syntax. Instead, <strong>
+        all &lt;script&gt; tags should be added to the app's host page:
+    </strong>
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/68-script-tags.png" alt="Script tag in host page." />
+</div>
+<br />
+
+<h5>Application DefaultLayout Component</h5>
+<p>
+    As discussed earlier, the <code>RouteView</code> component in the root
+    component (App.razor) handles rendering the matched component specified by
+    the <em>RouteData</em>. If the matched routable component does not have a
+    custom layout, it is rendered using the application's <em>DefaultLayout</em>
+    passed as an argument to satisfy the <em>DefaultLayout</em> attribute of the
+    <em>RouteView</em> component.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/65-default-layout.png" alt="Root component defines the DefaultLayout." />
+</div>
+<br />
+
+<p>
+    In an application created with a Blazor project template, the
+    <span class="mark"><strong>MainLayout</strong></span> component is the default
+    layout for the application. Keep in mind that the root HTML elements are defined
+    inside the <em>host page</em>. The markup or semantic meaning for the content of
+    the &lt;body&gt; element is defined in a layout component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/66-main-layout-component.png" alt="MainLayout component." />
+</div>
+<br />
+
+<p>
+    As shown here, <strong>layout components can render other components</strong> and
+    <strong>they must inherit from the <em>LayoutComponentBase</em> class</strong>. If
+    for some reason, you wanted your <em>DataBindCounter</em> component to be rendered
+    into all the routable components, you would simply have to create an instance of it
+    inside this <em>MainLayout</em> component which is the default layout of the
+    application.
+</p>
+<p>
+    The markup for the <dfn>MainLayout</dfn> consists of a &lt;div&gt; element with a
+    "sidebar" attribute that encapsulates the <em>NavMenu</em> component responsible
+    for rendering the navigation menu you find on the left side of this page. It also
+    has a "main" section with two &lt;div&gt; elements. The first one defines a row
+    for the upper bar you can see on the top of this page where the "About" link is
+    located.
+</p>
+<p>
+    Up to this point, all elements are rendered exactly the same on all routable
+    components that use the application's <em>DefaultLayout</em> component; i.e.,
+    they are always visible. The second &lt;div&gt; element in "main" is where the
+    <strong><code>@@Body</code></strong> expression is declared. This is the
+    position where the specific UI content of the routable component will be
+    rendered. For example, if the browser wants to navigate to the 'Home' routable
+    component, the content for the 'Home' component will be rendered at this
+    position but the rest of the layout remains the same because it is not
+    re-rendered. <strong>
+        The <code>@@Body</code> expression is the dynamic portion of a layout.
+    </strong>
+</p>
+<p>
+    The <em>MainLayout</em> component is located in the <dfn>Client.Shared</dfn> folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/67-folder-tree-main-layout.png" alt="Folder tree for the MainLayout component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task: </span> Create an instance of the DataBindCounter
+    component inside the default layout of the application, increment the value of its
+    current count variable, and go to any other routable component to study the displayed
+    values for the Current, Singleton, and Transient variables.
+</p>
+<p>
+    The values are not lost for any of the variables because the DataBindCounter
+    component is exactly the same on each routable component. Only the &lt;div&gt;
+    element with the @@Body expression is the one being re-rendered. The
+    <em>MainLayout</em> portion of the layout stays exactly the same because it is
+    not being re-rendered.
+</p>
+<p>
+    This is why <span class="mark">
+        <strong>
+            Blazor applications are categorized as single page applications;
+        </strong>
+    </span> i.e., they only render components as needed. The host page remains the same for
+    the most part.
+</p>
+
+<h5>Layout For a Set of Components</h5>
+<p>
+    <strong>
+        Every folder of an application can optionally contain a template file named
+        <span class="mark">_Imports.razor</span>.
+    </strong>The compiler includes the directives specified in the imports file in
+    all of the Razor templates in the same folder and recursively in all of its
+    subfolders. Therefore, an <strong>
+        <em>_Imports.razor</em> file containing an <code>@@layout</code> directive
+        for an specific layout,
+    </strong> ensures that all of the components in the folder use the specified layout
+    component.
+</p>
+<p>
+    There is no need to repeatedly add <em>@@layout</em> directives to all of the
+    Razor components (routable components) within the folder and subfolders. This
+    is very handy when you want to apply layouts for a set of LogIn-SignIn routable
+    components or Control Panel components.
+</p>
+
+<h5>Routable Component Specific Layout</h5>
+<p>
+    You can <strong>
+        use the <code>@@layout</code> Razor directive to apply a layout to a routable
+        component
+    </strong>(has an @@page directive). The compiler converts the <em>@@layout</em>
+    directive into a <em>LayoutAttribute</em> and applies the attribute to the component
+    class. What do you think would happen if we were to add a layout to the MoviesList
+    component?
+</p>
+<p>
+    Absolutely nothing would happen. The <em>@@layout</em> Razor directive <strong>
+        only applies a layout to routable components with an @@page directive.
+    </strong>
+</p>
+<p>
+    Specifying the layout directly in a routable component overrides a
+    <em>default layout</em> (higher level layout):
+</p>
+<ul>
+    <li>
+        Set by an <em>@@layout</em> directive imported from an <em>_Imports</em> component
+        (_Imports.razor).
+    </li>
+    <li>
+        Set as the application's default layout.
+    </li>
+</ul>
+
+<h5>Nested Layouts</h5>
+<p>
+    A component can reference a layout that in turn references another layout. You
+    can apply a layout component to a layout component and the contents of the inner
+    layout will be rendered within the outer layout.
+
+</p>
+
+<p>
+    For more info visit: <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/layouts?view=aspnetcore-5.0">
+        ASP.Net Core Blazor layouts,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/dotnet/architecture/blazor-for-web-forms-developers/project-structure">
+        Project structure for Blazor apps,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/dotnet/architecture/blazor-for-web-forms-developers/pages-routing-layouts#page-layout">
+        Pages, routing, and layouts,
+    </a>,
+    <a href="https://www.codeproject.com/Articles/5299797/Adding-Dynamic-Routing-Layouts-and-RouteViews-to-t">
+        Adding Dynamic Routing, Layouts and RouteViews to the Blazor App Component
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/?WT.mc_id=dotnet-35129-website&view=aspnetcore-6.0">
+        Introduction to ASP.Net Core Blazor
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-6.0">
+        ASP.Net Core Blazor hosting models
+    </a>
+
+
+</p>
+
+<h3>CSS Isolation</h3>
+<p>
+    If you create a Blazor WebAssembly application using the built-in template, the <strong>
+        compiler creates a <span class="mark">wwwroot/css/app.css</span> file
+    </strong> in the root folder. As with any other web application, this is the
+    site's global CSS styling file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/69-css-global-file-folder-tree.png" alt="Folder tree for CSS global file." />
+</div>
+<br />
+
+<p>
+    As you may have noticed, three of the routable components are: <em>Index</em>,
+    <em>Counter</em>, and <em>FetchData</em>. Let's add a CSS rule with a selector that
+    targets <em>h1</em> elements from the global CSS styling file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/70-h1-css-global.png" alt="CSS rule for h1 elements." />
+</div>
+<br />
+
+<p>
+    One would expect that this change applies to every <em>h1</em> element on every page
+    in our project. But what if for some reason, you want a different style for h1 elements
+    on every page? Instead of a single CSS <em>type selector</em> (h1), you would have to
+    differentiate the styling using CSS <em>class selectors</em> by targeting different class
+    attributes from your CSS global styling file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/71-custom-styles.png" alt="Custom styles for headings." />
+</div>
+<br />
+
+<p>
+    Furthermore, you would need to go into each of the pages (routable components) and apply
+    the desired custom CSS styling class attributes for the headers:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/72-custom-headers.png" alt="Custom header with specific class attributes." />
+</div>
+<br />
+
+<p>
+    After these modifications, all the styles should be applied but even with our very
+    basic example, the problems are very clear. We are styling defensively to avoid
+    collisions between components and this results in a bloated CSS global styling file
+    with no way to track the styling to your specific components. In addition to a
+    terrible developer experience, we are also adding extra work to the application
+    because it is loading styles when they are not referenced.
+</p>
+
+<p>
+    <strong>CSS isolation  simplifies an application's CSS footprint</strong> by
+    preventing dependencies on global styles and <strong>
+        helps to avoid styling conflicts
+    </strong> among components and libraries. CSS isolation files <strong>
+        take precedence over the global CSS styling file.
+    </strong> This means that you can have global styling for the application and
+    use CSS isolation to define specific CSS rules to certain components and these rules
+    will take precedence over the global CSS rules.
+</p>
+<p>
+    The beauty of Blazor is in its component model. With components, you get a
+    self-contained piece of your UI that allows you to share and reuse them across
+    your projects and/or libraries.
+</p>
+<p>
+    To define component-specific styles, <strong>create a <span class="mark">.razor.css</span></strong>
+    file exactly matching the name of the component you want to style. The .razor.css
+    file is a <dfn>scoped CSS file</dfn> and should be in the same folder. As you
+    know, routable components are typically located inside the Blazor/Client/Pages
+    directory. In any case, <strong>
+        make sure that the scoped CSS file does not reside within the global CSS file
+        directory:
+    </strong>
+
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/73-pages-folder-tree.png" alt="Folder tree for the Pages directory." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task:</span> Bind scoped CSS files for the <em>Index,</em>
+    <em>Counter,</em> and <em>FetchData</em> components. Define specific styles for their
+    &lt;h1&gt; elements, and run the project to confirm that everything is working fine.
+</p>
+<p>
+    <span class="badge bg-dark">Step One: </span> Go to the Client/Pages folder and add
+    a new item of type "CSS Style Sheet" with the exact same name as the component you
+    want to bind it to, include the "css" extension. The compiler detects a relationship
+    between the component file and the styling file with the exact same name and positions
+    it accordingly. Do the same for every component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/74-scoped-css-files.png" alt="Scoped CSS isolation files." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two: </span> Cut (from the global CSS file) the styles you
+    created for the individual headings and paste them into the corresponding individual
+    CSS scoped file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/75-scoped-css-styles.png" alt="Scoped CSS styles." />
+</div>
+<br />
+
+<p>
+    Notice that the CSS rules have a generic <em>h1</em> selector because with CSS isolation,
+    we don't need to worry about conflicting with other components or libraries. The styles
+    defined inside the scoped file are only applied to the rendered output of the bound
+    component. CSS isolation is applied to HTML elements in the matching .razor file. Any
+    <em>h1</em> CSS declarations defined elsewhere in the application don't conflict with
+    the scoped style. Furthermore, the class attributes for the &lt;h1&gt; elements in the
+    components are no longer needed; i.e., a simple &lt;h1&gt; will suffice.
+</p>
+<p>
+    To support CSS isolation, Blazor rewrites all the CSS selectors during the build
+    process to match markup rendered by the component. This makes prerendering a snap
+    because there is no reliance on existing .Net or JavaScript code. However, this
+    means you need to recompile to see any changes applied to your CSS code. The
+    <strong>
+        rewritten CSS styles are bundled and produced as a static asset.
+    </strong> Within the bundled CSS file,
+    <strong>each component is associated with a unique scope identifier</strong>. Notice
+    that during the rewriting process, Blazor even includes comments with the name of the
+    .Net class that relates to the component (.razor) file for easier identification.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/79-bundled-css-file.png" alt="Bundled CSS file." />
+</div>
+<br />
+
+<p>
+    Recall that Blazor components are files (.razor files) that are transpiled into .Net
+    classes that represent a reusable piece of UI. Each of these classes is assigned a
+    unique scope identifier:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/80-transpiled-class.png" alt="Counter component transpiled into a .Net class." />
+</div>
+<br />
+
+<p>
+    If you go to the network panel of the developer tools in your browser and run your
+    application to request access to its entry point (to the host page), you will see
+    that Blazor loads a {NAME OF THE PROJECT}.styles.css file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/81-browser-network-bundled-css.png" alt="Browser network with bundled CSS file." />
+</div>
+<br />
+
+<p>
+    This file is the result of bundling all your isolated CSS files for your project
+    into a single output where each component is referenced by a unique scope identifier.
+    The stylesheet (bundled CSS file) is linked inside the <strong><span>&lt;head&gt;</span></strong>
+    tag of the host page <strong><code>wwwroot/index.html</code></strong> (Blazor
+    WebAssembly) or <strong><code>Pages/_Host.cshtml</code></strong> (Blazor Server). The
+    following &lt;link&gt; element is added by default to an application created from the
+    Blazor project templates, where the placeholder {ASSEMBLY NAME} is the project's assembly
+    name:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/76-bundled-css-stylesheet.png" alt="Link tag to a bundled CSS stylesheet." />
+</div>
+<br />
+
+<p>
+    The host page references three CSS styling files, the global site's CSS styling, a
+    file that bundles the isolated CSS files of the project, and Bootstrap's CSS file.
+    Armed with what you have learned so far, you can make a lot more sense of the DOM
+    elements in a Blazor application.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Use the "Elements" tab of the browser
+    developer tools to study the DOM elements in the host page of your application:
+</p>
+
+<div class="image-lesson">
+    <img src="images/02-components/82-dom-host-page.png" alt="DOM elements of the application's host page." />
+</div>
+<br />
+
+<p>
+    Note that the application's host page (<code>wwwroot/index.html</code>) contains a
+    &lt;div&gt; element with an error message that is displayed to the user in case a
+    problem arises when loading:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/77-host-page-error-message.png" alt="Host page error message." />
+</div>
+<br />
+
+<p>
+    The global <em>app.css</em> file, created by default when using a Blazor project
+    template, contains code to dismiss (or hide) the error message when the host page
+    is loaded successfully:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/78-css-error-message-dismiss.png" alt="CSS error message dismiss code." />
+</div>
+<br />
+
+<p>
+    If you modify the global (<strong><span class="mark">app.css</span></strong>) file,
+    <strong>
+        make sure you include both CSS rules or your application will display the error
+        message while loading the host page.
+    </strong>
+</p>
+
+<h5>CSS Isolation - Child Component Support</h5>
+<p>
+    By default, CSS isolation only applies to the component you associate with the
+    format {COMPONENT NAME}.razor.css; i.e., scoped styles do not apply to elements
+    in child components. <strong>To apply changes (CSS styling) to a child component</strong>,
+    use the <strong><span class="mark"><code>::deep</code></span></strong> combinator
+    on any descendant elements in the parent component's .razor.css file. The
+    <code>::deep</code> combinator selects <strong>elements</strong> that are
+    descendants of an element's generated scope identifier.
+</p>
+<p>
+    Create a component named Child.razor with the following markup:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/83-child-component.png" alt="Child component markup." />
+</div>
+<br />
+
+<p>
+    Create an instance of the Child component in your Index.razor component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/84-parent-child-components.png" alt="Parent with child component." />
+</div>
+<br />
+
+<p>
+    What do you think would happen if your run your application? Should the h1 element of
+    the child component adopt the styling defined earlier for "h1" elements in the scoped
+    CSS file Index.razor.css?
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/85-rendered-UI.png" alt="Rendered components with different styling." />
+</div>
+<br />
+
+<p>
+    The h1 element of the Child component did not get the Parent component's style. As
+    mentioned earlier, by default, scoped styles do not apply to elements of child components.
+    You could create a new component-specific CSS file (scoped CSS file) or better yet,
+    <strong>
+        you can cascade styles down to elements of any child components with a
+        <code>::deep</code> combinator
+    </strong> in the parent component's CSS scoped file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/86-css-deep-combinator.png" alt="CSS ::deep combinator to cascade styles." />
+</div>
+<br />
+
+<p>
+    We have updated the h1 declaration with a <em>::deep</em> combinator to signify that the h1
+    CSS rule must apply to the h1 elements in the parent component and also to the h1 elements
+    in its children components. Let's run the application one more time and see what happens:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/85-rendered-UI.png" alt="Rendered components with different styling." />
+</div>
+<br />
+
+<p>
+    The runtime is still not applying the Parent component's style for h1 elements to the Child
+    component's h1 elements because with the markup structure defined, Blazor cannot determine
+    a parent-child relationship between the parent component's elements and the child component's
+    elements.
+    <strong>
+        The <span class="mark"><code>::deep</code></span> combinator only works with descendant
+        elements.
+    </strong> Take a look at the current DOM structure:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/87-markup-no-div-encapsulation.png" alt="DOM structure no parent-child relationship." />
+</div>
+<br />
+
+<p>
+    This can be taken care of easily with a &lt;div&gt; element that surrounds (encapsulates)
+    both:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/88-parent-child-encapsulation.png" alt="div element used to encapsulate and create parent-child relationship." />
+</div>
+<br />
+
+<p>
+    As you know, to support CSS isolation, Blazor rewrites all the CSS selectors during the
+    build process to match markup rendered by the component. Look what happens in the DOM
+    with the extra &lt;div&gt; element:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/89-parent-child-styling.png" alt="Unique scope identifier assigned to div element." />
+</div>
+<br />
+
+<p>
+    The &lt;div&gt; element gets a unique (CSS) scope identifier and it becomes the direct
+    ancestor for the h1 elements. This time the <em>::deep</em> combinator can do its job
+    because the compiler recognizes a direct parent-child relationship between the
+    &lt;div&gt; element and the h1 element of the Child component that lacks the unique
+    scope identifier. Since the parent element (div) has been assigned a unique scope
+    identifier, any styling defined in the bundled CSS file is applied accordingly:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/90-rendered-ui-ok.png" alt="UI with parent and child components applying bundled css styling." />
+</div>
+<br />
+
+<p>
+    Excluding the &lt;div&gt; element removes the descendant relationship and the style
+    is not applied to the child component (elements).
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Create a new layout with a different
+    styling for your application and demonstrate switching between the original
+    <em>MainLayout</em> and the new <em>MyMainLayout</em> layouts.
+</p>
+
+<p>
+    The best way to approach this problem is to execute it in two stages. The first
+    one is to create the new layout structure (HTML markup). Once you have the
+    semantic structure to work with, stage two is to apply some styling.
+</p>
+<p>
+    <span class="badge bg-dark">Step One. </span> Create a MyNavMenu component with simple
+    HTML markup to navigate your application. Note that this is not a layout component;
+    i.e., it does not require an <code>@@inherits LayoutComponentBase</code> Blazor
+    directive. Since this is a reusable component, it should reside inside the
+    Client/Shared folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/91-my-nav-menu.png" alt="New NavMenu component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two. </span> Create a MyMainLayout layout component with
+    simple HTML markup. Recall that the purpose of the main layout is to provide a
+    consistent experience for the user and typically consists of the application's
+    header, nav bars, menu elements, body, and footer. Since this is a Blazor layout
+    component, it should be placed in the Client/Shared folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/92-my-main-layout.png" alt="New MainLayout component." />
+</div>
+<br />
+
+<p>
+    A layout component inherits from the <em>LayoutComponentBase</em> class that defines
+    a <em>Body</em> property of type <em>RenderFragment</em> to specify where to render
+    any UI content; i.e., the content provided by any interchangeable routable components.
+    Make sure your layout consumes the recently created <em>MyNavMenu</em> component and
+    not the <em>NavMenu</em> component.
+</p>
+<p>
+    With the new HTML markup in place, we can start working on the second stage to define
+    any styling using CSS scoped files.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three. </span> Create a global CSS file named
+    "myapp.css" with general styling for the application. It should be placed in the
+    web root folder (wwwroot/css/myapp.css):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/93-global-myapp-css.png" alt="Global site's CSS styling file." />
+</div>
+<br />
+
+<p>
+    If you modify the global CSS app file, always make sure to include code to dismiss (or hide)
+    the error message when the host page is loaded successfully.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four. </span> Implement CSS isolation to define
+    component-specific styles by creating a CSS scoped file for the MyMainLayout layout
+    component. The file should exactly match the name of the component you want to style
+    plus the .css extension and it should reside in the same folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/94-mymainlayout-scoped-css.png" alt="CSS scoped file for the MyMainLayout component" />
+</div>
+<br />
+
+<p>
+    Now let's create a CSS scoped file for the MyNavMenu component:
+</p>
+
+<div class="image-lesson">
+    <img src="images/02-components/95-mynavmenu-scoped-css.png" alt="CSS scoped file for the MyNavMenu component." />
+</div>
+<br />
+
+<p>
+    The <strong><code>&lt;NavLink&gt;</code></strong> component, used in the MyNavMenu
+    component for rendering hyperlinks to navigate the application, decorates its
+    <strong>child</strong> content with an HTML hyperlink <code>&lt;a&gt;</code>. All
+    attributes such as <em>class</em>, <em>href</em>, etc are rendered directly to the
+    <code>&lt;a&gt;</code> element via <a href="02-components-part-one">
+        Attribute splatting.
+    </a> For this reason, <strong>you must employ a <code>::deep</code> combinator</strong>
+    for every CSS selector that intends to target any class attribute of a
+    <code>&lt;NavLink&gt;</code> element. Otherwise, the styling will not be applied
+    to its child <code>&lt;a&gt;</code> element.
+</p>
+<p>
+    For more info on a &lt;NavLink&gt; element, you can refer to module <a href="03-routing">
+        03. Routing
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five. </span> Go to the application's host page and declare a
+    <code>&lt;link&gt;</code> tag with a <em>stylesheet</em> relationship attribute that
+    references your <em>myapp.css</em> global site's CSS styling file. Don't forget to comment
+    out the tags that reference the current global site's CSS styling and the one that
+    configures Bootstrap framework:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/96-myapp-global-site-file.png" alt="Host page with a reference to myapp.css global site's CSS styling." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Six. </span> Go to the application's root component (App.razor)
+    and replace the <em>MainLayout</em> component with your <em>MyMainLayout</em> component
+    as the value of the <em>DefaultLayout</em> attribute of the <em>RouteView</em> component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/97-root-component-default-layout.png" alt="Root component with recently create MyMainLayout as default layout." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Seven. </span> <em>Clean</em> and <em>Rebuild</em> the
+    <em>Client</em> project. Go to the browser settings to clear any cached data (images and
+    files), and run your application. You should see a new default layout (HTML structure)
+    which in turn has new styling:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/98-new-layout.png" alt="New HTML structure and CSS styling for the default layout." />
+</div>
+<br />
+
+<p>
+    For more info on CSS Isolation you can go to <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/css-isolation?utm_source=pocket_mylist&view=aspnetcore-5.0">
+        ASP.Net Core Blazor CSS isolation
+    </a> and
+    <a href="https://www.daveabrock.com/2020/09/10/blazor-css-isolation/">
+        Use CSS isolation in your Blazor projects
+    </a>
+</p>
+
+<p>
+    For more info visit: <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-5.0#component-parameters">
+        ASP.NET Core Razor components
+    </a>
+</p>
+
+@code {
+
+    /// If you omit the 'null' assignment, the browser throws an exception although
+    /// it ends up loading the component and on refresh the exception is no longer
+    /// thrown.
+    List<Movie> _movies = null;
+
+    /// <summary>
+    /// Special lifecycle method that executes when the .razor component (file) loads.
+    /// If an incomplete Task is returned, the Task is awaited and then the  component
+    /// is rendered. Refer to section 02-ComponentsPartTwo. Razor Component Lifecycle
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        /// Employs an instance of a service to produce a collection of
+        /// type Movie. The  service is injected using an @inject Razor
+        /// directive on the top of this component. The IRepository service
+        /// is configured in the dependency injection system container
+        /// located  in the Main() method of the Program class. If the
+        /// service configuration is modified in that centralized location,
+        /// all components that consume the service will be affected without
+        /// any further modifications to code here.
+        _movies = _inMemoryRepository.GetMovies();
+    }
+
+    private void AddMovie()
+    {
+        _movies.Add(new Movie() { Title = "The New Movie", ReleaseDate = DateTime.Today });
+    }
+
+}
+
+

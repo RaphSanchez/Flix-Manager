@@ -1,0 +1,119 @@
+﻿
+@inject NavigationManager Navigation
+
+<!-- Obsolete in ASP.Net 7. -->
+@*@inject SignOutSessionStateManager SignOutManager*@
+
+<AuthorizeView>
+    <Authorized>
+        @if (Navigation.Uri.EndsWith("flix-manager/")
+        || Navigation.Uri.Contains("movies/edit")
+        || Navigation.Uri.Equals(Navigation.BaseUri))
+        {
+            /// Includes the <see cref="CultureSelector"/> and the
+            /// <see cref="PushNotifications"/> component.
+            <div class="container">
+                <div class="row justify-content-between">
+                    <div class="col-auto mt-1">
+                        <span class="me-3"><PushNotifications /></span>
+                        <span><CultureSelector /></span>
+                    </div>
+
+                    <!-- Hello and Logout links. -->
+                    <div class="col-auto">
+                        <ul class="nav justify-content-end">
+                            <li class="nav-item mb-0">
+                                <a class="nav-link pe-3"
+                                   href="authentication/profile">
+                                    Hello, @context.User.Identity?.Name!
+                                </a>
+                            </li>
+                            <li class="nav-item mb-0">
+                                <a class="nav-link px-3"
+                                   href="#" @onclick="BeginLogOut">
+                                    Log out
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            /// Does not include the <see cref="CultureSelector"/> nor the
+            /// <see cref="PushNotifications"/> component.
+            <ul class="nav justify-content-end">
+                <li class="nav-item mb-0">
+                    <a class="nav-link pe-3"
+                       href="authentication/profile">
+                        Hello, @context.User.Identity?.Name!
+                    </a>
+                </li>
+                <li class="nav-item mb-0">
+                    <a class="nav-link px-3"
+                       href="#" @onclick="BeginLogOut">
+                        Log out
+                    </a>
+                </li>
+            </ul>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        @if (Navigation.Uri.EndsWith("flix-manager/")
+        || Navigation.Uri.Contains("movies/edit")
+        || Navigation.Uri.Equals(Navigation.BaseUri))
+        {
+            /// Includes the <see cref="CultureSelector"/> and the
+            /// <see cref="PushNotifications"/> component.
+            <div class="container">
+                <div class="row justify-content-between">
+                    <div class="col-auto mt-1">
+                        <span class="me-3"><PushNotifications /></span>
+                        <span><CultureSelector /></span>
+                    </div>
+
+                    <!-- Register and Login links. -->
+                    <div class="col-auto">
+                        <ul class="nav justify-content-end">
+                            <li class="nav-item mb-0">
+                                <a class="nav-link pe-3"
+                                   href="authentication/register">
+                                    Register
+                                </a>
+                            </li>
+                            <li class="nav-item mb-0">
+                                <a class="nav-link px-3"
+                                   href="authentication/login">
+                                    Log in
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            /// Does not include the <see cref="CultureSelector"/> nor the
+            /// <see cref="PushNotifications"/> component.
+            <ul class="nav justify-content-end">
+                <li class="nav-item mb-0">
+                    <a class="nav-link pe-3"
+                       href="authentication/register">
+                        Register
+                    </a>
+                </li>
+                <li class="nav-item mb-0">
+                    <a class="nav-link px-3"
+                       href="authentication/login">
+                        Log in
+                    </a>
+                </li>
+            </ul>
+        }
+    </NotAuthorized>
+
+</AuthorizeView>
+

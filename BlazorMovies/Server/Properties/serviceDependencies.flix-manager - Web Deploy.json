@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "storage1": {
+      "ignored": "true",
+      "type": "storage",
+      "connectionId": "ConnectionStrings:AzureStorageConnection"
+    },
+    "mssql1": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Sql/servers/flixmanager-db-server/databases/FlixManager",
+      "type": "mssql.azure",
+      "connectionId": "ConnectionStrings:DevelopmentDb"
+    }
+  }
+}

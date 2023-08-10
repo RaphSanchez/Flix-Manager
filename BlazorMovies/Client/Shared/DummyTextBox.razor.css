@@ -1,0 +1,29 @@
+﻿.form-control-my-input {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: .85rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #575656;  /* applied when loses focus */
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+    .form-control-my-input:focus {
+        color: #4a4949;
+        background-color: #fff;
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+    }
+
+    .form-control-my-input::placeholder {
+        color: rgb(151 149 149);
+    }

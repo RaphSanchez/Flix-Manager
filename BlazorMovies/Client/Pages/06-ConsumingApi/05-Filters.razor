@@ -1,0 +1,1097 @@
+﻿@page "/05-filters"
+<PageTitle>Data Filtering</PageTitle>
+
+<h2>Consuming the API - Filters</h2>
+<p>
+    Before we begin, there is an important distinction to make between
+    <dfn>global query filters</dfn>, <dfn>ASP .Net Core Filters</dfn>,
+    and <dfn>data filtering</dfn>.
+</p>
+<h4>Global Query Filters</h4>
+<p>
+    As seen in <a href="10-ef-soft-delete-audit">Soft Delete & Audit</a>
+    section, global query filters are Linq query predicates applied to entity
+    types in the metadata model (usually in the <code>OnModelCreating()</code>
+    method) of the <a href="06-api-db-support">DbContext</a>.
+</p>
+<h4>ASP .Net Core Filters</h4>
+<p>
+    When we refer to filters in ASP .Net Core, we mean code logic that runs
+    within the ASP.Net <dfn>action invocation pipeline</dfn>, sometimes
+    referred to as the <dfn>filter pipeline</dfn>. The filter pipeline runs
+    after ASP. Net Core selects the <dfn>action</dfn> to execute (controller
+    action).
+</p>
+<p>
+    In other words, ASP.Net Core filters allow code to run <strong>before</strong>
+    or <strong>after</strong> specific stages in the <dfn>request processing pipeline</dfn>
+    (Http request).
+</p>
+<p>
+    Built-in filters handle tasks such as:
+</p>
+<ul>
+    <li>
+        Authorization: Prevents access to resources a user is not authorized for.
+    </li>
+    <li>
+        Response caching: Short-circuits the request pipeline to return a cached
+        response.
+    </li>
+</ul>
+<p>
+    Custom filters can be created to handle cross-cutting concerns. Examples of
+    cross-cutting concerns include error handling, caching, configuration,
+    authorization, and logging.
+</p>
+<p>
+    You can find an example of an <dfn>action filter</dfn> that is part of the
+    <dfn>action invocation pipeline</dfn> in "Section 8: Web API Filter Pipeline"
+    and "Section 10: Versioning" of the <a href="https://www.udemy.com/share/104gX03@X9HB0RONXyZfJTf9r2sMqJZ0g-3u_br0eSNTwSoW-Uk2DIWXHuqh9cCtnDF5ZMXT/">
+        Udemy course
+    </a> "Complete Guide to ASP.Net
+    Core RESTful API with Blazor WASM" by Frank Liu.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        Asp.Net Core Middleware
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-6.0">
+        Filters in ASP.Net Core
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/actions?view=aspnetcore-6.0">
+        Handle requests with controllers in ASP.Net Core MVC.
+    </a>
+</p>
+<h4>Data Filtering</h4>
+<p>
+    Refers to enabling the Application/Client to easily perform a dynamic query
+    based on certain parameters that can be directly related to one or more properties
+    of a given entity.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you need to implement data filtering on a query for an entity type, you
+        can employ a DTO with the exact details of the data required (e.g., property
+        members). <strong>All members</strong> in a QueryFilterDto
+        <strong>must be nullable</strong> (optional). This provides the consumer more
+        flexibility on the filtering criteria. <strong>
+            Data filters are a valuable tool for querying the database because their
+            optional parameters provide a wide range of use case scenarios.
+        </strong>
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Add a filtering endpoint to the People
+    controller that allows the Application/Client to query the database for Person items
+    according to optional filtering criteria based on its attributes (property members).
+    Use the new filtering capability in the MovieForm component to satisfy the
+    SearchMethodFunc parameter of the TypeAheadDragSelectComponent employed to search
+    for Person items (actors) that match the value passed by the user to the Actors field.
+</p>
+<p>
+    Recall from the lesson to <a href="03-create-complex-data">Create Complex Data</a>
+    that the <span class="mark">
+        <strong>
+            steps to add new functionality to our application for a specific data
+            entity type are:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">QueryFilterDtos</span>/<dfn>EntityNameQueryFilterDto</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to filter.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to expose
+        the specific functionality (method) to the Application/Client and establish a
+        contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaiton's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions, it might also be required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its
+        implementation (ApiConnector class).
+    </p>
+</div>
+<p>
+    This was the case in the example to <a href="03-create-complex-data">
+        Create Complex Data
+    </a> where we give the application the capability to add new Movie objects that
+    include their related data. We had to create an overload of the
+    IApiConnector/InvokePostAsync() generic method capable of handling two different
+    types. One for its formal input parameter and one for its return type.
+</p>
+<p>
+    Recall from lesson on <a href="08-api-controllers">Modeling for Performance</a>
+    that you <span class="mark">
+        <strong>
+            must pay special attention when building a model because it is quite
+            difficult to change a model once an application is running in production.
+        </strong>
+    </span> It is worth keeping performance in mind when creating the initial model.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Application/Shared project
+    and create a folder named QueryFilterDtos. Then add a class named PeopleQueryFilterDto
+    with the Person property members that will be used as options for the filtering
+    criteria:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/01-people-query-filter-dto-one.png"
+         alt="PeopleQueryFilterDto part one." />
+    <img src="Images/11-Filters/02-people-query-filter-dto-two.png"
+         alt="PeopleQueryFilterDto part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The members of the PeopleQueryFilterDto are
+    initialized to a null value. Another approach for initializing these members is to use
+    constructor overloading and passing default values with each constructor overload. For
+    example, id = 0, name = <code>String.Empty</code>, etc. You can find these approach
+    in the <a href="08-pagination">Pagination</a> code file of the Pagination Razor
+    component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Client/ApiServices/IRepositories/IPeople interface to expose the specific
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new filtering feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/03-filter-async-exposed.png"
+         alt="FilterAsync method exposed in IPeople interface." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Server-Api/Repositories/EfPeople class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore) and the RESTful
+    API service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/04-ef-people-filter-async-one.png" alt="FilterAsync implementation part one." />
+    <img src="Images/11-Filters/05-ef-people-filter-async-two.png" alt="FilterAsync implementation part two." />
+    <img src="Images/11-Filters/06-ef-people-filter-async-three.png" alt="FilterAsync implementation part three." />
+    <img src="Images/11-Filters/07-ef-people-filter-async-four.png" alt="FilterAsync implementation part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiPeople class to implement the newly
+    exposed functionality. This is the application's layer responsible for creating the
+    Http requests/responses that serialize-deserialize the data and build the endpoint's
+    route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/08-api-people-filter-async-one.png"
+         alt="FilterAsync ApiPeople implementation part one." />
+    <img src="Images/11-Filters/09-api-people-filter-async-two.png"
+         alt="FilterAsync ApiPeople implementation part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Server-Api/Controllers/PeopleController to create the action (controller
+    method) responsible for responding to the HttpRequest produced in last step. It
+    mediates between the client layer (Application/Client) and the business logic
+    layer (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/10-people-controller-one.png" alt="People controller part one." />
+    <img src="Images/11-Filters/11-people-controller-two.png" alt="People controller part two." />
+    <img src="Images/11-Filters/12-people-controller-three.png" alt="People controller part three." />
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Inject an instance of the IApiService
+    to the MovieForm component and consume the FilterAsync() method to satisfy the
+    SearchMethodFunc parameter of the TypeAheadDragSelectComponent employed to search
+    for Person items (actors) that match the value passed by the user to the Actors
+    field:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/13-movie-form-one.png" alt="MovieForm component part one." />
+    <img src="Images/11-Filters/14-movie-form-two.png" alt="MovieForm component part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice</span> The <dfn>PeopleQueryFilterDto</dfn> instance
+    defines a <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/named-and-optional-arguments">
+        named argument
+    </a> to match the argument with its identifier rather than with its position in the
+    parameter list.
+</p>
+<p>
+    With the modifications in place, the application's UI for the Create Movie component
+    should display something like this when the user types text into the "Actors" field:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/15-create-movie-component.png" alt="Create Movie component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Use the Postman platform to test
+    use cases with different filtering criteria for the People.FilterAsync method we
+    just created. Include success and failure states.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-6.0">
+        Filters in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/data/ef-rp/sort-filter-page?view=aspnetcore-6.0">
+        Part 3, Razor Pages with EF Core in ASP.Net Core - Sort, Filter, Paging
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/querying/tracking">
+        Tracking vs. No-Tracking Queries
+    </a>,
+    <a href="https://stackoverflow.com/questions/2431908/linq-to-entities-using-tolower-on-ntext-fields">
+        Linq to Entities: using ToLower() on NText fields
+    </a>
+</p>
+<h4>Data Filtering and Pagination - Back end</h4>
+<p>
+    The following sections employ <dfn>data filtering</dfn>, <dfn>pagination</dfn>, and
+    overwriting the URL to serve an Http request for Movie items based on criteria defined
+    by the client.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> It is <strong>not advisable</strong> to
+    go through this section of the lesson unless you understand the processing logic for
+    <a href="08-pagination">pagination</a> which is addressed a couple lessons later.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Add a filtering endpoint to the Movies
+    controller that allows the Application/Client to query the database for Movie items
+    according to optional filtering criteria based on its attributes (property members).
+    The result should be paginated.
+</p>
+<p>
+    You might recall from the lesson on <a href="08-api-controllers">
+        Routing to controller actions
+    </a> that ASP.Net Core controllers use the routing <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        middleware
+    </a> to match the URL's of incoming HTTP requests and dispatch those requests to the
+    app's executable endpoints (controller <dfn>actions</dfn>).
+</p>
+<p>
+    The endpoints in turn work with data that comes from the Http request. For example,
+    route data may provide a primary key value and/or other property values of a particular
+    type. ASP.Net Core automates the process of retrieving these values and converting
+    them from strings to .Net types with the <dfn>model binding system</dfn>.
+</p>
+<p>
+    <a href="08-api-controllers">Model binding</a> allows controller <dfn>actions</dfn>
+    to work directly with model types (classes) passed in as method arguments. By default,
+    model binding gets data in the form of key-value pairs from route data, query string
+    parameters, the request body, etc. In other words, we have different options to pass
+    the <dfn>data filtering</dfn> criteria and the <dfn>pagination</dfn> parameters from
+    the client-side to a controller <dfn>action</dfn>.
+</p>
+<p>
+    We could decorate the controller action's parameter with a
+    <strong><code>[FromQuery]</code></strong> attribute as illustrated in the last task
+    where we provide the application with a filtering feature for data entities of type
+    Person. Nonetheless, this particular use case has two important characteristics that
+    make <dfn>model binding</dfn> from query a bit impractical:
+</p>
+<ol>
+    <li>
+        It will have a significant amount of applicable parameter values; e.g.,
+        route template segment ("filter"), Movie.Id, Movie.Title, Movie.Actor.Name,
+        Movie.Character.Name, Movie.Genre.Name, Movie.InTheaters.
+    </li>
+    <li>
+        The DTO we will create to encapsulate the parameters for the Http request
+        will have the parameter values mentioned earlier (simple types) and will
+        also have a complex type (PaginationRequestDto) which in turn holds the
+        parameter values for the <dfn>pagination</dfn> details (simple types).
+    </li>
+</ol>
+<p>
+    An easier and considerably less complicated approach is to define a
+    <strong><code>[FromBody]</code></strong> data source for <dfn>model binding</dfn>
+    and delegate to ASP.Net the responsibility of converting, and mapping, these
+    parameter values represented as strings, to .Net types.
+</p>
+<p>
+    However, you should be aware that <strong>
+        <span class="mark">using a <code>[FromBody]</code></span> binding source
+        attribute with a <code>[Get]</code> Http verb will most likely throw an
+        error
+    </strong> because RFCs 7230 through 7237 (created by the Internet Engineering Task
+    Force IETF) specify that:
+</p>
+<ul>
+    <li>
+        The message body (if any) of an HTTP message is used to carry the payload body
+        of that request or response.
+    </li>
+    <li>
+        Request message framing is independent of method semantics, even if the method
+        does not define any use for a message body.
+    </li>
+    <li>
+        A payload within a GET request message has no defined semantics; sending a
+        payload body on a GET request might cause some existing implementations to
+        reject the request.
+    </li>
+</ul>
+<p>
+    In this context, "semantics" is a way of saying "the way engineers who make certain
+    components expect other components to operate". If you violate semantics, you are
+    more likely to see things break in places where programmers designed functionality
+    that expects developers to honor those semantics. For example, caching and proxing
+    are the two areas most likely to be affected.
+</p>
+<p>
+    In other words, <span class="mark">
+        <strong>
+            it is possible to attach a body (or payload) to a GET request but it is
+            definitely not a good idea because it is up to you to define what the
+            server/app makes out of that body
+        </strong>
+    </span> and as we mentioned, some built-in components expect other components to
+    operate following certain conventions.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you intend <strong>to include a body (or <dfn>payload</dfn>) in an Http request</strong>
+        and do something with it server-side, it is advisable to <strong>
+            use an <code>[HttpPost]</code> verb template
+        </strong> because "a payload within a GET request message has no defined
+        semantics; sending a payload body on a GET request might cause some existing
+        implementations to reject the request".
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> In a nutshell, although the ultimate purpose
+    for the Application/Server-Api endpoint (MoviesController.FilterPaginateMoviesTask) will
+    be to get-read-retrieve data, we <strong>
+        must decorate our endpoint with an <code>[HttpPost]</code> verb template because we
+        intend to pass a payload in the HTTP request
+    </strong> and decorate the endpoint's formal input parameter with a
+    <strong><code>[FromBody]</code></strong> data binding source attribute to delegate to
+    ASP.Net core the responsibility of populating the type's properties (MoviesQueryFilterDto)
+    from the body of the Http request.
+</p>
+<p>
+    For more info visit <a href="https://stackoverflow.com/questions/978061/http-get-with-request-body">
+        HTTP GET with request body
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/routing?view=aspnetcore-6.0#http-verb-templates">
+        HTTP verb templates
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/formats-and-model-binding/parameter-binding-in-aspnet-web-api#using-frombody">
+        Parameter Binding in ASP.Net Web API
+    </a>
+</p>
+<p>
+    As usual, the procedure to add new functionality to our application for a specific data entity
+    type is:
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">QueryFilterDtos</span>/<dfn>EntityNameQueryFilterDto</dfn>
+        to encapsulate the property values that specify the filtering criteria and the
+        pagination parameters.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaiton's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions, it might also be required to extend the
+        Application/Cient/ApiServices/ApiManager/IApiConnector interface and its implementation
+        (ApiConnector class).
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Application/Shared/QueryFilterDtos
+    folder and add a class named MoviesQueryFilterDto with the members of a type Movie that
+    can be used as options for the filtering criteria and a member of type PaginationRequestDto
+    that contains the pagination parameters for the response:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/16-movies-query-filter-dto-one.png"
+         alt="MoviesQueryFilterDto type part one." />
+    <img src="Images/11-Filters/17-movies-query-filter-dto-two.png"
+         alt="MoviesQueryFilterDto type part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Cient/ApiServices/IRepositories/IMovies interface to expose the specific
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new filtering-paginating feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/18-imovies-interface.png"
+         alt="IMovies interface with new FilterPaginateMoviesAsync method exposed." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Server-Api/Repositories/EfMovies class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore) and the RESTful
+    API service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/19-ef-movies-one.png"
+         alt="EfMovies implements FilterPaginateMoviesAsync method part one." />
+    <img src="Images/11-Filters/20-ef-movies-two.png"
+         alt="EfMovies implements FilterPaginateMoviesAsync method part two." />
+    <img src="Images/11-Filters/21-ef-movies-three.png"
+         alt="EfMovies implements FilterPaginateMoviesAsync method part three." />
+    <img src="Images/11-Filters/22-ef-movies-four.png"
+         alt="EfMovies implements FilterPaginateMoviesAsync method part four." />
+    <img src="Images/11-Filters/22-ef-movies-five.png"
+         alt="EfMovies implements FilterPaginateMoviesAsync method part five." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiMovies class to implement the newly
+    exposed functionality. This is the application's layer responsible for creating
+    the Http requests/responses that serialize-deserialize the data and build the
+    endpoint's route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/23-api-movies-one.png"
+         alt="ApiMovies implements FilterPaginateMoviesAsync method part one." />
+    <img src="Images/11-Filters/24-api-movies-two.png"
+         alt="ApiMovies implements FilterPaginateMoviesAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Server-Api/Controllers/Moviescontroller to create the action (controller
+    method) responsible for responding to the HttpRequest produced in last step. It
+    mediates between the client layer (Application/Client) and the business logic layer
+    (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/25-movies-controller-one.png"
+         alt="MoviesController with action named FilterPaginateMoviesTask part one." />
+    <img src="Images/11-Filters/26-movies-controller-two.png"
+         alt="MoviesController with action named FilterPaginateMoviesTask part two." />
+    <img src="Images/11-Filters/27-movies-controller-three.png"
+         alt="MoviesController with action named FilterPaginateMoviesTask part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Use the Postman platform to test the
+    Server-Api feature we just created. It is preferable if you test success and failure
+    states:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/28-movies-filter-paginate-test.png"
+         alt="Api Post request with Postman platform." />
+</div>
+<p>
+    At this point, we have completed the Task because the application's back-end is capable
+    of:
+</p>
+<ul>
+    <li>
+        Filtering the database records for Movie items that meet certain filtering criteria
+        based on one or more of their attributes (properties).
+    </li>
+    <li>
+        Paginating the query result adhering to the pagination parameters specified by
+        the client.
+    </li>
+</ul>
+<h4>Data Filtering and Pagination - Front end</h4>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    <a href="04-forms-part-one">MovieSearch</a> routable component to allow the user to
+    select Movie attributes as filtering criteria and render a pagination control to
+    navigate through the available portions of data (or pages) retrieved from the database.
+    <strong>Make sure that the web browser's URL is descriptive of the actions performed:</strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/29-movies-search-UI.png"
+         alt="UI of the MoviesSearch routable component." />
+</div>
+<p>
+    The MoviesSearch component has three main sections:
+</p>
+<ul>
+    <li>
+        First section captures the input data passed by the user that will be used as
+        filtering parameters.
+    </li>
+    <li>
+        Second section (button elements) submits the form to process the input data and use
+        use it to build a database request for Movie items that match the filtering criteria
+        passed as input.
+    </li>
+    <li>
+        Third section presents to the user the items of type Movie that fit the attribute
+        values passed as filtering criteria.
+    </li>
+</ul>
+<p>
+    MovieSearch routable component view file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/30-movies-search-view-file.png"
+         alt="MoviesSearch view file (markup)." />
+</div>
+<p>
+    MovieSearch routable component code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/31-movies-search-code-file-one.png"
+         alt="MoviesSearch component code file part one." />
+    <img src="Images/11-Filters/32-movies-search-code-file-two.png"
+         alt="MoviesSearch component code file part two." />
+    <img src="Images/11-Filters/33-movies-search-code-file-three.png"
+         alt="MoviesSearch component code file part three." />
+</div>
+<p>
+    The MoviesSearch component is not configured to work with database records. We can
+    divide our task in five main assignments:
+</p>
+<ol>
+    <li>
+        Verify that the communication between the Application/Client and the
+        Application/Server-Api is working correctly. To do this, we can refactor the
+        processing logic (code file) to build a database query, during initialization
+        of the component, that filters and paginates Movie items.
+    </li>
+    <li>
+        Generate a URL that describes the filtering criteria and the page number
+        requested. Use it to overwrite the browser's address bar each time the client
+        initiates a new request.
+    </li>
+    <li>
+        Modify the view file (markup section) to capture user input (form fields) and
+        bind their values to the appropriate members of the DTO used to build the Http
+        request (MoviesQueryFilterDto).
+    </li>
+    <li>
+        Make any necessary adjustments to the code file to handle the <em>@@onclick</em>
+        events of the button elements (clear fields and submit form).
+    </li>
+    <li>
+        Add a pagination control to enable data navigation.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span> Refactor the code file to build a database
+    query during initialization of the component. Hard code pagination values for the
+    MoviesQueryFilterDto pagination members:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/34-movies-search-code-movies-request-one.png"
+         alt="Code file requests filtered and paginated Movie items during initialization part one." />
+    <img src="Images/11-Filters/35-movies-search-code-movies-request-two.png"
+         alt="Code file requests filtered and paginated Movie items during initialization part two." />
+</div>
+<p>
+    Run the application and navigate to the MoviesSearch routable component to induce
+    initialization of the component and review the Http response headers to ensure that
+    the data is being processed as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/36-http-response-headers-movies.png"
+         alt="Http response headers confirm status 200OK." />
+</div>
+<p>
+    The Http response headers confirm a Status200OK and provide the metadata as planned
+    but the web browser's URL is not very descriptive. As explained in lesson on
+    <a href="03-routing">ASP.Net Routing</a> (client side), you can use URLs to describe
+    the user's actions because Blazor allows rewriting the browser's URL.
+</p>
+<h4>Overwriting the URL to be more descriptive</h4>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the members of the
+    MoviesQueryFilterDto to overwrite the browser's URL with the filtering criteria
+    applied to the database query and the page number requested.
+</p>
+<p>
+    In this context, the <a href="05-api">URL</a> consists of: the scheme
+    (or protocol being used; e.g., Http), the authority (or domain; e.g., localhost,
+    flix-manager.azurewebsites.net), the relative path (e.g., "movies/search") and
+    the query string (request action; e.g., filtering criteria and pagination parameters).
+</p>
+<p>
+    The <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        query string
+    </a> in turn is a collection of &lt;Key,Value&gt; pairs encoded into a URL. Recall
+    from the section on "URL Encoding and Decoding" in the <a href="09-api-connector-service">
+        Api Service
+    </a> lesson of the Web Server-Api module, that in a web app you can encode a URL with the
+    <code>HttpUtility.UrlEncode</code> method and outside of a web app, you can use
+    the <code>WebUtility.UrlEncode</code> method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/37-build-url-one.png"
+         alt="Code logic to build and overwrite the web browser's URL part one." />
+    <img src="Images/11-Filters/38-build-url-two.png"
+         alt="Code logic to build and overwrite the web browser's URL part two." />
+</div>
+<p>
+    Run the application and navigate to the MoviesSearch routable component to induce
+    initialization of the component. The web browser's URL is more descriptive:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/39-descriptive-url.png"
+         alt="Web browser's URL is descriptive of the action performed." />
+</div>
+<p>
+    Corroborating communication with the Application/Server-Api (assignment one) and
+    generating a descriptive URL (assignment two) are completed. We can continue with
+    assignment number three to modify the view file to capture user input and bind it
+    to the appropriate MoviesQueryFilterDto members. But before that, we should do
+    some house cleaning in the code file:
+</p>
+<ul>
+    <li>
+        Extract the code responsible for building the URL. Go to the Application/Client/Helpers
+        folder and create a class named UrlUtilities with a method named BuildEncodedQueryString.
+    </li>
+    <li>
+        Extract the code responsible for making the data request for Movie items and
+        the code responsible for instantiating-overwriting the collection of Movie
+        items that stores the query result. We can encapsulate it in a method named
+        RequestMoviesPaginatedAsync. Include a call to the BuildBrowserUrl method to
+        refresh the web browser's Url each time a new query is sent.
+    </li>
+    <li>
+        Eliminate the local variables that are currently bound to the MovieSearch form
+        fields because they will be replaced in the next step by members of the
+        MoviesQueryFilterDto.
+    </li>
+</ul>
+<p>
+    Application/Client/Helpers/UrlUtilities class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/52-build-encoded-query-string.png"
+         alt="UrlUtilities class with BuildEncodedQueryString method." />
+</div>
+<p>
+    Application/Client/Pages/Movies/MoviesSearch.razor.cs code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/40-movies-search-code-file-cleaned-one.png"
+         alt="MoviesSearch code file after being cleaned part one." />
+    <img src="Images/11-Filters/41-movies-search-code-file-cleaned-two.png"
+         alt="MoviesSearch code file after being cleaned part two." />
+    <img src="Images/11-Filters/42-movies-search-code-file-cleaned-three.png"
+         alt="MoviesSearch code file after being cleaned part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Modify the view file (markup section)
+    to capture user input (form fields) and bind their values to the appropriate members
+    of the DTO used to build the Http request (MoviesQueryFilterDto).
+</p>
+<p>
+    Recall from the introduction into <a href="04-forms-part-one">Forms</a> that the
+    pre-defined <strong><code>&lt;EditForm&gt;</code></strong> component is Blazor's
+    approach to managing user input.
+</p>
+<p>
+    The &lt;EditForm&gt; can be bound to data (user input) using an <dfn>EditForm.Model</dfn>
+    or an <dfn>EditForm.EditContext</dfn>. It uses the model's (class) <dfn>data annotations</dfn>
+    and makes it easy to perform validation to check if all validation rules have been
+    satisfied, and present the user with validation errors if they have not.
+</p>
+<p>
+    Don't forget that the HTML element used to submit a form (e.g., a button control) must
+    be within the scope of the &lt;EditForm&gt; to bind it to its pre-defined callbacks that
+    handle form submission.
+</p>
+<p>
+    When the MoviesSearch component was created, we didn't know about this component but
+    now we do. We can include it in the modifications:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/43-movies-search-view-file-binding-one.png"
+         alt="MoviesSearch view file after data binding part one." />
+    <img src="Images/11-Filters/44-movies-search-view-file-binding-two.png"
+         alt="MoviesSearch view file after data binding part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The first &lt;option&gt; of the &lt;select&gt;
+    HTML element of the Genres field has a <em>selected</em> attribute which is assigned a
+    "<code>@@string.Empty</code>" value. This means that if you want the control to render
+    the "--Select Genre--" option, the object it is bound to (MoviesQueryFilterDto.Genre)
+    must have the same value "<code>@@string.Empty</code>". This takes us to the next
+    assignment to handle the <em>@@onclick</em> events of the "Clear Fields" and
+    "Search Movies" button elements.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Make any necessary adjustments to the code
+    file to handle the <em>@@onclick</em> events of the button elements:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/45-movies-search-handlers-one.png"
+         alt="MoviesSearch code file handlers for button elements part one." />
+    <img src="Images/11-Filters/46-movies-search-handlers-two.png"
+         alt="MoviesSearch code file handlers for button elements part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create an instance of the
+    <a href="08-pagination">Pagination</a> component in the MoviesSearch view file to enable
+    data navigation for the total number of records available in the database that match the
+    filtering criteria.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/47-pagination-component-instance.png"
+         alt="MoviesSearch view file with an instance of the pagination component." />
+</div>
+<p>
+    The <a href="08-pagination">Pagination</a> component (child) has a generic event handler
+    delegate (<a href="02-components-part-one">callback</a>) parameter named
+    OnSelectedPageValidated which requires an event handler method (parent) responsible for
+    doing something with the <dfn>pageNumber</dfn> value captured and passed by the delegate
+    (child). Add an event handler method named LoadSelectedPageAsync to the code file of the
+    MoviesSearch component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/48-request-movies-paginated-handler-method.png"
+         alt="RequestMoviesPaginatedAsync handler method." />
+</div>
+<p>
+    After these modifications, the MoviesSearch component is working as expected because it
+    is capable of using input data from the form fields to build Http requests that include
+    filtering criteria and pagiantion parameters. The query result is presented to the user
+    in segments and the view file includes a data navigation control to navigate through
+    these portions (pages):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/49-search-movies-UI-large.png"
+         alt="Search Movies UI." />
+</div>
+<p>
+    However, <strong>we are not done yet</strong>. We can still improve the MoviesSearch
+    component making a couple modifications. Let's start changing the size of the movie
+    thumbnails so we can comfortably fit 3 items in a single row (this is the value assigned
+    to the MoviesQueryFilterDto.RecordsPerPage property value). The component responsible
+    for rendering these thumbnails is the <a>RenderMovie</a> component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/50-render-movie-smaller.png"
+         alt="RenderMovie component with smaller thumbnails and text." />
+</div>
+<p>
+    The UI of the MoviesSearch component can present three records per page in a single
+    row. This prevents the pagination component from moving up and down dependent of the
+    Movie items available per page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/51-movies-search-small.png"
+         alt="MoviesSearch component UI with 3 thumbnails in single row." />
+</div>
+<p>
+    The last improvement has to do with the actual searching functionality; i.e., with
+    the process to build the database query and present the results. The sequence of
+    steps followed earlier is:
+</p>
+<ol>
+    <li>
+        Use the form field values of the MoviesSearch view file as filtering criteria
+        which is bound to members of the MoviesQueryFilterDto.
+    </li>
+    <li>
+        Map the "active" MoviesQueryFilterDto members that represent filtering parameter
+        values to &lt;Key,Value&gt; pairs to produce an <dfn>encoded</dfn> query string.
+    </li>
+    <li>
+        Generate the data request.
+    </li>
+    <li>
+        Overwrite the web browser's URL with a more descriptive encoded string of the
+        action performed.
+    </li>
+</ol>
+<p>
+    But what if the user wants to share the link (URL) to someone else based on the current
+    filtering criteria? Or maybe the client simply wants to access certain data using the
+    web browser's URL instead of the form fields.
+</p>
+<p>
+    Under these circumstances, the searching functionality is completely reversed. Instead
+    of overwriting the URL once the query is completed, it must employ a URL to initiate
+    the database query. This takes us to the next topic.
+</p>
+<h4>Deep Linking</h4>
+<p>
+    In the context of the World Wide Web, deep linking is the use of a <dfn>hyperlink</dfn>
+    that links to a specific piece of web content on a website rather than the website's
+    home page.
+</p>
+<p>
+    In Blazor, deep linking occurs when the browser makes a request to a specific route
+    other than the <a href="03-routing">root</a> of the app. The URL contains all the
+    information needed to point to a particular item or items.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The main reason to implement deep linking is to provide support for the user to
+        share a link (URL) based on the current selection so the current state is restored
+        when someone else visits the same link (URL). It is strongly advisable that you 
+        have a look to Chris Sainty's <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+            Introduction to Routing in Blazor</a>.
+    </p>
+</div>
+<p>
+    Considering that we have already created a method to build an encoded URL using the
+    members of the MoviesQueryFilterDto as filtering criteria, implementing deep linking
+    should be pretty straight forward because it is the same procedure except that it is
+    reversed:
+</p>
+<ol>
+    <li>
+        Read the web browser's URL to check if it contains a query string with the
+        action required to perform.
+    </li>
+    <li>
+        Generate a <dfn>decoded</dfn> query string using the URL (query string starts with
+        "?" delimiter).
+    </li>
+    <li>
+        Use the query string parameters to build a collection of &lt;Key,Value&gt; pairs
+        that represent the filtering criteria and map it to members of the
+        MoviesQueryFilterDto object being used to build the HTTP request.
+    </li>
+    <li>
+        Use the mapped values to generate the data request.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement deep linking for the MoviesSearch
+    routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/Helpers/UrlUtilities class and add a static method named
+    DecodeUrlQueryToDictionary. It should determine if a given URL contains a query string,
+    and if it does, extract its values as Key-Value pairs for a collection of type
+    Dictionary&lt;string, string&gt;:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/53-decode-url-dictionary-one.png"
+         alt="UrlUtilities class with DecodeUrlQueryToDictionary method part one." />
+    <img src="Images/11-Filters/54-decode-url-dictionary-two.png"
+         alt="UrlUtilities class with DecodeUrlQueryToDictionary method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Add a MapUrlDictToQueryDto helper
+    method to the MoviesSearch code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/55-map-url-query-dict-one.png"
+         alt="MoviesSearch code file with MapUrlQueryDictToQueryDto method part one." />
+    <img src="Images/11-Filters/56-map-url-query-dict-two.png"
+         alt="MoviesSearch code file with MapUrlQueryDictToQueryDto method part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The UrlUtilities.BuildEncodedQueryString
+    method, responsible for building URLs, returns the &lt;Key, Value&gt; pairs <strong>
+        in lower case.
+    </strong> Make sure that the name of the MoviesQueryFilterDto member produced with
+    the <code>nameof()</code> expression is in lower case or there will be no matches.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three</span> Update the Genres field in the view
+    file of the MoviesSearch component. Its <code>&lt;select&gt;</code> element is bound
+    to the MoviesQueryFilterDto.Genre member and as menetioned above, it is fed with
+    lower case values. This means the the attribute value for each <code>&lt;option&gt;</code>
+    in the <code>&lt;select&gt;</code> element must be lower case or data binding will
+    not work properly:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/60-genres-field-data-binding.png"
+         alt="Genres field with proper data binding." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Capture the browser's URL during
+    initialization of the MoviesSearch component, evaluate its content to test if it
+    has a query string, and if it does, build a dictionary collection with the
+    parameters of the query string of the browser's URL. Use the collection to overwrite
+    the related members of the MoviesQueryFilterDto and use it to build the Http request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/57-deep-linking-during-initialization-one.png"
+         alt="MoviesSearch code file with deep linking during initialization part one." />
+    <img src="Images/11-Filters/58-deep-linking-during-initialization-two.png"
+         alt="MoviesSearch code file with deep linking during initialization part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Test if deep linking is working in the
+    MoviesSearch component.
+</p>
+<p>
+    Go to the MoviesSearch component, select some filtering criteria with the form fields,
+    submit the form, and copy the generated URL. Then navigate to a different section in
+    the application and paste the URL. The UI should re-load exactly the same component
+    state as the one displayed when copying the URL.
+</p>
+<h4>Finishing the MovieBulletin component</h4>
+<p>
+    You might remember that in the <a href="04-load-complex-data">Load Data</a> section,
+    we refactored the MovieBulletin component to present all the available information
+    of a given Movie object including its poster and official trailer.
+</p>
+<p>
+    One of the characteristics for the MovieBulletin component was to "Include its Genre
+    categories as hypertext (separated by commas) that directs the user to the SearchMovie
+    component":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/32-movie-bulletin-rendering-logic-one.png"
+         alt="MovieBulletin rendering logic part one." />
+    <img src="Images/10-LoadComplexData/33-movie-bulletin-rendering-logic-two.png"
+         alt="MovieBulletin rendering logic part two." /><br />
+    <img src="Images/10-LoadComplexData/31-movie-bulletin-component-members.png"
+         alt="MovieBulletin rendering logic part three." />
+</div>
+<p>
+    The MovieBulletin component renders the following UI:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/21-movies-bulletin-example.png"
+         alt="UI of the MovieBulletin component completed.">
+</div>
+<p>
+    Currently, the genre links (hypertext) in the UI are generated in the markup section
+    with a generic RenderFragment named "_genreLinkTemplate" defined in the code section
+    of the component. If you pay close attention, you will realize that the route of the
+    RenderFragment points to the MoviesSearch component but it only has the path; i.e.,
+    <strong>it is missing the actual query string.</strong>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Separate the MovieBulletin component into
+    a view file and a code file. Ensure that the route of the hyperlink generated for
+    the Genre items includes tha path and the query string with a Genre parameter.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Eliminate the generic RenderFragment named
+    "_genereLinkTemplate" from the code section of the component and update the route of
+    the hyperlinks generated by the Genres field to include a query string with a Genre
+    parameter:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/11-Filters/59-movie-bulletin-updated-hyperlinks.png"
+         alt="MovieBulletin with updated hyperlinks to MoviesSearch component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Test the hyperlinks of the Genres field
+    in the MovieBulletin.
+</p>
+<p>
+    Recall that you can navigate to the MovieBulletin component by clicking on a Movie item
+    from either the <a href="movies/flix-manager">Flix Manager</a> or the <a href="movies/search">
+        MoviesSearch
+    </a> routable components. Then, from the MovieBulletin component, click on any of the
+    Genre links presented to the user.
+</p>
+<p>
+    You should be redirected to the MoviesSearch component and its state should display
+    the following characteristics:
+</p>
+<ul>
+    <li>
+        Include the first segment of the Movie records available in the database that
+        have a relationship with the genre object selected from the MovieBulletin
+        component.
+    </li>
+    <li>
+        The URL in the web browser's address bar should include a query string with a
+        parameter (key=value pair) that matches the (genre=genreName) selected from the
+        MovieBulletin component.
+    </li>
+    <li>
+        The Genre field of the MoviesSearch component should reflect the Genre object
+        currently being used as filtering criteria.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> If the user initiates a searching operation
+    from the URL, the form fields should display the values used for the filtering criteria
+    because they are bound to the MoviesQueryFilterDto members which are used to build the
+    Http request. Recall that Blazor has two way <a href="02-components-part-one">
+        data binding
+    </a>.
+</p>

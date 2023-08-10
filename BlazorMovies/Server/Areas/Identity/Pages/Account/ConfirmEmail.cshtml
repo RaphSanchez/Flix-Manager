@@ -1,0 +1,31 @@
+﻿@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Confirm email";
+}
+
+<h1>@ViewData["Title"]</h1>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+@if (!Model.StatusMessage.Contains("Error"))
+{
+    <p>
+        Would you like to enable <a href="./Manage/TwoFactorAuthentication">
+            Two Factor Authentication
+        </a>?
+    </p>
+}
+
+<!-- Your custom code to close the browser's window to avoid having -->
+<!-- the User Login through this page. Not sure if required in      -->
+<!-- production. -->
+@*<div>
+    <p>
+        <button id="close-page" onclick="window.close();"
+                class="btn btn-outline-primary">
+            Click me to close this window.
+        </button>
+    </p>
+</div>*@
+@*        <input type="button" value="Click to complete registration"
+        onclick="window.close();"/>*@

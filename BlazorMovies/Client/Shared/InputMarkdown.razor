@@ -1,0 +1,38 @@
+﻿                                          -->
+<div class="container p-0">
+
+    <!-- Field Names -->
+    <div class="row">
+        <div class="col-6">
+            <label class="col-form-label-sm">@FieldName</label>
+        </div>
+        <div class="col-6">
+            <label class="col-form-label-sm">Sanitized HTML Output:</label>
+        </div>
+    </div>
+
+    <!-- Input/Output Sections -->
+    <div class="row">
+        @if (Person is not null)
+        {
+            <!-- Markdown input -->
+            <div class="col-6">
+                <InputTextArea @bind-Value="@Person.Biography"
+                           class="form-control" rows="10" />
+            </div>
+
+            <!-- Sanitized HTML output -->
+            <div class="col-6 d-flex align-items-stretch">
+                <RenderMarkdown MarkdownContent="@Person.Biography" />
+            </div>
+        }
+    </div>
+
+    <div class="row">
+        <div class="col-6 text-muted">
+            <a href="https://commonmark.org/help/" class="text-reset small">
+                Markdown Reference
+            </a>
+        </div>
+    </div>
+</div>

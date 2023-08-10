@@ -1,0 +1,1527 @@
+﻿@page "/11-url-rewriting"
+<PageTitle>URL Rewriting</PageTitle>
+
+<h2>Deployment - URL Rewriting</h2>
+<p>
+    Up to this point, we have successfully published and deployed the Flix-Manager web
+    app with custom subdomains (app.flix-manager.com and www.app.flix-manager.com) that
+    are capable of handling the exchange of information between the user, the client,
+    and the server under the Https protocol that enables encrypting the data.
+</p>
+<p>
+    However, as explained at the end of the last lesson on <a href="10-https-web-app">
+        Https Web App
+    </a>, even after successful authentication of a user with the required credentials,
+    the authorization service of the <a href="03-security-id-server">IdentityServer</a>
+    engine responsible for granting access (or not) to protected Application/Server-Api
+    resources returns a StatusCode 401-Unauthorized when making the Http requests from
+    the custom subdomains.
+</p>
+<p>
+    Only Http requests that originate from the URL of the site that is automatically
+    launched by Visual Studio after a successful deployment
+    (https://flix-manager.azurewebsites.com) works as expected but why is this happening?
+</p>
+<p>
+    Use the web browser to navigate to either one of the subdomains (app.flix-manager.com or
+    www.app.flix-manager.com), login with the <a href="04-secure-user-manager">
+        admin user
+    </a> and navigate to the "Users" submenu:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/01-empty-users-submenu.png"
+         alt="Users submenu with no content." />
+</div>
+<p>
+    The Users page indicates that there are no records (users) to show but this cannot be
+    possible because the "admin" user is logged in. There is at least one user, the admin
+    user used to log in. Let's further investigate the issue by going to the "Console" of
+    the web browser's developer tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/02-console-401.png"
+         alt="Console with StatusCode 401-Unauthorized." />
+</div>
+<p>
+    We are getting a 401-Unauthorized Http response status code. This indicates that the client
+    request has not been completed because it lacks valid authentication credentials for the
+    requested resource.
+</p>
+<p>
+    Let's visit the "Network" tab of the web browser's developer tools to retrieve more information
+    on the Http request/response:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/03-network-401.png"
+         alt="Network tab error: Token issuer is invalid." />
+</div>
+<p>
+    The response header indicates a "Bearer error=invalid_token" with a description "The issuer
+    'https://app.flix-manager.com' is invalid". It is not recognizing the authority as a valid
+    origin to issue security tokens. Can you tell why?
+</p>
+<p>
+    As we explained in the <a href="03-security-id-server">Identity Server</a> lecture, the
+    IdentityServer engine is configured in the Application/Server-Api Program file with a
+    call to the <code>.AddIdentityServer</code> extension method. Additionally, a call to
+    the <code>.AddApiAuthorization&lt;TUser, TContext&gt;</code> method sets up the default
+    conventions on top of IdentityServer:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/24-identity-server.png"
+         alt="Configuration for IdentityServer engine." />
+</div>
+<p>
+    The default conventions simplify the configuration experience for the developer. These
+    conventions, default values, and enhancements are wrapped into application <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-6.0#application-profiles">
+        profiles
+    </a> which are predefined configurations for the applications (Application/Client).
+</p>
+<p>
+    The application profile desired for our application is specified in the appsettings.json
+    source file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/22-id-server-section-config.png"
+         alt="IdServer configuration." />
+</div>
+<p>
+    It is the responsibility of our custom Application/Server-Api/Controllers
+    OidcConfigurationController to retrieve the Client instance making the Http request and
+    configure its parameters:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/21-oidc-config-controller.png"
+         alt="OIDC configuration controller." />
+</div>
+<p>
+    The OidcConfigurationController controller employs the built-in
+    <code>.GetClientParameters</code> method. This method produces the Application/Client
+    profile parameters based on the Client profile specified in the Application/Server-Api
+    appsettings.json configuration source file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/04-get-client-parameters-method-one.png"
+         alt="GetClientParameters method part one." />
+    <img src="Images/31-url-redirection/05-get-client-parameters-method-two.png"
+         alt="GetClientParameters method part two." />
+</div>
+<p>
+    The "Authority" value is set with the IdentityServer issuer Uri from where the
+    Http request originated unless explicitly specified. The issuer Uri represents
+    the valid issuer that appears in the <a href="https://docs.duendesoftware.com/identityserver/v6/reference/endpoints/discovery/">
+        discovery document
+    </a> and in the issued JWT tokens.
+</p>
+<p>
+    A quick glance to the <code>GetIdentityServerIssuerUri</code> method reveals that,
+    unless explicity specified in the IdentityServer options, the IdentityServer issuer
+    Uri is produced with the HttpContext used to build the request; it is produced from
+    the host name that is used by the client (e.g., https://flix-manager.azurewebsites.com):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/06-get-identity-server-issuer-uri-method.png"
+         alt="GetIdentityServerIssuerUri method." />
+</div>
+<p>
+    Hopefully this makes it clear where and how are the "Authority" and the
+    "IdentityServer valid issuer" parameters produced. Besides these concepts, we need to
+    consider a fundamental characteristic of Azure Web App service. It has high availability
+    with a service-level agreement (SLA)-backend of 99.95%.
+</p>
+<p>
+    When you publish a web application and deploy it to the Azure App Service, the application
+    will be up and running as long as its hosting environment (e.g., Azure subscription,
+    Azure App Service) is active, a new deployment is enforced, and/or the web app is reset.
+</p>
+<p>
+    Consider the following scenario:
+</p>
+<ul>
+    <li>
+        The web app is published and deployed to the Azure App service.
+    </li>
+    <li>
+        If done through Visual Studio, when the deployment is completed successfully, it
+        automatically opens a web browser with the URL configured in its Publish summary.
+    </li>
+    <li>
+        When the IdentityServer engine of the deployed web app receives the Http request
+        for the very first time, it captures the host name used by the client (e.g.,
+        app.flix-manager.com) and uses it to generate the IdentityServer valid issuer and
+        the Authority parameters.
+    </li>
+</ul>
+<p>
+    Since the web application keeps running on the cloud, it will only grant access to
+    Application/Server-Api resources when subsequent Http requests are originated from
+    the host registered in the very first Http request received right after the deployment
+    or reset of the web app.
+</p>
+<p>
+    This is obviously a problem because at the moment, we have 3 subdomains pointing
+    to our Flix-Manager app service web app:
+</p>
+<ol>
+    <li>
+        <strong>Main subdomain:</strong>
+        <code>app.flix-manager.com</code>
+    </li>
+    <li>
+        <strong>Alternate subdomain:</strong>
+        <code>www.app.flix-manager.com</code>
+    </li>
+    <li>
+        <strong>Azure assigned URL:</strong>
+        <code>flix-manager.azurewebsites.net</code>
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Duende IdentityServer engine can only issue security tokens under a single or unique
+        domain. We need to define which of the subdomains will serve this purpose. This
+        is the Authority/ValidIssuer that will be registered at the very first Http request
+        after a reset or new deployment of the web app. We then need to configure a URL
+        redirect for the rest of the subdomains. This allows us to keep the alternate
+        subdomains available and at the same time, enforce a unique host (or origin) for the
+        end-users.
+    </p>
+</div>
+<p>
+    Before dealing with URL redirections, let's configure the Visual Studio Publish profile
+    to launch the application to the main subdomain after a successful deployment.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure the <strong><code>&lt;SiteUrlToLaunchAfterPublish&gt;</code></strong>
+    property value of the Visual Studio Publish profile with the web app's main subdomain.
+</p>
+<p>
+    As mentioned in the <a href="07-dynamic-website">Dynamic Website</a> lecture, a
+    "hosted" deployment is conveniently simplified using the "Publish" option in the
+    Solution Explorer of Visual Studio. Under these circumstances, Visual Studio
+    creates the publish profile files automatically before the files are copied to the
+    deployment destination (e.g., to the server).
+</p>
+<p>
+    With a hosted environment, the client project of the Blazor WebAssembly app <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#hosted-deployment-with-aspnet-core-1">
+        is published into
+    </a> the Application/Server-Api/bin/Release/{TargetFramework} folder of the
+    <strong>server</strong> project (Application/Server-Api) and the two apps (projects:
+    Application/Client and Application/Server-api) are deployed together.
+</p>
+<p>
+    You can use the Application/Server-Api/Properties
+    PublishProfiles files to <a href="https://go.microsoft.com/fwlink/?LinkID=208121">
+        customize
+    </a> the deployment settings of your app:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/07-deployment-file.png"
+         alt="Publish profile file." />
+</div>
+<p>
+    The publish profile summary also displays the <code>SiteUrlToLaunchAfterPublish</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/08-publish-profile-summary.png"
+         alt="Publish profile summary." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the Publish profile summary to modify the URL to launch after the web app
+    is published and deployed successfully.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 1.1:</span>
+    Go to the Publish summary, click on the "More actions" dropdown menu, and select "Edit"
+    to open the "Publish" dialog box. Go to the "Connections" tab and replace the "Destination
+    URL" field value with the desired URL:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/09-destination-url.png"
+         alt="Destination URL." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">Step 1.2:</span>
+    Click the Save button of the Connect tab in the Publish dialog box and revisit the
+    Application/Server-Api/Properties/PublishProfiles WebDeploy file. The SiteUrlToLaunchAfterPublish
+    property value should be updated with the new URL:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/10-updated-launch-site.png"
+         alt="SiteUrlToLaunchAfterPublish property value updated." />
+</div>
+<p>
+    Instead of using the Publish dialog box, you can go straight to the WebDeploy file and
+    replace the <code>&lt;SiteUrlToLaunchAfterPublish&gt;</code> property value directly.
+</p>
+<h3>URL Rewriting</h3>
+<p>
+    URL rewriting is the act of modifying request URLs based on one or more
+    predefined rules. URL rewriting creates an abstraction between resource
+    locations and their addresses so that the locations and addresses are not
+    tightly linked. URL rewriting is useful when you need to:
+</p>
+<ul>
+    <li>
+        Move or replace server resources temporarily or permanently and maintain
+        stable locators for those resources.
+    </li>
+    <li>
+        Split request processing across different apps or across areas of one
+        app.
+    </li>
+    <li>
+        Remove, add, or reorganize URL segments on incoming requests.
+    </li>
+    <li>
+        Optimize public URLs for Search Engine Optimization (SEO).
+    </li>
+    <li>
+        Permit the use of friendly public URLs to help visitors understand what content
+        to expect from a resource request.
+    </li>
+    <li>
+        Redirect insecure requests to secure endpoints (HTTP to HTTPS).
+    </li>
+    <li>
+        Prevent hotlinking, where an external site uses a hosted static asset on
+        another site by linking the asset into its own content.
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        URL rewriting can have a significant impact on the performance of a web application.
+        Limit the number and complexity of rules.
+    </p>
+</div>
+<h4>URL rewrite and URL redirect</h4>
+<p>
+    The URL Rewriting Middleware of ASP.Net Core is capable of implementing URL
+    redirects and URL rewrites.
+</p>
+<dl>
+    <dt>URL Rewrite</dt>
+    <dd>
+        Involves a <strong>server-side</strong> operation that provides a resource from
+        a different resource address than the client requested. Rewriting a URL does not
+        require a round trip to the server.
+    </dd>
+    <dd>
+        The rewritten URL is <strong>not</strong> returned to the client and does <strong>
+            not
+        </strong> appear in the browser's address bar.
+    </dd>
+    <dd>
+        For example, if <code>/resource</code> is rewritten to <code>/different-resource</code>,
+        the server <strong>internally</strong> fetches and returns the resource at
+        <code>/different-resource</code>.
+    </dd>
+    <dd>
+        Although the client might be able to retrieve the resource at the rewritten URL,
+        the <strong>
+            client is not informed that the resource exists at the rewritten URL
+        </strong> when it makes its reques and receives the response.
+    </dd>
+    <dd>
+        <figure class="figure d-flex flex-column justify-content-center">
+            <img class="image-lesson" style="max-width: 600px; margin:auto;"
+                 src="Images/31-url-redirection/12-rewrite-diagram.png"
+                 alt="Rewrite operation diagram." />
+            <figcaption class="figure-caption text-center">
+                <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/url-rewriting?view=aspnetcore-7.0#url-redirect-and-url-rewrite">
+                    ASP.Net Core redirection diagram
+                </a>
+            </figcaption>
+        </figure>
+    </dd>
+    <dt>URL Redirect</dt>
+    <dd>
+        Involves a <strong>client-side</strong> operation where the client is instructed to
+        access a resource at a different address than the client originally requested. This
+        requires a round trip to the server.
+    </dd>
+    <dd>
+        The redirect URL returned to the client appears in the browser's address bar when
+        the client makes a new request for the resource.
+    </dd>
+    <dd>
+        For example, if <code>/resource</code> is redirected to <code>/different-resource</code>,
+        the server responds that the client should obtain the resource at
+        <code>/different-resource</code> with a status code indicating that the redirect
+        is <strong>either <dfn>temporary</dfn> or <dfn>permanent</dfn>.</strong>
+    </dd>
+    <dd>
+        <figure class="figure d-flex flex-column justify-content-center">
+            <img class="image-lesson" style="max-width: 600px; margin:auto;"
+                 src="Images/31-url-redirection/11-redirect-diagram.png"
+                 alt="Redirect operation diagram." />
+            <figcaption class="figure-caption text-center">
+                <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/url-rewriting?view=aspnetcore-7.0#url-redirect-and-url-rewrite">
+                    ASP.Net Core redirection diagram
+                </a>
+            </figcaption>
+        </figure>
+    </dd>
+    <dd>
+        When redirecting requests to a different URL, you should indicate whether the
+        redirect is permanant or temporaty by specifying the status code with the
+        response:
+        <ul>
+            <li>
+                The <span class="fs-5"><strong><code>301 - Moved Permanently</code></strong></span>
+                status code is used when the resource has a new permanent URL and when
+                all future requests for the resource should use the new URL. <strong>
+                    The client may cache and reuse the response when a 301 status code
+                    is received.
+                </strong>
+            </li>
+            <li>
+                The <span class="fs-5"><strong><code>302 - Found</code></strong></span>
+                status code is used whenthe redirection is temporary or generally subject
+                to change. <strong>
+                    The 302 status code indicates to the client not to store the URL for
+                    use in the future.
+                </strong>
+            </li>
+        </ul>
+    </dd>
+</dl>
+<p>
+    Keep in mind that:
+</p>
+<ul>
+    <li>
+        A Rewrite is a server-side rewrite of the URL before it is fully processed by
+        Microsoft Internet Information Services (IIS) web server in which case the URL
+        displayed in the web browser's address bar will not be updated with the new
+        URL because the changes are hidden from the user.
+    </li>
+    <li>
+        A redirect is a client-side request to send the web browser to a different URL
+        in which case the URL displayed in the web browser's address bar will be updated
+        with the new URL.
+    </li>
+</ul>
+<p>
+    Main differences between HTTP redirect and rewrite operations:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/31-url-redirection/13-differences-table.png"
+         alt="Main differences table." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://weblogs.asp.net/owscott/rewrite-vs-redirect-what-s-the-difference#:~:text=Simply%20put%2C%20a%20redirect%20is,it%27s%20fully%20processed%20by%20IIS.">
+            URL redirect vs. rewrite by Scott Forsyth
+        </a>
+    </figcaption>
+</figure>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Http redirects are the best way to create redirections but there are <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections#alternative_way_of_specifying_redirections">
+        alternative ways of specifying redirections
+    </a>. For example, HTML redirections with the <span class="fs-5"><code>&lt;meta&gt;</code></span>
+    element or JavaScript redirections via the <span class="fs-5"><code>DOM</code></span>.
+</p>
+<p>
+    Before going through the implementation, it is worth mentioning that you can also <a href="https://learn.microsoft.com/en-us/azure/application-gateway/rewrite-http-headers-url">
+        rewrite HTTP headers and URLs with Application Gateway
+    </a>. The Azure Application Gateway service allows you to rewrite selected content of
+    requests and responses. For instance, you can translate URLs, query string parameters,
+    modify request and response headers, add conditions to ensure that URL or the specified
+    headers are rewritten only when certain conditions are met, etc.
+</p>
+<p>
+    Furthermore, it used to be possible to <a href="https://youtu.be/E2WdUhYnzMY">
+        redirect a domain using the Azure Function service with the help of a proxie
+    </a>. Unfortunately, <a href="https://learn.microsoft.com/en-us/azure/azure-functions/legacy-proxies#re-enable-proxies-in-functions-v4x">
+        Azure Functions proxies
+    </a> are a legacy feature and at the time of this lecture, it was not possible to
+    <a href="https://learn.microsoft.com/en-us/azure/azure-functions/legacy-proxies#re-enable-proxies-in-functions-v4x">
+        re-enable proxies in Functions
+    </a> by following the official Azure documentation.
+</p>
+<p>
+    Although these features are convenient, they might not justify its cost. The Azure
+    Application Gateway <a href="https://azure.microsoft.com/en-us/pricing/details/application-gateway/">
+        pricing
+    </a> is not exactly the cheapest service. Azure Functions <a href="https://azure.microsoft.com/en-us/pricing/details/functions/?&ef_id=CjwKCAiA-8SdBhBGEiwAWdgtcDffzbSgQ8vDeldpMKIlPU12418bD-xo2w5X3TO4lYcrilGNXJq1CRoC5KMQAvD_BwE:G:s&OCID=AIDcmmxotgtm93_SEM_CjwKCAiA-8SdBhBGEiwAWdgtcDffzbSgQ8vDeldpMKIlPU12418bD-xo2w5X3TO4lYcrilGNXJq1CRoC5KMQAvD_BwE:G:s&gclid=CjwKCAiA-8SdBhBGEiwAWdgtcDffzbSgQ8vDeldpMKIlPU12418bD-xo2w5X3TO4lYcrilGNXJq1CRoC5KMQAvD_BwE">
+        pricing
+    </a> is significantly less expensive but Azure Functions proxies are deprecated. In
+    any case, our URL redirection needs are pretty straightforward. We can instead use the
+    web.config file to achieve the same result with no extra cost at all.
+</p>
+<h4>Web.config file</h4>
+<p>
+    As we mentioned in the <a href="07-dynamic-website">Dynamic Website</a> lesson, our
+    web application (Flix-Manager) is deployed to Azure App Services where Blazor apps <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#azure-app-service-1">
+        can be deployed to a Windows operating system
+    </a> which hosts the app with Microsoft's Internet Information Services (IIS) web server.
+</p>
+<p>
+    The <span class="fs-5"><strong><code>web.config</code></strong></span> file is a file
+    that is read by IIS and the <a>ASP.Net Core Module</a> (ANCM) to configure an app hosted
+    with IIS. The <strong>
+        web.config file must be present at the <dfn>content root</dfn> path (typically the
+        app base path) of the deployed app.
+    </strong>
+</p>
+<p>
+    This is the same location as the website physical path provided to IIS. The
+    web.config file is required at the root of the app to enable publishing of multiple
+    apps (e.g., Application/Client and Application/Server-Api projects) using Web Deploy.
+</p>
+<p>
+    When a Blazor project is published, a <span class="fs-5">
+        <strong>
+            <code>
+                web.config
+            </code>
+        </strong>
+    </span> <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#webconfig-1">
+        file is created
+    </a> with the following IIS configuration:
+</p>
+<ul>
+    <li>
+        MIME types. For more info on media types refer to the <a href="04-forms-part-one">
+            Forms
+        </a> and <a href="05-api">Server-Api</a> lessons.
+    </li>
+    <li>
+        HTTP compression is enabled for the following MIME types:
+        <ul>
+            <li>application/octet-stream.</li>
+            <li>application/wasm</li>
+        </ul>
+    </li>
+    <li>
+        URL Rewrite Module rules are established:
+        <ul>
+            <li>
+                Serve the sub-directory where the app's static assets reside
+                (wwwroot/{PATH REQUESTED}).
+            </li>
+            <li>
+                Create Single Page Application (SPA) fallback routing so that
+                requests for non-file assets are redirected to the app's default
+                document in its static assets folder (wwwroot/index.html), also
+                known as the application's web root because it is web addressable.
+                For more info refer to the Layouts section in the <a href="02-components-part-two">
+                    Components Part-II
+                </a> lesson.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    If for some reason the web.config file is not created during deployment or you want
+    to use a <strong>custom web.config file for deployment</strong>, you can follow the
+    Blazor documentation to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#use-a-custom-webconfig-1">
+        use a custom web.config
+    </a> file. For example, if you implement IRL rewrite rule(s), you should use a custom
+    web.config file to be published and deployed to the Azure App Service web app. Otherwise,
+    the web.config file will be created with default values.
+</p>
+<p>
+    The web.config file for an Azure App service web app can be accessed through its
+    <a href="https://learn.microsoft.com/en-us/azure/app-service/resources-kudu">
+        Kudu Service
+    </a>. Refer to the <a href="07-dynamic-website">Dynamic Website</a> lecture for more
+    info on the web-based diagnostics console (Kudu) provided by Azure App service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the Kudu console of the Flix-Manager web app to gain access to its content root
+    path where the web.config file should be present.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to a web browser and type in the URL that points to the web-based diagnostics
+    console (Kudu) service for your deployed web app. For example: <a href="https://flix-manager.scm.azurewebsites.net">
+        https://flix-manager.scm.azurewebsites.net
+    </a>. You can also access the Kudu service for your web app from the "Advanced
+    Tools" blade of the Azure App service.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Navigate to the web.config file.
+</p>
+<ul>
+    <li>
+        Click the "Debug console" dropdown menu.
+    </li>
+    <li>
+        Select CMD or PowerShell (it makes no difference).
+    </li>
+    <li>
+        Select "site" folder.
+    </li>
+    <li>
+        Select "wwwroot" directory.
+    </li>
+    <li style="list-style: none;">
+        <div class="image-lesson mb-3">
+            <img src="Images/31-url-redirection/14-web-config-folder-tree.png"
+                 alt="web.config folder tree." />
+        </div>
+    </li>
+    <li>
+        Localize the web.config file and click on its pencil icon to open and/or
+        edit the file:
+    </li>
+    <li style="list-style: none;">
+        <div class="image-lesson mb-3">
+            <img src="Images/31-url-redirection/30-default-web-config-file.png"
+                 alt="Default web.config file." />
+        </div>
+    </li>
+</ul>
+<p>
+    The web.config file allows to provide additional IIS configuration settings that
+    control active <a href="https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/modules?view=aspnetcore-7.0">
+        IIS modules
+    </a> such as the HTTP Rewrite module.
+</p>
+<p>
+    The <span class="fs-5">
+        <strong><code>&lt;system.webserver&gt;</code></strong>
+    </span> element specifies the root element for many of the site-level and application-level
+    configuration settings for the IIS section in the web.config file.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <span class="fs-5"><strong><code>web.config</code></strong></span> file must
+        be present in the deployment at all times, correctly named, and able to configure
+        the site for normal start up. <strong>Never remove</strong> the web.config file
+        from a production deployment.
+    </p>
+</div>
+<h4>URL Rewrite Module</h4>
+<p>
+    The URL Rewrite Module uses defined <strontg>rules</strontg> to evaluate the request
+    URL and if the requirements in the rule(s) are met, map the request URL to the address
+    specified in the rule <strong>before</strong> it is processed by the IIS web server.
+</p>
+<p>
+    URL evaluation logic is typically defined with <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference">
+        regular expressions and wildcards
+    </a>. Refer to the YouTube video <a href="https://youtu.be/sa-TUpSx1JA">
+        Regular Expressions (Regex) Tutorial: How to Match Any Pattern of Text
+    </a> by Corey Schafer for an introduction to Regex.
+</p>
+<p>
+    Rules can be applied based on the request URL, HTTP headers, and/or server
+    variables. Although the primary purpose of the module is to rewrite request URLs
+    to more friendly URLs, it can also be used to specify rules that perform redirects,
+    send custom responses, or abort requests.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        A <strong><dfn>rewrite rule</dfn></strong> defines the logic of what to compare or
+        match the request URL with and what to do if the comparison is successful.
+    </p>
+</div>
+<p>
+    A rule may have the <strong><code>StopProcessing</code></strong> flag turned on. When
+    the rule <dfn>action</dfn> is performed (i.e., the rule matched) and this flag is
+    turned on, it means that <strong>no more subsequent rules will be processed</strong>
+    and the request will be passed to the IIS request pipeline. By default, this flag
+    is turned off.
+</p>
+<p>
+    URL string parts can be
+    <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#accessing-url-parts-from-a-rewrite-rule">
+        accessed
+    </a> from a rewrite rule:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/31-url-redirection/16-url-parts.png"
+         alt="URL parts accessible from a rewrite rule." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#accessing-url-parts-from-a-rewrite-rule">
+            IIS URL rewrite module
+        </a>
+    </figcaption>
+</figure>
+<p>
+    For example, if a request was made for the URL: <strong>
+        <code>
+            https://www.app.flix-manager.com/movies/search?title=wonder+woman
+        </code>
+    </strong> and a rewrite rule was defined on the site level (inside the &lt;system.webserver&gt;
+    root element) of the web.config file then:
+</p>
+<ul>
+    <li>
+        <p>
+            The <strong><code>HTTP_HOST</code></strong> server variable contains
+            <span class="mark">www.app.flix-manager.com</span>
+        </p>
+    </li>
+    <li>
+        <p>
+            The <strong><code>REQUEST_URI</code></strong> server variable contains
+            <span class="mark">/movies/search?title=wonder+woman</span>
+        </p>
+    </li>
+    <li>
+        <p>
+            The <strong>rule pattern</strong> gets the <strong>URL string</strong>
+            <span class="mark">movies/search</span>
+        </p>
+        <p>
+            Note that the input URL string passed to a distributed rule is always
+            relative to the location of the web.config file where the rule is defined.
+            For example, if a request is made to the same URL but the rewrite rule
+            is defined in the /movies directory, then the rule gets <strong>
+                URL string:
+            </strong> <span class="mark">search</span> as an input.
+        </p>
+    </li>
+    <li>
+        <p>
+            The <strong><code>QUERY_STRING</code></strong> server variable contains
+            <span class="mark">title=wonder+woman</span>
+        </p>
+    </li>
+    <li>
+        <p>
+            The <strong><code>PATH_INFO</code></strong> server variable contains
+            <span class="mark">movies/search</span>.
+        </p>
+    </li>
+</ul>
+<p>
+    You can refer to
+    <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-server-variables-in-rewrite-rules">
+        Using server variables in rewrite rules
+    </a> of the URL rewrite module documentation for more info on how to use server
+    variables.
+</p>
+<p>
+    The following rewrite rule will be used as an example to dissect and explain its
+    different components. As its name implies, its purpose is to redirect URLs with
+    the "www" subdomain to one without it:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/17-rewrite-rule.png"
+         alt="Rewrite rule." />
+</div>
+<p>
+    Rewrite rules consist of the following parts:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>Pattern:</strong> The rewrite rule <dfn>pattern</dfn> specifies the regular
+            expression or wildcard pattern to which the current request URL string path
+            is compared to determine if there is a match.
+        </p>
+        <p>
+            Current in this context means the value of the request URL path when the rule
+            is applied. The URL string that is evaluated against the pattern <strong>
+                does not
+            </strong> include the <dfn>query string</dfn>.
+        </p>
+        <p>
+            A pattern is specified within a <strong><code>&lt;match&gt;</code></strong>
+            element of a rewrite rule:
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/31-url-redirection/18-rule-pattern.png"
+                 alt="Rewrite rule pattern." />
+        </div>
+        <p>
+            By default, case-insensitive pattern matching is used. To enable
+            case sensitivity, you can use the <strong><code>ignoreCase</code></strong>
+            attribute of the <code>&lt;match&gt;</code> element.
+        </p>
+        <p>
+            In our example above, the pattern string is a regular expression that specifies
+            that the pattern will match any URL string. The (<strong><code>*</code></strong>)
+            <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#quantifiers">
+                quantifier
+            </a> is used to match the previous element zero or more times. The
+            previous element is a dot (<strong><code>.</code></strong>) which is a
+            <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#character-classes">
+                wildcard
+            </a> that matches any single character except (\n) or newline character.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Conditions:</strong> The optional conditions collection is used to
+            specify additional logical operations to perform for rule evaluation to
+            determine if a URL string matches the rule pattern.
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/31-url-redirection/19-rule-conditions.png"
+                 alt="Rewrite rule conditions." />
+        </div>
+        <p>
+            The conditions can be based on <strong><code>input</code></strong>(s) other than
+            just a current request URL string. Rule conditions are evaluated after (and only
+            if) the rule pattern of the <code>match</code> element is successful. In our
+            example, the rule pattern will match virtually any URL; therefore, the additional
+            rule conditions element will always be executed to perfrom additional logical
+            operations on the request URL.
+        </p>
+        <p>
+            Within the conditions, you can check for certain values of HTTP headers or
+            <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-server-variables-in-rewrite-rules">
+                server variables
+            </a>, or verifiy if the requested URL corresponds to a file or directory on
+            a physical file system.
+        </p>
+        <p>
+            Our rewrite rule condition is based on an <dfn>input</dfn> that uses the
+            <code>HTTP_HOST</code> server variable which retrieves the URL host; e.g.,
+            www.app.flix-manager.com
+        </p>
+        <p>
+            Conditions are defined within a <strong><code>&lt;conditions&gt;</code></strong>
+            collection element of a rewrite rule. This collection has an <strong>
+                attribute
+            </strong> called <strong><code>logicalGrouping</code></strong> that controls
+            how conditions are evaluated. If a <dfn>rule</dfn> has <dfn>conditions</dfn>,
+            then the rule <dfn>action</dfn> is performed only if rule <dfn>pattern</dfn> is
+            matched and:
+            <ul>
+                <li>
+                    All conditions were evaluated as true, provided that
+                    <strong><code>logicalGrouping="MatchAll"</code></strong>
+                    was used.
+                </li>
+                <li>
+                    At least one of the conditions was evaluated as true, provided
+                    that <strong><code>logicalGrouping="MatchAny"</code></strong>
+                    was used.
+                </li>
+            </ul>
+        </p>
+        <p>
+            In our example, all conditions must evaluate to true. Otherwise the rewrite
+            action will not be enforced.
+        </p>
+        <p>
+            A condition is defined by specifying the following properties:
+            <ul>
+                <li>
+                    <p>
+                        <strong>Input string</strong>. Condition <code>input</code> specifies
+                        which item to use as an input for the condition evaluation; i.e., the
+                        string or regex to which the current request URL will be compared to
+                        and evaluate if it is a match.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <strong>Match type</strong>. Do not confuse the "input match
+                        type" <strong>property</strong> value (e.g., IsFile, IsDirectory, or
+                        Pattern) with the <code>&lt;match&gt;</code> element discussed
+                        earlier for the <dfn>rule pattern</dfn> (e.g., match url).
+                    </p>
+                    <p>
+                        The match type of the input string can be one of the following options:
+                        <ul>
+                            <li>
+                                <code>IsFile</code>: used to determine whether the input
+                                string contains a physical path to a file on a file system.
+                            </li>
+                            <li>
+                                <code>IsDirectory</code>: used to determine whether the
+                                input string contains a physical path to a directory on a
+                                file system.
+                            </li>
+                            <li>
+                                <code>Pattern</code>: used to express a condition where an
+                                arbitrary <dfn>input string</dfn> (e.g., request URL string)
+                                is matched against a regular expression pattern.
+                            </li>
+                        </ul>
+                    </p>
+                </li>
+            </ul>
+        </p>
+        <p>
+            The rewrite rule condition in the example above has an <dfn>input string</dfn>
+            with a match of type "Pattern". The pattern is defined with a regular expression
+            which is used to evaluate or compare to the "input" string value.
+        </p>
+        <p>
+            The regular expression uses the <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#anchors">
+                assertion anchor
+            </a> (<code>^</code>) to specify that the match must start at the
+            beginning of the input string. Then it uses parenthesis to define a <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#grouping-constructs">
+                grouping construct
+            </a> with a subexpression that requires the start of the value of the
+            HTTP_HOST server variable (e.g., www.app.flix-manager.com) to be "www" followed by a dot
+            (<strong><code>.</code></strong>).
+        </p>
+        <p>
+            The second grouping construct will match any string. The
+            (<strong><code>*</code></strong>) <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#quantifiers">
+                quantifier
+            </a> is used to match the previous element zero or more times. The
+            previous element is a dot (<strong><code>.</code></strong>) which is a
+            <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#character-classes">
+                wildcard
+            </a> that matches any single character except (\n) or newline character.
+        </p>
+        <p>
+            Finally, it uses the (<strong><code>$</code></strong>) assertion anchor
+            to specify that the match must occur at the end of a string or before
+            (/n or new line).
+        </p>
+        <p>
+            Simply put, the <dfn>input string</dfn> in our condition requires that
+            the host of the request URL (e.g., www.app.flix.manager.com) starts with
+            "www", suffixed with a dot (.), followed by whatever value, and up to a
+            new line character(/n).
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Action:</strong> The action is used to indicate what to do if the
+            request URL string matches the rule pattern and the evaluation of the rule(s)
+            in the condition(s) succeeded. Depending on the rule configuration, either all
+            conditions must match or any one of the conditions matched (e.g., MatchAll - MatchAny).
+        </p>
+        <p>
+            There are several types of actions available and the <strong><code>type</code></strong>
+            attribute of the <strong><code>&lt;action&gt;</code></strong> configuration
+            element can be used to specify which action the rule performs.
+        </p>
+        <p>
+            The <dfn>action</dfn> type can be one of the following options:
+            <ul>
+                <li>
+                    <p>
+                        <span class="fs-5"><strong><code>Rewrite</code></strong></span> action:
+                        <strong>Replaces</strong> the current URL string with a substitution string.
+                        A substitution string must always specify the URL path (e.g.,
+                        <span class="mark">movies/search</span>).
+                    </p>
+                    <p>
+                        A <code>Rewrite</code> action has the following configuration
+                        options:
+                        <ul>
+                            <li>
+                                <p>
+                                    <strong><code>url</code></strong>: This is the substitution string
+                                    to use when rewriting the current URL. It can include
+                                    <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-back-references-in-rewrite-rules">
+                                        back references
+                                    </a> and/or
+                                    <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-server-variables-in-rewrite-rules">
+                                        server variables
+                                    </a>.
+                                </p>
+                            </li>
+                            <li>
+                                <p>
+                                    <strong><code>appendQueryString</code></strong>: Specifies
+                                    whether the query string from the current request URL is
+                                    preserved during substitution.
+                                </p>
+                                <p>
+                                    By default, if the value of the appendQueryString flag is
+                                    not specified, it is assumed to be TRUE. This means that
+                                    <strong>the original URL is appended to the substituted URL.</strong>
+                                </p>
+                            </li>
+                        </ul>
+                    </p>
+                    <p>
+                        Our rewrite rule does not have an action of type "Rewrite".
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <span class="fs-5"><strong><code>Redirect</code></strong></span> action:
+                        Instructs the URL rewrite module to <strong>
+                            send a redirect response back to the client.
+                        </strong> The redirect status code (3xx) can be specified as a
+                        parameter for this action.
+                    </p>
+                    <p>
+                        The <dfn>Location</dfn> Http header of the response contains the
+                        substitution URL string specified in the <dfn>action</dfn> of the
+                        redirect rule:
+                    </p>
+                    <div class="image-lesson mb-3">
+                        <img src="Images/31-url-redirection/22-location-header.png"
+                             alt="Location header." />
+                    </div>
+                    <p>
+                        The substitution URL for the redirect rule can be specified in one
+                        of the following forms:
+                        <ul>
+                            <li>Relative URL path: movies/search?title=wonder+woman</li>
+                            <li>
+                                Absolute URI: https://app.flix-manager.com/movies/search
+                            </li>
+                        </ul>
+                    </p>
+                    <p>
+                        Execution of a redirect action implies that no subsequent rules
+                        are evaluated for the current URL after redirection is performed.
+                    </p>
+                    <p>
+                        A <code>Redirect</code> action has the following configuration
+                        options:
+                        <ul>
+                            <li>
+                                <p>
+                                    <strong><code>url</code></strong>: Uses a substitution
+                                    string as a redirection URL. A substitution URL is a
+                                    string that can include the following:
+                                    <ul>
+                                        <li>
+                                            <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-back-references-in-rewrite-rules">
+                                                Back-references
+                                            </a> to the condition and/or to the rule
+                                            patterns. More on back-references below.
+                                        </li>
+                                        <li>
+                                            <a>
+                                                Server variables.
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </p>
+                                <p>
+                                    <strong><code>appendQueryString</code></strong>: Specifies
+                                    whether the query string from the current URL should be
+                                    preserved during substitution. If the flag is not specified,
+                                    it is assumed to be TRUE; i.e., <strong>
+                                        by default, the query string from the original URL is
+                                        appended to the substituted URL.
+                                    </strong>
+
+                                </p>
+                                <p>
+                                    <strong><code>redirectType</code></strong>: Specifies that
+                                    status code to use during redirect:
+                                    <ul>
+                                        <li>301-Permanent.</li>
+                                        <li>302-Found.</li>
+                                        <li>303-See other.</li>
+                                        <li>304-Temporary.</li>
+                                    </ul>
+                                </p>
+                            </li>
+                        </ul>
+                    </p>
+                    <div class="image-lesson mb-3">
+                        <img src="Images/31-url-redirection/20-rule-action.png"
+                             alt="Rewrite rule action." />
+                    </div>
+                    <p>
+                        In our example, the <dfn>rule action</dfn> has a type <code>Redirect</code>
+                        with a <code>url</code> attribute that specifies the substitution URL
+                        string with a <code>redirectType</code> permanent.
+                    </p>
+                    <p>
+                        The substitution string value of its <code>url</code> attribute starts
+                        with an Https protocol and uses a "back-reference" (e.g., C:2) to the
+                        "<dfn>pattern</dfn>" of the "<dfn>condition input string</dfn>" to <a>
+                            extract
+                        </a> the host without the subdomain:
+                    </p>
+                    <figure class="figure d-flex flex-column justify-content-center">
+                        <img class="image-lesson" style="max-width: 600px; margin:auto;"
+                             src="Images/31-url-redirection/21-back-reference-example.png"
+                             alt="Back reference example." />
+                        <figcaption class="figure-caption text-center">
+                            <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-back-references-in-rewrite-rules">
+                                URL Rewrite Module Configuration Reference
+                            </a>
+                        </figcaption>
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <span class="fs-5"><strong><code>CustomResponse</code></strong></span>
+                        action: It instructs the URL Rewrite Module to respond to the HTTP
+                        client by using a user-specified status code, subcode, and reason.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <span class="fs-5"><strong><code>AbortRequest</code></strong></span>
+                        action: It indicates to the URL Rewrite Module to drop the HTTP
+                        connection for the current request. The action does not have any
+                        parameters.
+                    </p>
+                </li>
+            </ul>
+        </p>
+    </li>
+</ul>
+<h5>Using back-references in rewrite rules</h5>
+<p>
+    Parts of rules or conditions inputs can be captured in back-references. These can be
+    then used to construct:
+</p>
+<ul>
+    <li>
+        Substitution URLs within rule actions.
+    </li>
+    <li>
+        Input strings for rule conditions.
+    </li>
+</ul>
+<p>
+    Back-references are generated depending on which kind of pattern syntax is used for the
+    <dfn>rule</dfn>.
+</p>
+<p>
+    When an <strong>ECMAScript pattern syntax is used</strong>, a back-reference can be
+    created by putting parenthesis around the part of the pattern that must capture the
+    back-reference:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/23-back-reference-parenthesis.png"
+         alt="Back-reference created with parenthesis." />
+</div>
+<p>
+    As mentioned earlier, the pattern shown in the image above would produce back-references
+    indexed as follows:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/31-url-redirection/21-back-reference-example.png"
+         alt="Back reference example." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-back-references-in-rewrite-rules">
+            URL Rewrite Module Configuration Reference
+        </a>
+    </figcaption>
+</figure>
+<p>
+    When a <strong>Wildcard pattern syntax is used</strong>, the back-references are
+    <strong>always</strong> created when the (<strong><code>*</code></strong>) <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference#quantifiers">
+        quantifier
+    </a> is used in the pattern. For example the pattern <strong><code>*/*.html</code></strong>
+    will capture <strong>app.flix-manager.com</strong> and <strong>index</strong> in
+    back-references from this requested URL: <strong>
+        app.flix-manager.com/index.html
+    </strong>
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Back-refernces to <strong>condition</strong> patterns are identified by
+        <strong><code>{C:N}</code></strong> where N is from 0 to 9. Back-references
+        to <strong>rule</strong> patterns are identified by <strong><code>{R:N}</code></strong>
+        where N is from 0 to 9. Both types of back-references will contain the matched string.
+    </p>
+</div>
+<p>
+    Usage of <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#using-back-references-in-rewrite-rules">
+        back-references
+    </a>is the same regardless of which pattern syntax is used to
+    capture them. Back-references can be used in the following locations within
+    rewrite rules:
+</p>
+<ul>
+    <li>
+        In <dfn>condition input strings</dfn>.
+    </li>
+    <li>
+        In <dfn>rule actions</dfn>, specifically:
+        <ul>
+            <li>
+                <code>url</code> attribute of a <dfn>rewrite</dfn> or <dfn>redirect action.</dfn>
+            </li>
+            <li>
+                <code>statusLine</code> and <code>responseLine</code> of a <dfn>
+                    CustomResponse action.
+                </dfn>
+            </li>
+            <li>
+                In a <dfn>key</dfn> parameter to the rewrite map.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/url-rewriting?view=aspnetcore-7.0#irule-based-rule">
+            URL Rewriting Middleware in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections">
+            Redirections in HTTP
+        </a>
+    </li>
+    <li>
+        <a href="https://weblogs.asp.net/owscott/rewrite-vs-redirect-what-s-the-difference#:~:text=Simply%20put%2C%20a%20redirect%20is,it%27s%20fully%20processed%20by%20IIS.">
+            URL Rewrite vs. Redirect; What's the difference?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#webconfig-1">
+            web.config (Blazor)
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/web-config?view=aspnetcore-7.0">
+            web.config file
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/resources-kudu">
+            Kudu service overview
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#use-a-custom-webconfig-1">
+            Host and deploy ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/sa-TUpSx1JA">
+            Regular Expressions (Regex) Tutorial: How to Match Any Pattern of Text
+        </a> by Corey Schafer
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference">
+            URL Rewrite Module Configuration Reference
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a <a>custom web.config</a> file for your web app to include two <dfn>redirect</dfn>
+    rules:
+</p>
+<ul>
+    <li>
+        Redirect URL requests prefixed with a "www" subdomain to a none "www"
+        domain.
+    </li>
+    <li>
+        Redirect URL requests suffixed with "flix-manager.azurewebsites.net" to
+        the main subdomain of the app (e.g., https://app.flix-manager.com).
+    </li>
+</ul>
+<p>
+    <strong>Make sure that both redirect <dfn>actions</dfn></strong> consider the
+    entire requested URL path including the query string; i.e., ensure they include
+    the <code>REQUEST_URI</code> server variable. This configuration will enable
+    redirection to any application resource, not just to its index, provided that
+    the current user has the required credentials.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    You need to create a web.config app locally. Otherwise, if you modify and save the
+    web.config file from the debug console of the Kudu service in Azure, every time the
+    app is published and re-deployed, the web.config file is overwritten to the default
+    values.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Store a backup file of the default web.config file created in the Azure App Service
+    web app. We will need its defaults for our new web.config file.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Go to the debug console of the Kudu service for your Azure App Service web app and
+    access its web.config file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/30-default-web-config-file.png"
+         alt="Default web.config file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Copy the content in the default web.config file, create a backup, and store it in
+    a safe place.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Visual Studio Solution Explorer to verify if the app already has a
+    web.config file. Typically, it doesn't.
+</p>
+<p>
+    We explained that the web.config file must be present at the <dfn>content root path</dfn>
+    (the app base path) of the deployed app (e.g., Application/Server-Api
+    folder). We also mentioned in the <a href="07-dynamic-website">Dynamic Website</a>
+    lesson, that when a <a href="05-api">hosted Blazor WASM application</a>  is
+    "Published", the client project of the Blazor WebAssembly app <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#hosted-deployment-with-aspnet-core-1">
+        is published into
+    </a> the Application/Server-Api/bin/Release/{TargetFramework} folder of the
+    <strong>server</strong> project (Application/Server-Api) and the two apps (projects:
+    Application/Client and Application/Server-api) are deployed together.
+</p>
+<p>
+    For this reason, we must verify the existence (or not) of the <strong>
+        <code>
+            web.config
+        </code> file in two locations.
+    </strong> In the Application/Server-Api root folder and in the
+    Application/Server-Api/bin/Release/{TargetFramework} folder with all the published
+    files.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Use the Visual Studio Solution Explorer to verify that the Application/Server-Api
+    root folder does not contain a web.config file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/15-server-folder-tree.png"
+         alt="Application/Server-Api folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Use the Visual Studio Solution Explorer to verify that the
+    Application/Server-Api/bin/Release/{TargetFramework} folder of the
+    <strong>server</strong> project (Application/Server-Api) does not contain a web.config
+    file. Files have been omitted for brevity but note that they are ordered alphabetically:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/28-release-folder-tree.png"
+         alt="Application/Server-Api Release folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Create a web.config file in the Application/Server-Api project and define the
+    URL redirection rules.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Use Visual Studio Solution Explorer to "Add" a new item of type web.config
+    file to the root folder of the Application/Server-Api project:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/29-add-dialog-box.png"
+         alt="Add web.config dialog box." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Populate the recently created web.config file with the content of the default
+    web.config file from Azure App Service obtained in step one, plus the URL
+    rewrite rules:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/31-web-config-temporary.png"
+         alt="Web.config file with temporary redirect types." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The <code>redirectType</code> attribute for both rewrite rules is "Temporary"
+    for the time being but it must be "Permanent".
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Test the web.config file for syntax errors. You can use the
+    <a href="https://elmah.io/tools/config-validator/">
+        Web.config Validator
+    </a> website:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/24-web-config-validator.png"
+         alt="Web.config validator website." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    <a href="07-dynamic-website">Publish and deploy</a> the application to Azure App
+    Service and confirm that the web.config file is properly created in the
+    release folder and in the root path of the Azure App Service web app.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Publish the application and confirm that the web.config file is created in the
+    Application/Server-Api/bin/Release/{TargetFramework} folder:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/32-web-config-release.png"
+         alt="web.config file created in the Release folder." />
+</div>
+<p>
+    Ensure that the web.config file of the Release folder <strong>
+        has exactly the same values
+    </strong> of the Application/Server-Api web config file. If the SDK's web.config
+    generation or transformation during publish either does not move the file to
+    published assets in the Release folder or modifies the custom configuration in your
+    custom web.config file, refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#use-a-custom-webconfig-1">
+        Use a custom web.config
+    </a> documentation.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Use the Kudu console to access the Azure App Service web app's web.config file and
+    ensure the values are exactly the same as the ones defined in the web.config file
+    in the Release folder of the local machine:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/33-web-config-kudu.png"
+         alt="web.config file of the Azure App Service web app." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Test both secondary subdomains
+    <a href="https://www.app.flix-manager.com">
+        https://www.app.flix-manager.com
+    </a> and
+    <a href="https://flix-manager.azurewebsites.net ">
+        https://flix-manager.azurewebsites.net
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1</span>
+    Open a web browser to navigate to either one of the subdomains and confirm that the
+    redirect rule is working properly. Check both subdomains:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/34-url-redirect-temp-ok.png"
+         alt="Request headers with temporary redirect." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Update the Application/Server-Api web.config file. Replace the <code>redirectType</code>
+    from "Temporary" to "Permanent".
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1</span>
+    Go to the Application/Server-Api web.config file an modify the <code>redirectType</code>
+    attribute value to "Permanent":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/35-web-config-permanent.png"
+         alt="web.config file with permanent redirect type." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2</span>
+    Publish and deploy the application. Confirm that the web.config located in the
+    Application/Server-Api/bin/Release/{TargetFramework} folder is updated accordingly:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/35-web-config-permanent.png"
+         alt="web.config file with permanent redirect type." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.3</span>
+    Use the Kudu console to access the Azure App Service web app's web.config file and
+    ensure the values are exactly the same as the ones defined in the web.config file
+    in the Release folder of the local machine:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/36-web-config-kudu.png"
+         alt="web.config file of the Azure App Service web app." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Test both secondary subdomains
+    <a href="https://www.app.flix-manager.com">
+        https://www.app.flix-manager.com
+    </a> and
+    <a href="https://flix-manager.azurewebsites.net ">
+        https://flix-manager.azurewebsites.net
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1</span>
+    Open a web browser to navigate to either one of the subdomains and confirm that the
+    redirect rule is working properly:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/26-redirection-confirmed.png"
+         alt="Network tab of dev tools confirms redirection." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.2</span>
+    Login with the <a href="04-secure-user-manager">
+        admin user
+    </a>, navigate to the "Users" submenu, and confirm that access is granted and that
+    the content is displayed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/31-url-redirection/27-users-content.png"
+         alt="Users content." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Our custom web.config file has redirect rules that use <dfn>pattern matching</dfn>
+        to compare to the request URL. This broadens its functionality to accommodate
+        to any URL that targets an Application/Server-Api resource, not just the index
+        page. The redirect rules support <a href="05-filters">deep linking</a>.
+    </p>
+</div>
+<p>
+    If you were to have a large set of rewrite rules and all of these rules use
+    static strings (no pattern matching used), you can put all the mappings into a
+    <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference#rewrite-maps">
+        rewrite map
+    </a> as keys and values between the input URL and the substitution
+    URL.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/url-rewrite-module-configuration-reference">
+            URL Rewrite Module Configuration Reference
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference">
+            Regular Expressions
+        </a>
+    </li>
+    <li>
+        YouTube video <a href="https://youtu.be/sa-TUpSx1JA">
+            Regular Expressions (Regex) Tutorial: How to Match Any Pattern of Text
+        </a> by Corey Schafer.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/iis/extensions/url-rewrite-module/creating-rewrite-rules-for-the-url-rewrite-module">
+            Creating Rewrite Rules for the URL Rewrite Module
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.elmah.io/web-config-redirects-with-rewrite-rules-https-www-and-more/">
+            Web.config redirects with rewrite rules - https, www, and more
+        </a>
+    </li>
+    <li>
+        <a href="https://elmah.io/tools/config-validator/">
+            Web.config Validator
+        </a>
+    </li>
+    <li>
+        <a href="https://rakhesh.com/azure/url-redirection-using-azure-app-service/">
+            URL redirection using Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/answers/questions/568035/azure-app-service-redirect.html">
+            Azure App Service Redirect
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/64275875/asp-net-core-identity-server-4-only-one-of-three-custom-domain-accepted-for-requ">
+            asp.net core identity server 4 only one of three custom domain accepted
+            for requests
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/57917997/azure-setting-up-redirect-from-root-domain-to-subdomain">
+            Azure: Setting up redirect from root domain to subdomain
+        </a>
+    </li>
+
+</ul>
+<p>
+    The Flix-Manager web app is fully configured to run in the cloud, we can focus on
+    documenting its Application/Server-Api RESTFUL service.
+</p>
+
+
+

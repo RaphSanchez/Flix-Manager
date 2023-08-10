@@ -1,0 +1,553 @@
+﻿@page "/09-custom-domain-web-app"
+<PageTitle>Custom Domain Web App</PageTitle>
+
+<h2>Deployment - Custom Domain Web App</h2>
+<p>
+    In this lesson, we will demonstrate how to map a custom Domain Name System (DNS) name to
+    an Azure App service. It is paramount that you have a basic knowledge of how the Domain
+    Name System (DNS) works. Please refer to the <a href="04-azure-dns">Azure DNS</a> lecture
+    for an introduction on this topic.
+</p>
+<p>
+    With regards to a Software as a Service (SaaS) application, it is a good practice to
+    separate the sales or marketing site from the application itself. Otherwise, almost any
+    modification to the marketing side of the application will likely require a developer.
+    What's more, you could be limiting the technology stack that the sales site could be in.
+    For example, you could have the marketing site in WordPress and the actual application in
+    .Net.
+</p>
+<p>
+    The optimal approach is to have the marketing site separate from the application. This
+    way, the marketing/sales team can perform modifications without interfering or requiring
+    any modification in the actual application. Likewise, the developer can focus on improving
+    the application without having any impact on the sales or marketing site. In summary, some
+    of the benefits of this approach are:
+</p>
+<ul>
+    <li>
+        No need for test and deploy for every marketing update.
+    </li>
+    <li>
+        Less interruptions for software developers.
+    </li>
+    <li>
+        Marketing department has more flexibility and agility to experiment new things.
+    </li>
+    <li>
+        Marketing site and the application can use separate libraries and static assets.
+    </li>
+    <li>
+        Built-in redundancy; i.e., if your app goes down, your marketing site will likely
+        stay up and running. This gives the app users a place to contact support.
+    </li>
+</ul>
+<p>
+    Having explained this, the idea is to use the main domain (e.g., flix-manager.com)
+    for the marketing site and a subdomain (e.g., app.flix-manager.com) for the application.
+</p>
+<p>
+    We will host the DNS domain zone for both the marketing site and the application in
+    Azure DNS because it allows alias records to refer to Azure resources such as an Azure
+    App service. If the IP address of the underlying resource changes, the alias record set
+    seamlessly updates itself during DNS resolution.
+</p>
+<p>
+    The alias record set points to the service instance and the service instance is associated
+    with an IP address. As explained in the <a href="04-azure-dns">Azure DNS</a> lecture, in
+    order for DNS queries for a domain to reach Azure DNS, the domain has to be delegated to
+    Azure DNS from the top level domain (TLD). Keep in mind that Azure DNS is not the domain
+    registrar, it is an <a href="04-azure-dns">authoritative</a> DNS service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Azure DNS zone for the main domain (flix-manager.com), retrieve its list of name
+    servers, delegate the domain, and verify that the delegation is working.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    In this lesson, "flix-manager.com" is used as an example domain name but you can replace
+    it with your own domain name.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns#create-a-dns-zone">
+        Create a DNS zone
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/01-dns-zone.png"
+         alt="DNS zone for flix-manager.com" />
+</div>
+<p>
+    An <dfn>apex</dfn> record is a DNS record at the root (or apex) of a DNS zone. For
+    example, in the DNS zone "flix-manager.com", an apex record also has the fully
+    qualified domain name (FQDN) "flix-manager.com" (this is sometimes called <dfn>naked</dfn>
+    domain). <a href="https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#record-names">
+        By convention
+    </a>,
+    <strong>the realtive name "<code>@@</code>" is used to represent apex records.</strong>
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Retrieve the name servers to delegate your domain's DNS zone to Azure DNS. In our
+    example, the DNS zone "flix-manager.com" has been assigned name servers:
+</p>
+<ul>
+    <li>ns1-35.azure-dns.com.</li>
+    <li>ns2-35.azure-dns.net.</li>
+    <li>ns3-35.azure-dns.org.</li>
+    <li>ns4-35.azure-dns.info.</li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Domain delegation <strong>does not</strong> require a name server to use the same
+    top-level domain as your domain. For example, "example.org" domain can be delegated
+    with the name servers provided by Azure eventhough their top-level domains do not
+    match.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Delegate the domain. Once the DNS zone gets created and you have the name servers,
+    you need to update the parent domain with the Azure DNS name servers.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Go to your domain name registrar (e.g., CheapDomain, GoDaddy, etc) to change the name
+    server records for a domain. Use all four name servers provided by Azure DNS.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Most domain registrars expect the trailing period at the end of the address. The trailing
+    period indicates the end of a <a href="01-deployment-fundamentals">
+        fully qualified domain name
+    </a> (FQDN).
+</p>
+<p>
+    However, this is not the case with CheapDomain where the <code>flix-manager.com</code>
+    domain is registered. If the name server addresses for Azure include the trailing dot,
+    cheap domain's registrar interface returns an error indicating that the host name has
+    an invalid Top Level Domain (TLD):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/02-invalid-tld.png"
+         alt="Invalid top level domain with trailing dot." />
+</div>
+<p>
+    The issue can be solved easily by removing the trailing period:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/03-custom-name-servers.png"
+         alt="Custom name servers." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Dependent on the default Time To Live (<a href="01-deployment-fundamentals">TTL</a>)
+    value, propagation period could be between a few minutes to 24 hrs. Use the Windows
+    terminal (Windows PowerShell) to verify the delegation; i.e., to perform a name server
+    lookup of the NS records for the domain. The name servers should point to the Azure DNS
+    name servers:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/08-ns-lookup.png"
+         alt="nslookup confirms DNS delegation." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    At this point, you should configure email delivery in Azure DNS by adding the DNS records
+    for the email service provider's email exchange server (e.g., Zoho). You can follow the
+    <a href="https://www.zoho.com/mail/help/adminconsole/configure-email-delivery.html?zredirect=f&zsrc=langdropdown&lb=es-xl">
+        Zoho
+    </a> documentation and the full task performed in the <a href="04-azure-dns">Azure DNS</a> lecture.
+</p>
+<p>
+    Data Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://youtu.be/YSepGZA_cS4">
+            Should my SaaS web app be located on a subdomain?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-for-azure-services">
+            How Azure DNS works with other Azure services
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-domain-delegation">
+            Delegation of DNS zones with Azure DNS
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns#delegate-the-domain">
+            Tutorial: Host your domain in Azure DNS
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/HxvrgbvBh4g">
+            All about Domain Names
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-getstarted-portal">
+            Quickstart: Create an Azure DNS zone and record using the Azure portal.
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/delegate-subdomain?source=recommendations">
+            Delegate an Azure DNS subdomain
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/dAsC1XHmNC4">
+            How to configure Public DNS Zone for Hosting your Domain in Azure
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/RqWRumxW0ws">
+            Delegating Subdomain from Name Service Provider to Azure DNS Zone
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-faq">
+            Azure DNS FAQ
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/private-dns-overview">
+            What is Azure Private DNS
+        </a>
+    </li>
+</ul>
+<p>
+    With the Azure DNS zone established, we need to configure it to resolve host names
+    for the public domain; i.e., we need to configure it to host the <code>
+        app.flix-manager.com
+    </code> and the <code>www.app.flix-manager.com</code> subdomains and resolve them to
+    the web app. In the coming lessons, we will configure the apex domain
+    <code>flix-manager.com</code> and the <code>www.flix-manager.com</code> subdomains to
+    resolve to a static website responsible for displaying the marketing/sales website.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure the DNS zone to resolve host names for the public subdomains "app.flix-manager.com"
+    and "www.app.flix-manager.com". In the interest of learning, select the "App Service Managed
+    Certificate" and "Add certificate later" respectively. The 'later' option will require us to
+    eventually get an SSL/TLS digital certificate from an external CA to secure communications
+    between the client, the user, and the server that hosts the www.app.flix-manager.com subdomain.
+</p>
+<p>
+    To add a custom domain to your web app, you need to:
+</p>
+<ul>
+    <li>
+        Verify ownership of the domain by adding a verification ID as a TXT record with your
+        domain host provider. In our case, we have to add the record to its Azure DNS zone.
+    </li>
+    <li>
+        Add an alias record with Azure DNS to point to the app service. The reccommended type
+        of DNS record is dependent on whether you are configuring a root domain or a subdomain:
+    </li>
+</ul>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/29-custom-domain-app-serv/13-dns-record-types.png"
+         alt="DNS record types." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=a%2Cazurecli#dns-record-types">
+            DNS record types
+        </a>
+    </figcaption>
+</figure>
+<p>
+    Consider that in both cases (app.flix-manager.com and www.app.flix-manager.com), we
+    are working with subdomains, as opposed to work with the root domain.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Adding domain verification IDs (TXT records) to your custom domain can prevent
+        dangling DNS entries and help to avoid subdomain takeovers. You should always
+        protect your custom domains by adding the verification ID to your DNS records.
+        For more information on this common high-severity threat, see <a href="https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover">
+            Subdomain takeover
+        </a>.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Obtain the record set types and values for the naked subdomain (app.flix-manager.com).
+    These values must be registered wherever the DNS for your domain is hosted to prove
+    ownership and allow to point the alias record to the Azure resource.; e.g., in the
+    Azure DNS zone we created earlier.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Follow the Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=cname%2Cazurecli#2-get-a-domain-verification-id">
+        Get a domain verification ID
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/09-domain-verif-id.png"
+         alt="App Service IP address and verification ID." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    If we were to <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=a%2Cazurecli#tabpanel_1_a">
+        configure the DNS records for the apex domain
+    </a>, we would also need the IP address but as you can tell from the table shown above,
+    the recommended DNS record type to <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=cname%2Cazurecli#tabpanel_1_cname">
+        map a suddomain
+    </a> is a CNAME record.
+</p>
+<p>
+    You have to create an alias record with Azure DNS to point to your app service. The
+    alias record (CNAME record) is a DNS record that maps a source domain to a destination
+    domain name. For Azure, the source domain is your custom domain name and the destination
+    domain name is the public URL of the App Service. Azure DNS uses alias records for Azure
+    resources within the same subscription.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    To obtain the record set types and values that we need to register in the Azure DNS zone
+    to prove ownwership of the subdomains and map them to the Azure resource, go to the "Custom
+    domains" blade of the App Service web app and select "Add custom domain".
+</p>
+<p>
+    At this point, we are not adding the custom domain, we are simply taking note of the
+    required record set types and values that we need to register in the DNS zone. The value
+    for the TXT record set is the identical to the Domain Verification ID obtained in step 1.1.
+</p>
+<p>
+    Record sets for the "app.flix-manager.com" subdomain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/10-record-set-values-app.png"
+         alt="Record set values for app.flix-manager.com subdomain." />
+</div>
+<p>
+    Record sets for the "www.app.flix-manager.com" subdomain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/11-record-set-values-www.png"
+         alt="Record set values for www.app.flix-manager.com subdomain." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=cname%2Cazurecli#3-create-the-dns-records">
+        Create the DNS records
+    </a> for both subdomains.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Duplicate the Azure portal web browser tab to navigate to the Azure DNS zone
+    created earlier and <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=cname%2Cazurecli#tabpanel_1_cname">
+        add
+    </a> the DNS record set values for the "app.flix-manager.com" subdomain.
+</p>
+<p>
+    CNAME record set:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/12-cname-app.png"
+         alt="CNAME record set for app.flix-manager.com subdomain." />
+</div>
+<p>
+    TXT record set:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/25-txt-app.png"
+         alt="TXT record set for app.flix-manager.com subdomain." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Add the DNS record set values for the "www.app.flix-manager.com" subdomain.
+</p>
+<p>
+    CNAME record set:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/26-cname-www.png"
+         alt="CNAME record set for www.app.flix-manager.com subdomain." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The CNAME record is created as an <a href="https://learn.microsoft.com/en-us/azure/dns/dns-alias">
+        alias record
+    </a> that points to another DNS record set within the same zone. It points to the
+    "app" record set.
+</p>
+<p>
+    TXT record set:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/27-txt-www.png"
+         alt="TXT record set for www.app.flix-manager.com subdomain." />
+</div>
+<p>
+    Complete DNS zone record sets:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/06-complete-dns-zone.png"
+         alt="Complete DNS zone record sets." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Use the <a href="https://mxtoolbox.com/SuperTool.aspx">
+        MxToolbox
+    </a> site to validate the CNAME record set for both subdomains:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/16-mx-toolbox-cname.png"
+         alt="MxToolbox validation for CNAME record set." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4:</span>
+    Use the <a href="https://mxtoolbox.com/SuperTool.aspx">
+        MxToolbox
+    </a> site to validate the TXT record set for both subdomains:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/17-mx-toolbox-txt.png"
+         alt="MxToolbox validation for TXT record set." />
+</div>
+<p>
+    Since the host names for the public domains "app.flix-manager.com" and "www.app.flix-manager.com"
+    are configured to resolve to the web app, we can proceed to validate the custom
+    subdomains to enable the mapping to the Azure resource (web app). Keep in mind that
+    the naked domain (flix-manager.com) will require the same procedure when the static
+    web app is created to host the marketing/sales website.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow Azure documentation to validate and <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=cname%2Cazurecli#tabpanel_2_cname">
+        enable the mapping
+    </a> of the custom subdomains (e.g., app.flix-manager.com and www.app.flix-manager.com)
+    to the Azure App service created to host the dynamic web app.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the "Custom domains" blade of the App Service, select "+ Add
+    custom domain" and validate the DNS record sets for the app.flix-manager.com
+    subdomain we just configured. Select the "Add" button element after a successful
+    validation to map the custom subdomain to the web app resource. <strong>
+        Consider that it might take up to an hour or so for propagation,
+    </strong> specially if you make any modifications to the initial configuration.
+</p>
+<p>
+    Recall that the app.flix-manager.com subdomain will be secured with a free Azure
+    App Service Managed Certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/14-app-domain-validation.png"
+         alt="Subdomain validation app.flix-manager.com" />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the "Custom domains" blade of the App Service, select "+ Add
+    custom domain" and validate the DNS record sets for the www.app.flix-manager.com
+    subdomain we just configured. Select the "Add" button element after a successful
+    validation to map the custom subdomain to the web app resource. <strong>
+        Consider that it might take up to an hour or so for propagation,
+    </strong> specially if you make any modifications to the initial configuration.
+</p>
+<p>
+    Recall that the www.app.flix-manager.com subdomain will be secured with an
+    external CA certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/28-www-app-domain-validation.png"
+         alt="Subdomain validation www.app.flix-manager.com" />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Verify the custom subdomains we just configured.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Go to the "Custom domains" blade of the App Service to verify that the custom
+    domains are reflected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/20-custom-domains.png"
+         alt="Custom subdomains for App Service." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It might take some time (10 - 15 minutes) for the new custom domains to be reflected
+        in the Custom Domains page of the App Service.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Alternatively, you can go to the Networking blade of the App Service and navigate
+    to the Web App card:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/24-networking-blade.png"
+         alt="Networking tab with configured domains." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Type in the URL of each subdomain (app.flix-manager.com and www.app.flix-manager.com)
+    in the address bar of the web browser:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/29-custom-domain-app-serv/23-url-subdomain-not-secure.png"
+         alt="Web browser with active subdomain URL. Not secure" />
+</div>
+<p>
+    The custom subdomains that point to the web application are fully functional. However,
+    they are not secure because they still need to be bound to a digital security
+    certificate (SSL/TLS certificate) to secure the data exchange between the server and
+    the client.
+</p>
+<p>
+    The next lesson will demonstrate how to:
+</p>
+<ul>
+    <li>
+        Create an Azure Managed Certificate and bind it to the custom subdomain:
+        app.flix-manager.com
+    </li>
+    <li>
+        Create an external CA certificate and bind it to the custom subdomain:
+        www.app.flix-manager.com
+    </li>
+</ul>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain?tabs=a%2Cazurecli#dns-record-types">
+            Tutorial: Map an existing custom DNS name to Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/en-us/pricing/details/dns/">
+            Azure DNS pricing
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-custom-domain#app-service-web-apps">
+            Use Azure DNS to provide custom domain settings for an Azure service
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/BrJtpCV_foU">
+            How To Setup Azure App Service Custom Domains with Certificates
+        </a> by Blaize Stewart
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/BwdvltGl6iw">
+            Azure App Service Custom Domain | Configuring Custom Domain for Azure App Service
+        </a> from iCode2Learn
+    </li>
+    <li>
+        <a href="https://mxtoolbox.com/SuperTool.aspx">
+            MxToolbox
+        </a>
+    </li>
+</ul>

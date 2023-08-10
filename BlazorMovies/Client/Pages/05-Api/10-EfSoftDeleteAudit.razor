@@ -1,0 +1,1082 @@
+﻿@page "/10-ef-soft-delete-audit"
+<PageTitle>Soft Delete & Audit</PageTitle>
+
+<h2>Web Server-API - Soft Deleting & Auditing</h2>
+
+<p>
+    In this section, we will continue to improve our web server API with
+    two features:
+</p>
+<ul>
+    <li>Soft Deleting</li>
+    <li>Auditing</li>
+</ul>
+<p>
+    Before explaining how to administer these features, it is important that
+    you understand three C# concepts:
+</p>
+<ol>
+    <li>Shadow Properties.</li>
+    <li>Attributes.</li>
+    <li>Global Query Filters.</li>
+</ol>
+<h4>Shadow Properties</h4>
+<p>
+    Shadow properties are properties that are not explicitly defined in the .Net
+    entity class but are defined for that entity type in the EF Core model. This
+    means that there can exist columns for these properties in the tables but they
+    will not have a corresponding property (explicitly declared) in the (root)
+    entity class.
+</p>
+<p>
+    Shadow properties are useful in a number of scenarios. For example, they can be
+    used for extending an entity (model) where you do not have access to the source
+    code of the entity classes. They can also be used for <dfn>relational artifacts</dfn>
+    such as foreign key columns or metadata properties like <em>CreatedOn</em> or
+    <em>IsActive</em>.
+</p>
+<p>
+    This is helpful to avoid unnecessary field declarations, in the entity types,
+    which don't add any value to the domain logic but are required in the database.
+    This allows for a cleaner entity domain model (EDM).
+</p>
+<p>
+    The value and state of these properties is maintained purely in the
+    <dfn>ChangeTracker</dfn>. Shadow properties are useful when there is data in
+    the database that should not be exposed on the mapped entity types. Shadow
+    properties can be configured using the <dfn>Fluent API</dfn> by overriding the
+    <em>DbContext.OnModelCreating(ModelBuilder)</em> method.
+</p>
+<p>
+    The OnModelCreating() method is called when the model for a derived context has
+    been initialized but before the model has been locked and used to initialize the
+    context. Any code that you put here to configure or make changes to your model,
+    will be invoked when the model is created.
+</p>
+<p> 
+    Shadow properties are <strong>not included in the result of a Linq query</strong> unless 
+    explicitly specified otherwise. 
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/modeling/shadow-properties">
+        Shadow and Indexer Properties
+    </a>,
+    <a href="https://www.learnentityframeworkcore.com/model/shadow-properties">
+        Entity Framework Core Shadow Properties
+    </a>,
+    <a href="https://www.c-sharpcorner.com/article/shadow-properties-in-entity-framework-core2/">
+        Shadow Properties in Entity Framework Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/data-seeding">
+        Data Seeding
+    </a>
+    <a href="https://stackoverflow.com/questions/61334172/seed-object-with-shadow-properties">
+        Seed Object with Shadow Properties
+    </a>
+</p>
+<h4>Attributes</h4>
+<p>
+    Attributes provide a powerful method of associating metadata, or declarative
+    information, with code (e.g., with assemblies, types, methods, properties, etc).
+    Once an attribute is associated with a program entity, the attribute can be
+    discovered at run-time using <dfn>reflection</dfn>.
+</p>
+<p>
+    In CSharp, you specify an attribute by placing the name of the attribute enclosed
+    in square brackets
+    <span class="fs-6"><strong><code>[AttributeName]</code></strong></span> above the
+    declaration of the entity to which it applies. All attribute types derive directly
+    or indirectly from the <dfn>Attribute</dfn> class.
+</p>
+<p>
+    You can create your own custom attributes by defining an attribute class;
+    i.e., a class that derives from <dfn>System.Attribute</dfn> class, which makes
+    identifying attribute definitions in metadata fast and easy. By convention, all
+    attribute class names end with the word <em>Attribute</em> to distinguish them
+    from other items in the .Net libraries. However, you do not need to specify the
+    attribute suffix when using attributes in code (when decorating an entity).
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/attributes/">
+        Attributes (C#)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/attributes/creating-custom-attributes">
+        Creating Custom Attributes (C#)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/attributes/applying-attributes">
+        Apply Attributes
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/attributes/retrieving-information-stored-in-attributes">
+        Retrieving Information Stored in Attributes
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/reflection">
+        Reflection
+    </a>, and Udemy course "Complete Guide to ASP.Net Core RESTful API with Blazor WASM"
+    episodes 29 and 30 by Frank Liu.
+</p>
+<h4>Global Query Filters</h4>
+<p>
+    Global query filters are Linq query predicates applied to <dfn>Entity Types</dfn> in
+    the metadata model (usually in <code>OnModelCreating()</code> method). A query predicate
+    is a boolean expression typically passed to the Linq <code>Where</code> query operator.
+</p>
+<p>
+    Entity Framework Core applies such filters automatically to any Linq queries involving
+    those entity types. EF Core also applies them to entity types, referenced indirectly
+    through use of <dfn>Include</dfn> or <dfn>navigation property</dfn>.
+</p>
+<p>
+    Global query filters may be disabled for individual Linq queries by using the
+    <strong><code>IgnoreQueryFilters</code></strong> operator (e.g., in the
+    Application/Server-Api/Controllers/EntityController).
+</p>
+<p>
+    Global query filter limitations:
+</p>
+<ul>
+    <li>
+        It cannot contain references to navigation properties.
+    </li>
+    <li>
+        Can <strong>only</strong> be defined for the root entity type of an inheritance
+        hierarchy. 
+    </li>
+    <li>
+        <code>IgnoreQueryFilters</code> method ignores all the filters on the entity
+        type; i.e., it cannot be configured to ignore only specific filters.
+    </li>
+</ul>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/querying/filters">
+        Global Query Filters
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.ef.property?view=efcore-6.0">
+        EF.Property&lt;TProperty&gt;(Object, String) Method
+    </a>,
+    <a href="https://davecallan.com/entity-framework-core-query-filters-multiple-entities/">
+        Setting Global Query Filters on multiple entities dynamically in Entity
+        Framework Core
+    </a>, and
+    <a href="https://www.c-sharpcorner.com/article/entity-framework-core-featu-global-query-filters/">
+        Entity Framework Core Feature - Global Query Filters
+    </a>
+</p>
+<h3>Soft Delete</h3>
+<p>
+    Soft delete refers to marking a record as <em>inactive</em> or <em>unavailable</em>
+    to users instead of completely removing it from the database. In order to actually
+    remove the record, a <em>hard</em> or <em>permanent</em> delete function must be
+    performed.
+</p>
+<p>
+    Typically, soft deleting involves adding an <em>IsDeleted</em> or <em>IsActive</em>
+    column to the database table that represents the entity model you wish to soft delete.
+    This column usually contains a boolean value.
+</p>
+<p>
+    Before anything else, you need to decide how new data will be handled. Suppose you
+    have a <em>Users</em> table that you want to make soft deletable. How should the
+    system behave when a user is deleted, and then added again in the future?
+</p>
+<p>
+    Often, this situation is handled by writing a new user to the database, allowing the
+    new fields to be identical to the previously deleted ones. With this approach, the
+    new user is completely independent and separate from the older deleted user.
+    <span class="mark">
+        <strong>
+            This is how the application will handle new data inserted to the database.
+        </strong>
+    </span>
+</p>
+<p>
+    However, in other scenarios, this approach may not be desirable. It may
+    make more sense to support <em>temporary deactivating</em> behaviour
+    instead of <em>permanent deactivating</em> behaviour. In this case, if
+    data is deactivated and then reactivated, the old data is simply marked
+    as active again. This approach would retain any data relationships when
+    the data is reactivated.
+</p>
+<p>
+    If you choose to allow data to be permanently de-activated, you should make sure
+    to adjust database uniqueness constraints and/or indexes. For example, you cannot
+    require the <em>email</em> column in a <em>Users</em> table to be unique if you
+    allow users to be permanently deactivated and then allow new users, with the same
+    email as previously deactivated users, to be added.
+</p>
+<h5>Legacy Procedure</h5>
+<p>
+    It used to be that developers added either an IActive interface or an IsActive
+    super class and derive the data entities. Accomodate the Entity Data Model (EDM)
+    and perform a database update to include a column of the property defined in the
+    implemented interface or in the inherited parent class.
+</p>
+<p>
+    Although this technique works fine, it violates the separation of concerns
+    principle because properties like the IsActive flag don't provide any value
+    to the entities themselves. It is data model related functionality and for
+    this reason, it should reside within the database context
+    (Application.DataStore project).
+</p>
+<p>
+    For more info visit <a href="https://spin.atomicobject.com/2019/01/29/entity-framework-core-soft-delete/">
+        Soft Delete in EF Core
+    </a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Incorporate a soft delete mechanism
+    with the following specifications:
+</p>
+<ul>
+    <li>
+        Use the fluent API to configure an IsDeleted shadow property for all the
+        entities of your EDM. Do it individually (on each entity configuration).
+    </li>
+    <li>
+        Use a global query filter in the metadata model to filter out records on a
+        given data entity type flagged as deleted. Do it individually (one global
+        query filter for each data entity configuration).
+    </li>
+    <li>
+        Intercept any <em>delete</em> queries and convert them to <em>update</em>
+        queries using the fluent API.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> The procedure outlined establishes
+    entity configurations individually by explicitly defining the sought out
+    behaviour on each entity configuration class. Later, in the Audit section, we
+    will demonstrate how to configure the same behaviour using a global approach
+    and a custom attribute to selectively target data entities.
+</p>
+<p>
+    <span class="mark">
+        <strong>
+            It is recommended to simply read through this
+            soft-delete section and implement the procedure outlined in the Auditing
+            section
+        </strong>
+    </span> below. The <dfn>auditing</dfn> mechanism has considerably more benefits
+    over the individual entity configurations shown here.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Use the fluent API to configure your
+    data model to add an IsDeleted shadow property to all entities registered during
+    creation of the model.
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/59-is-deleted-shadow-property.png"
+         alt="IsDeleted shadow property configuration." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> In the above example, we use a global
+    approach to attach an "IsDeleted" shadow property of type bool to each and every
+    entity type in the data model for illustrative purposes. Nonetheless, we should
+    stick to the specifications outlined before and use the EntityConfiguration classes
+    to individually attach an "IsDeleted" shadow property to each data entity type
+    that we want to be part of the soft delete mechanism.
+</p>
+<p>
+    This might come in handy later for easier debugging of your application or for fine
+    tunning your database queries. Instead of using the override of the
+    <em>DbContext.OnModelCreating()</em>, you can use the EntityConfiguration class to
+    attach shadow properties to a specific data entity type. Add the "IsDeleted" shadow
+    property to any entity that you want to be part of the soft delete mechanism:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/60-specific-shadow-prop-config.png"
+         alt="Shadow property attached to specific data entity." />
+</div>
+<p>
+    It is correct to choose to attach shadow properties globally or individually but never
+    both. Choose one approach and stick to it. For our example, we'll attach shadow
+    properties individually.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Update your data
+    entities with values for their newly attached shadow property to prevent any exceptions.
+    Recall that data seeding occurs before connecting to the database. Therefore,
+    auto-generated values such as shadow property values need to be explicitly assigned:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/61-seed-data-shadow-properties.png"
+         alt="Data seeding a shadow property." />
+</div>
+<p>
+    As shown above, data seeding shadow properties requires an anonymous type as opposed to
+    explicitly declaring the entity type when creating the new record. For more info visit
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/data-seeding">
+        Data Seeding
+    </a>, and
+    <a href="https://stackoverflow.com/questions/61334172/seed-object-with-shadow-properties">
+        Seed Object with Shadow Properties
+    </a>
+</p>
+<p>
+    We only demonstrate the process for the data entity type Genre. Nevertheless, you should
+    do it for every data entity type that uses the Model Seed Data approach in combination
+    with any shadow properties.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Add a new <dfn>migration</dfn> named
+    "IsDeletedShadowPropSeed" to the data model, validate its code logic, and perform an
+    update on the database. Use the SQL Server Object Explorer to verify that the tables
+    have the new "IsDeleted" column with a value of <em>false</em>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the fluent API to define a global
+    query filter that disregards any records that have been flagged as "IsDeleted". Do it
+    <strong>on each</strong> entity that is part of the soft delete mechanism:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/62-global-query-filter-specific-entity.png"
+         alt="Global query filter for specific entity." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/querying/filters">
+        Global Query Filters
+    </a>,
+    <a href="https://spin.atomicobject.com/2019/01/29/entity-framework-core-soft-delete/">
+        Soft Deleting in Entity Framework Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.ef.property?view=efcore-6.0">
+        EF.Property&lt;TProperty&gt;(Object, String) Method
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Override sync and async overloads of the
+    DbContext.SaveChanges() method to intercept database transactions that intend to persist
+    "Add" or "Delete" operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/63-override-save-changes.png"
+         alt="Override SaveChanges() methods to intercept Entity.State" />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Recall that if you need to access
+    <em>soft deleted</em> data, you can use queries that employ the
+    <code>IgnoreQueryFilters</code> property. Raw SQL will also ignore any global query filters.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> If for some reason you have one or more entities
+    that need some recalculation or transformation before being saved, you could make those
+    entities implement a custom interface or inherit from a parent class and intercept them
+    to handle the requirements from here before persisting the changes to the database. Refer
+    to the soft deletion section of the <dfn>02_SalesApp_Repository.sln</dfn> application for
+    more info.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Run the application and execute the Postman
+    platform to test your Api. Add a new genre, confirm that it was successfully added, delete
+    the genre, and perform a new query on all genres to make sure it is no longer available.
+    Use the SQL Server Object Explorer to visually check the Genres table data and confirm that
+    the Genre item is there and flagged as "IsDeleted = true".
+</p>
+<p>
+    <a href="https://www.postman.com/downloads/">
+        Postman
+    </a> API platform,
+    <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        "Blazor tutorial for beginners" by Kudvenkat
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/min-web-api?view=aspnetcore-6.0&tabs=visual-studio#install-postman-to-test-the-app">
+        Install Postman to test the app
+    </a>
+</p>
+<h3>Auditing</h3>
+<p>
+    Web applications (e.g., Blazor apps) are programs that are stored on a remote
+    server. They perform tasks over the internet that involve an exchange of
+    information. Some of these data need to be persisted to a database. Keeping track
+    of data changes and storing any modifications made to entities is crucial for
+    the security and integrity of any application.
+</p>
+<p>
+    In Entity Framework Core (EF), selective <em>auditing</em> can be configured
+    with a custom <strong><code>[Attribute]</code></strong> and overriding the
+    <strong><code>DbContext.SaveChanges()</code></strong> method overloads (sync
+    and async).
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The procedure outlined demonstrates
+    how to centralize (Dont't Repeat Yourself - DRY principle) the configuration for
+    an <dfn>auditing</dfn> and an optional <dfn>soft-delete</dfn> mechanism that
+    selectively targets data entities that have been decorated with a custom
+    <dfn>IsAuditable</dfn> attribute.
+</p>
+<p>
+    It should also be noted that we implement a <strong><dfn>Change Tracking</dfn></strong>
+    <dfn>auditing</dfn> mechanism by capturing the fact that rows in a table were
+    changed. However, we do <strong>not</strong> set up a
+    <strong><dfn>Change Data Capture</dfn></strong> process to provide historical
+    change information of the actual data that was changed. If required, refer to
+    <a href="https://nwb.one/blog/auditing-dotnet-entity-framework-core">
+        How to set up auditing in Entity Framework Core
+    </a> by Nico Botha.
+</p>
+<p>
+    Although the <dfn>Change Data Capture</dfn> approach provides historical
+    information on the actual data, it involves far more overhead because of the
+    changed data being stored.
+</p>
+<p>
+    Having said that, the idea is to create a custom "IsAuditable" attribute
+    to decorate any root entity (Application/Shared/EDM/EntityName) that you
+    want to be part of the auditing mechanism and, optionally, to also be part
+    of the soft delete mechanism. The paradigm is based on the interpretation
+    that important or sensitive data should be auditable. If the data is
+    auditable, then it is a strong candidate for soft deleting because it is
+    highly unlikely that you want it permanently removed from the database.
+</p>
+<p>
+    During its creation, the database model (Application/Server-Api/DataStore/DbContext)
+    will perform a global screening on all entities in the domain model and assign 
+    auditable shadow properties (e.g., CreatedBy, UpdatedOn) to each entity decorated
+    with an "IsAuditable" custom attribute.
+</p>
+<p>
+    Besides auditable shadow properties, the database model will assign an
+    "IsDeletable" shadow property to any entity decorated with the "IsAuditable"
+    attribute that was passed a value of "true" as an argument to satisfy an
+    "IsSoftDeletable" formal input parameter of the "IsAuditable" attribute.
+</p>
+<h4>ASP.Net Core Identity</h4>
+<p>
+    There have been many changes in the ways web applications typically handle
+    authentication and authorization. The assumption that users will sign in by
+    entering a user name and password that they have registered in your own application
+    is no longer valid.
+</p>
+<p>
+    The web has become more social and users are interacting with each other in real
+    time through social channels such as Fecebook, Twitter, and other social web sites.
+    Users should be able to sign in with their social identities so that they can have
+    a rich experience on the web sites. A modern membership system must enable
+    redirection-based log-ins to authentication providers such as Facebook, Twitter, and 
+    others.
+</p>
+<p>
+    Considering these changes in web application development, ASP.Net Identity was
+    developed with the following goals:
+</p>
+<ul>
+    <li>
+        One ASP.Net Identity system to be used with all of the ASP.Net frameworks.
+    </li>
+    <li>
+        <strong>Persistence control</strong>. By default, the ASP.Net Identity system
+        uses EF Code First to store all the user information in a database which means
+        you have control over the database schema.
+    </li>
+    <li>
+        <strong>Role provider</strong>. There is a role provider which lets you restrict
+        access to part of your application by roles. You can easily create roles such as
+        "Admin" and add users to roles.
+    </li>
+    <li>
+        <strong>Claims Based</strong>. ASP.Net Identity supports claims-based authentication
+        and authorization operations where the user's identity is represented as a set of 
+        claims. Claims allow developers to be a lot more expressive in describing a user's 
+        identity than roles allow. Whereas role membership is jus a boolean (member or 
+        non-member), a <dfn>claim</dfn> can include rich information about the user's identity
+        and membership.
+    </li>
+    <li>
+        <strong>Social Login Providers</strong>. You can easily add social log-ins such as
+        Microsoft Account, Facebook, Twitter, Google, and others to your application, and
+        store the user-specific data in your application.
+    </li>
+    <li>
+        <strong>OWIN Integration</strong>. ASP.Net authentication is now based on
+        Open Web Interface (OWIN) middleware that can be used on any OWIN-based host
+        for authentication, including support for log-ins using external identity
+        providers.
+    </li>
+</ul>
+<p>
+    In simple terms, ASP.Net Core Identtiy is an API that supports user interface (UI)
+    login functionality and allows you to manage users, passwords, profile data, roles,
+    claims, tokens, email confirmation, and more.
+</p>
+<h4>Claim class</h4>
+<p>
+    As mentioned above, ASP.Net Core Identity is <em>claims</em>-based. It supports
+    claims-based authentication where user's identity is represented as a set of
+    <dfn>claims</dfn>. The identity system has <dfn>subjects</dfn> and <dfn>issuers</dfn>:
+</p>
+<ul>
+    <li>
+        <strong>Subject</strong> can be a user, an application or service, a device,
+        or a computer.
+    </li>
+    <li>
+        <strong>Issuer</strong> can be the operating system, an application, a service,
+        a role provider, an identity provider, or a federation provider. An issuer
+        delivers <dfn>claims</dfn> by issuing security tokens, typically through a
+        Security Token Service (STS).
+    </li>
+</ul>
+<p>
+    A <dfn>claim</dfn> is a statement produced by an <dfn>issuer</dfn> about a
+    <dfn>subject</dfn>. Claims represent attributes of the <dfn>subject</dfn> that
+    are useful in the context of authentication and authorization operations.
+</p>
+<p>
+    A <dfn>claim</dfn> can be evaluated to determine access rights to data and other
+    secured resources during the process of authorization and can also be used to make
+    or express authentication decisions about a <dfn>subject.</dfn>
+</p>
+<h4>HttpContext</h4>
+<p>
+    The <em>HttpContext</em> encapsulates all HTTP-specific information about an
+    individual HTTP request. It provides acces to the intrinsic
+    <em>HttpContext.Request</em>, <em>HttpContext.Response</em> and
+    <em>HttpContext.Server</em> properties.
+</p>
+<p>
+    It holds the current information about an Http request such as authorization,
+    authentication, request, response, session, users, formOptions, etc. Every
+    HTTP request creates a new object of HttpContext with current information.
+</p>
+<p>
+    There are several ways to access the HttpContext in an ASP.Net core application.
+    In our case, we will access it as a service. This means we need to register a
+    dependency using the built-in dependency injection container of the
+    Application/Server-Api/Program.cs. As you know, the DI container supplies an
+    object of the dependency to any classes that declare it as a dependency in their
+    constructors.
+</p>
+<p>
+    The default implementation of the HttpContext is the <code>HttpContextAccessor</code>
+    (used to configure the service) and you can access the HttpContext through the
+    <code>IHttpContextAccessor</code> interface.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/identity/overview/getting-started/introduction-to-aspnet-identity">
+        Introduction to ASP.Net Identity
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio">
+        Introduction to Identity on ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-6.0">
+        Configure ASP.Net Core Identity
+    </a>,
+    <a href="https://www.telerik.com/blogs/how-to-get-httpcontext-asp-net-core">
+        How to Get HttpContext in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.web.httpcontext?view=netframework-4.8">
+        HttpContext Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-context?view=aspnetcore-6.0">
+        Access HttpContext in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.ihttpcontextaccessor.httpcontext?view=aspnetcore-6.0#microsoft-aspnetcore-http-ihttpcontextaccessor-httpcontext">
+        IHttpContextAccessor.HttpContext Property
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpcontext.user?view=aspnetcore-6.0#microsoft-aspnetcore-http-httpcontext-user">
+        HttpContext.User Property
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.claims.claim?view=net-6.0">
+        Claim class
+    </a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Integrate a selective
+    <dfn>auditing</dfn> mechanism with an optional <dfn>soft delete</dfn>
+    implementation, that employs a custom IsAuditable attribute adhering
+    to the following specifications:
+</p>
+<ul>
+    <li>
+        Use a custom attribute named "IsAuditable" to associate metadata such as
+        entity annotation parameters (Application/Shared/EDM/EntityName) with data
+        store functionality (Application/DataStore).
+    </li>
+    <li>
+        Equip the custom attribute with a named (optional) parameter of type bool
+        to determine whether the given entity <dfn>"IsSoftDeletable"</dfn> or not.
+    </li>
+    <li>
+        Restrict applicability of the custom attribute to types <dfn>class</dfn>
+        and/or <dfn>struct</dfn>.
+    </li>
+    <li>
+        Use the fluent API to override the DbContext.OnModelCreating(ModelBuilder) method
+        to screen in a global scale for entities decorated with the custom "IsAuditable"
+        attribute.
+    </li>
+    <li>
+        Add "CreatedBy", "CreatedOn", "UpdatedBy", and "UpdatedOn" shadow properties
+        to all entities decorated with the "IsAuditable" custom attribute.
+    </li>
+    <li>
+        Add an "IsDeleted" shadow property <strong>only</strong> to entities decorated with
+        the "IsAuditable" custom attribute that are also passed, as an argument, a value of
+        "true" for the "IsSoftDeletable" formal input parameter of the custom attribute.
+    </li>
+    <li>
+        Include a global query filter in the metadata model to filter out records on a given
+        data entity type flagged as IsDeleted. Implement the configuration in a centralized
+        manner overriding the <dfn>DbContext.OnModelCreating(ModelBuilder)</dfn> method.
+    </li>
+    <li>
+        Use an <dfn>HttpContext</dfn> object to access HTTP-specific information about an
+        individual Http request such as user, authorization, authentication, request,
+        response, session, etc. This will enable the data model to access specific information
+        of the current user performing the Http request to execute database operations.
+    </li>
+    <li>
+        Intercept any query with database operations that persist modifications to the
+        database and provide values for the auditing shadow properties. For example,
+        CreatedBy, CreatedOn, UpdatedBy, UpdatedOn.
+    </li>
+    <li>
+        Intercept any <dfn>delete</dfn> queries on IsSoftDeletable entities and convert
+        them to <dfn>update</dfn> queries using the fluent API to avoid permanently removing
+        the data from the database. Instead, they should be marked as "IsDeleted".
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span> If you did not execute the
+    procedure outlined in the <em>soft-delete</em> section above, you can skip to
+    step two. Otherwise, you must remove the migration where you added the
+    "IsDeleted" shadow property. Since the data has already been persisted to the
+    database, you must first revert the migration. Use the following commands in the
+    Package Manager Console:
+</p>
+<ul>
+    <li>
+        <code>Update-Database "NameofPreviousMigration"</code>.
+    </li>
+    <li>
+        <code>Remove-Migration</code>. Removes the last migration where the IsDeletable
+        shadow property is assigned.
+    </li>
+</ul>
+<p>
+    Eliminate the code logic to assign an "IsDeletable" shadow property on each entity
+    configuration class and comment out the "IsDeletable" property on each entity with
+    a data seed process.
+</p>
+<p>
+    Update the database and verify that the database tables don't have an IsDeletable
+    column anymore.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create the <code>IsAuditable</code>
+    custom attribute that will be used by EF Core to selectively add shadow properties.
+    Specify an <code>IsDeletable</code> <dfn>named parameter</dfn> with a default
+    value of "true". Attribute named parameters are optional.
+</p>
+<p>
+    Since the custom attribute will target root entities, it makes sense to add a
+    folder named "CustomAttributes" in the Application/Shared project and use this
+    location to create our custom IsAuditable attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/65-custom-is-auditable-attribute.png"
+         alt="Custom IsAuditable attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Decorate with an IsAuditable
+    attribute <strong>every</strong> root entity that you want to be part of the
+    auditing mechanism. Provide a value for the "IsDeletable" named (optional)
+    parameter. This parameter was configured with a default value of "true". However,
+    it is a good practice to explicitly define it for future reference:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/67-is-auditable-attribute-decoration.png"
+         alt="Decorating Genre root entity with an IsAuditable custom attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the fluent API to override the
+    DbContext.OnModelCreating(ModellBuilder) method to use reflection during the creation
+    of the data model to:
+</p>
+<ul>
+    <li>
+        Check whether an entity is decorated with the IsAuditable custom attribute. If so,
+        add the auditing shadow properties: CreatedBy, CreatedOn, UpdatedBy, UpdatedOn.
+    </li>
+    <li>
+        Retrieve the bool value passed to satisfy the IsDeletable named (optional)
+        parameter of its IsAuditable custom attribute.
+    </li>
+    <li>
+        If IsDeletable, add an "IsDeleted" shadow property with a default value of false.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/68-shadow-properties-custom-attribute.png"
+         alt="Shadow properties designation using custom IsAuditable attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Update the seed data declaration for
+    each root entity decorated with an IsAuditable custom attribute. Add values for their
+    newly attached auditing and soft-deleting shadow properties to prevent any exceptions.
+    Recall that data seeding occurs before connecting to the database. Therefore, auto -
+    generated values such as shadow property values need to be explicitly initialized:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/69-data-seeding.png"
+         alt="Data seeding auditing and sof-deleting shadow properties." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> After data seeding each entity that is part
+    of the auditing and soft-deleting mechanism, add a database migration named
+    IsAuditableAndSeedData, review the code, if everything is as expected, update the database,
+    and visually check the database tables to make sure the shadow properties for auditing
+    and soft-deleting mechanisms are there.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> If you didn't follow the soft-delete
+    section, at this point you should use the fluent API to define a <dfn>
+        global query filter
+    </dfn> that disregards any records that have been flagged as "IsDeleted". Do it on
+    each entity that is part of the soft-delete mechanism:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/70-global-query-filter-configuration.png"
+         alt="Global query filter configuration on each entity configuration class." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Configure the <code>HttpContext</code>
+    as a service in the dependency injection container of the
+    Application/Server-Api/Program.cs class. Recall that you can use its default
+    implementation (<code>HttpContextAccessor</code>) for configuring the service
+    and the <code>IHttpContextAccessor</code> to inject the dependency to any class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/64-http-context-config.png"
+         alt="HttpContext service configuration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Nine:</span> Go to the 
+    Application/Server-Api/DataStore/DbContext derived class and constructor inject
+    a dependency to the IHttpContextAccessor interface.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Make sure to apply a nullable modifier to
+    the HttpContext to avoid any null reference exceptions during creation of the data
+    model. Also, consider that you might need to install the
+    <dfn>Microsoft.AspNetCore.Http.Abstractions</dfn> NuGet package to have access to the
+    Microsoft.AspNetCore.Http.IHttpContextAccessor interface.
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/66-current-user-name.png"
+         alt="Current user name using the current HttpContext service." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Ten:</span> Override the sync and async overloads
+    of the DbContext.SaveChanges() method to intercept database transactions that intend
+    to persist "Add", "Update", or "Delete" operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/71-intercept-db-operations-one.png"
+         alt="Overriding the SaveChanges() method overloads for auditing and soft-deleting part one." />
+    <img src="images/08-ServerApi/71-intercept-db-operations-two.png"
+         alt="Overriding the SaveChanges() method overloads for auditing and soft-deleting part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eleven:</span> Perform "Add", "Update", "Delete",
+    and "Read" operations to the database and test the results. Use the Postman platform
+    to execute the operations but visually confirm the soft-delete operations using the
+    SQL Server Object Explorer to check the database tables. Keep in mind that when an
+    entity is soft-deleted, it is no longer available or visible to the user. This means
+    that it is no longer visible for the Postman platform but it should remain stored
+    in the database table with an "IsDeleted" = true.
+</p>
+<p>
+    <a href="https://www.postman.com/downloads/">
+        Postman
+    </a> API platform,
+    <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        "Blazor tutorial for beginners" by Kudvenkat
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/min-web-api?view=aspnetcore-6.0&tabs=visual-studio#install-postman-to-test-the-app">
+        Install Postman to test the app
+    </a>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> We haven't established <dfn>authentication</dfn>
+    and/or <dfn>authorization</dfn> for our application. This means that users are not
+    signing into our application; i.e., they are not being authenticated. For this reason,
+    the captured HttpContext.User from the Http request using the IHttpContextAccessor will
+    be null for the time being.
+</p>
+<p>
+    For more info visit <a href=https://nwb.one/blog/auditing-dotnet-entity-framework-core>
+        How to set up auditing in Entity Framework Core
+    </a>,
+    <a href="https://dev.to/rickystam/ef-core-how-to-implement-basic-auditing-on-your-entities-1mbm">
+        EF Core: How to implement basic Auditing on your Entities
+    </a>,
+    <a href="https://www.c-sharpcorner.com/article/shadow-properties-in-entity-framework-core2/">
+        Shadow Properties in Entity Framework Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/sql/relational-databases/track-changes/track-data-changes-sql-server?view=sql-server-ver15#Capture">
+        Track Data Changes (SQL Server)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/attributes/">
+        Attributes (C#)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.attribute?view=net-6.0">
+        Attribute Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/attributes/creating-custom-attributes">
+        Creating Custom Attributes
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/attributes/applying-attributes">
+        Apply Attributes
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/attributes/retrieving-information-stored-in-attributes">
+        Retrieving Information Stored in Attributes
+    </a>
+</p>
+<h3>Custom Validation Attribute</h3>
+<p>
+    Although model binding was partially explained in the Model Binding title of the
+    <a href="08-api-controllers">Api Controllers</a> section, before going any further,
+    it is important to clearly understand the difference between <dfn>Model Binding</dfn>
+    and <dfn>Model Validation</dfn>.
+</p>
+<dl>
+    <dt>
+        <strong>Model Binding</strong>
+    </dt>
+    <dd>
+        Controllers work with data that comes from HTTP requests. For example, route data
+        may provide a record key, and posted form fields may provide values for the properties
+        of the model (or entity). Model binding refers to the process of retrieving these
+        values and converting them from strings to .Net types. The model binding system:
+        <ul>
+            <li>
+                Is performed automatically.
+            </li>
+            <li>
+                Retrieves data from various sources such as route data, form fields, and
+                query strings.
+            </li>
+            <li>
+                Converts the string data to .Net types.
+            </li>
+            <li>
+                Provides the data to controller actions (methods) to satisfy action
+                parameters and public properties.
+            </li>
+            <li>
+                Updates properties of complex types
+            </li>
+            <li>
+                Usually produces <em>data conversion</em> errors because the data passed
+                by the UI does not adhere to the route constraint and/or .Net type.
+            </li>
+        </ul>
+    </dd>
+    <dt>
+        <strong>Model Validation</strong>
+    </dt>
+    <dd>
+        Model validation, also known as data validation, <span class="mark">
+            <strong>occurs after</strong>
+        </span> model binding. Model validation refers to ensuring that the data adheres
+        to the configuration of the model (class) defined by data annotations. In layman's
+        terms, data annotations are special attributes applied to properties of a class.
+        The model validation system:
+        <ul>
+            <li>
+                Must be specified using data validation attributes and/or the
+                Fluent API. There are pre-configured <em>System.ComponentModel.DataAnnotations</em>
+                but you can also build custom data validation with custom validation
+                attributes.
+            </li>
+            <li>
+                Are subdivided into two groups:
+                <ul>
+                    <li>
+                        <dfn>Data Modelling</dfn>: specify the <dfn>schema</dfn> of the
+                        database. E.g., [Table], [Column], [DatabaseGenerated], and
+                        [NotMapped].
+                    </li>
+                    <li>
+                        <dfn>Validation Related</dfn>: enforce validation rules for the
+                        entity properties. E.g., [Key], [MaxLength], and [Required].
+                    </li>
+                </ul>
+            </li>
+            <li>
+                Produces errors related to validation rules for entity properties such as
+                size, length, and nullability (optional-required).
+            </li>
+        </ul>
+    </dd>
+</dl>
+<p>
+    <span class="mark"><strong>Both</strong></span> model binding and model validation
+    <span class="mark"><strong>occur before the execution of a controller action.</strong></span>
+    The application inspects if any errors are produced from either one of these subsystems
+    and reacts accordingly.
+</p>
+<h4>Model State</h4>
+<p>
+    Since <dfn>model binding</dfn> and <dfn>model validation</dfn> deal, in their own
+    unique way, with data passed by the UI (or client), we need a way to deal with data
+    validation errors. Model state represents errors that come from these two subsystems.
+</p>
+<p>
+    It is the developer's responsibility to inspect <strong><code>ModelState.IsValid</code></strong>
+    and react appropriately. Web apps typically redisplay the page with an error message.
+    For more info with an example, refer to <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-6.0#model-state">
+        Model State
+    </a>
+</p>
+<h4>Custom Model Validation</h4>
+<p>
+    As mentioned above in the Attributes section, information provided by an attribute
+    is also known as <dfn>metadata</dfn> and metadata can be examined at run-time by your
+    application to control how your program processes data. Attributes can be applied to
+    any target element (assembly, class, property, method, etc), multiple attributes can
+    be applied to the same target element, and attributes can be inherited by an element
+    derived form a target element.
+</p>
+<p>
+    Custom <dfn>validation attributes</dfn> let you specify validation rules for models
+    (classes) and/or model properties. To create a custom validation attribute, define a
+    class that derives from <strong><code>ValidationAttribute</code></strong> class and
+    override its <strong><code>IsValid()</code></strong> method.
+</p>
+<p>
+    The <code>IsValid()</code> method accepts an object named <dfn>value</dfn> which is
+    the input to be validated. An overload of the IsValid() method also accepts a
+    <code>ValidationContext</code> object, which provides additional information, such as
+    the model instance created by model binding.
+</p>
+<p>
+    When a validation fails, a <strong><code>ValidationResult</code></strong> with an
+    error message is returned. Otherwise, a <strong><code>ValidationResult.Success</code></strong>
+    is returned.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> For cases where you need to implement
+    Application/Server-Api versioning, you can use <dfn>ASP.Net MVC Filters</dfn>. Filters
+    allow you to run code before or after a particular stage in the ASP.Net Core
+    <dfn>action invocation pipeline</dfn>. For more info refer to
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-6.0">
+        Filters in ASP.Net Core
+    </a>,
+    <a href="https://jakeydocs.readthedocs.io/en/latest/mvc/controllers/filters.html">
+        Filters
+    </a>, and episodes 32 to 42 of the Udemy course "Complete Guide to ASP.Net Core RESTful
+    API with Blazos WASM" by Frank Liu.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a custom validation attribute
+    for the Movie model. It should confirm that the "InTheaters" property value is false
+    when its "Release Date" property value is after the current date.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> If you haven't done so, add a folder named
+    "CustomAttributes" to the Application/Shared project and create a class named
+    "Movie_EnsureInTheatersAttribute" that derives from the
+    <dfn>System.ComponentModel.DataAnnotations.ValidationAttribute</dfn>
+    class.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> It is a good practice to name custom validation
+    attributes with a prefix of the entity model they are related to, followed by a brief
+    description of what they do and/or the property(s) they act upon.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Specify the validation rules by overriding
+    its IsValid() method with the overload that includes an "object value" and a
+    <code>ValidationContext</code> as formal input parameters:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/72-movie-in-theaters-custom-attribute.png"
+         alt="Movie_EnsureInTheaters custom validation attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Decorate the Movie.InTheaters property
+    with the Movie_EnsureInTheaters custom validation attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/73-movie-entity-custom-validation-attribute.png"
+         alt="Movie.InTheaters property decorated with custom validation attribute." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span> Although the custom validation should work
+    perfectly fine at this point, we are not done yet.
+</p>
+<p>
+    Custom validation attributes derive from <dfn>System.CommponentModel.DataAnnotations</dfn> 
+    which is part of the ASP.Net Core MVC technology which means that right now, we have
+    our application's business logic tightly coupled with the validation techonology itself.
+</p>
+<p>
+    This might not be a problem now but if for some reason you want to switch technologies,
+    you would have to re-write all the validation logic. Maybe a new requirement demands 
+    using a different techonology. Another common scenario is that technologies become
+    obsolete and replaced by newer, better technologies. Sometimes updating your application
+    with these technologies involve breaking changes. 
+</p>
+<p>
+    The solution is to encapsulate the CSharp validation logic within the related data entity
+    classes and call this functionality from the custom validation attribute or whatever 
+    technology you are using to invoke data validation at run-time.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Decouple the actual validation logic from
+    the Movie_EnsureInTheatersAttribute class.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Application/Shared/EDM/Movie
+    class and define a method named "ValidateInTheaters()". This method encapsulates the
+    validation logic which is made available with a <dfn>public</dfn> access modifier: 
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/74-movie-entity-validation-logic.png"
+         alt="Movie data entity with custom validation logic encapsulated in a public method."/>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the 
+    Application/Shared/CustomAttributes/Movie_EnsureInTheatersAttribute custom validation
+    attribute class and have it consume the Movie.ValidateInTheaters() method that encapsulates
+    the custom validation logic:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/75-movie-validation-attribute-decoupled-logic.png"
+         alt="Custom Movie validation attribute calls validation logic from elsewhere."/>
+</div>
+<p>
+    Success!!! We have completed the lessons to create an Application/Server-Api RESTful service.
+    During the next couple sections, we will upgrade our application to be capable of performing
+    all the functionality created so far (in the client side) and persisting any in-memory
+    changes to the database (in the server side); i.e., we will no longer be limited to work 
+    exclusively with in-memory objects. 
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0">
+        Model Binding in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-6.0">
+        Model validation in ASP.Net Core MVC and Razor Pages
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-6.0#custom-attributes">
+        Custom attributes
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/forms-validation?view=aspnetcore-6.0#custom-validation-attributes">
+        Custom validation attributes
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.validationcontext?view=net-6.0">
+        ValidationContext Class
+    </a>,
+    <a href="http://www.prideparrot.com/blog/archive/2012/4/model_validation_in_asp_net_mvc">
+        Model Validation in ASP.Net MVC
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/saving/validation">
+        Data Validation
+    </a>, and episodes 29, 32, 33, 34, 41, and 42 of the Udemy course "Complete Guide to ASP.Net
+    Core RESTful API with Blazos WASM" by Frank Liu.
+</p>
+@code {
+
+}

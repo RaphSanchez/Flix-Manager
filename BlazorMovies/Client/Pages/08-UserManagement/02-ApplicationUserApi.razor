@@ -1,0 +1,471 @@
+﻿@page "/02-application-user-api"
+<PageTitle>ApplicationUser</PageTitle>
+
+<h2>User Management - Configuring the ApplicationUser API</h2>
+<p>
+    Before being able to add any given functionality for the data entity type
+    ApplicationUser (e.g., editing user data, adding claims to a User, etc), we must
+    prepare the web server-API to have the capability of handling it.
+</p>
+<p>
+    As mentioned in the "Building a web API" section of the <a href="05-api">Server-Api</a>
+    lesson:
+</p>
+<ul>
+    <li>
+        Web APIs are responsible for handling Application/Client requests to receive,
+        send, or modify data stored in the database (user data in this case).
+    </li>
+    <li>
+        The application architecture uses the repository pattern for Create, Read, Update,
+        and Delete (CRUD) operations.
+    </li>
+    <li>
+        The application architecture includes the unit of work pattern to coordinate the
+        work of multiple repositories using a single (unique) database context instance
+        during a business transaction.
+    </li>
+    <li>
+        The abstract representations (interfaces) for the repositories, the unit of
+        work, and the API services (serialization/deserialization) are located in the
+        Application/Client.
+    </li>
+    <li>
+        The implementations (concrete classes) for the repositories, the unit of work,
+        and the data store are located in the Application/Server-Api.
+    </li>
+    <li>
+        The Application/Client employs an abstract layer (IApiService) responsible for
+        exposing the available operations and for hiding the details of how to invoke
+        Application/Server-Api endpoints.
+    </li>
+    <li>
+        The IApiService in turn establishes a contract for exposing one IEntityName
+        interface, in the form of a read-only property, for each data entity mapped
+        to the data store. These IEntityName interfaces are the entry point for
+        the IUnitOfWork responsible for exposing the business logic (functionality):
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/00-application-diagram.svg"
+         alt="Application flow diagram." />
+</div>
+<p>
+    The Application/Client makes a data request, the IApiService serializes the data and
+    sends the Http request to the Application/Server-Api/Controllers using the appropriate
+    IEntityName interface as the entry point.
+</p>
+<p>
+    The Application/Server-Api controller employs the Application/Server-Api/IUnitOfWork
+    business logic methods to query the database through the
+    Application/Server-Api/DataStore/DbContext and, if necessary, persist any changes made
+    to in-memory objects. When the request is completed, the process is reversed, and the
+    response is sent back to the client.
+</p>
+<p>
+    Both abstract layers (IApiService and IUnitOfWork) adhere to the repository and the unit
+    of work patterns to expose to the Application/Client their higher level interfaces and
+    hide the actual implementation (code logic).
+</p>
+<p>
+    The operations exposed to the client (by the <strong>IApiService</strong>) mirror
+    (same signature) the operations executed through the <strong>IUnitOfWork</strong>
+    (business logic and database operations). For this reason, <strong>both</strong>
+    abstract layers <strong>employ IEntityName interfaces</strong> to expose and
+    represent data entities which in turn implement an IRepository&lt;TEntity&gt;
+    interface which establishes the contract for the required general functionality
+    applicable to all data entities.
+</p>
+<p>
+    IEntityName interfaces not only implement IRepository&lt;TEntity&gt;, they also extend
+    its functionality with operations (code logic) that are specific to the entity type they
+    represent. <strong>
+        IEntityName interfaces are exposed, and implemented in their own way,
+        by the IApiService
+    </strong> (serialize/deserialize and map to controller endpoints) <strong>
+        and the IUnitOfWork interface
+    </strong> (business logic and data base persistence).
+</p>
+<p>
+    In other words, the procedure we will follow to prepare the web server-API to
+    have the capability of handling a new data entity type (ApplicationUser) is:
+</p>
+<ul>
+    <li>
+        Incorporate the ApplicationUser data entity type to the repository pattern.
+    </li>
+    <li>
+        Incorporate the ApplicationUser data entity type to the unit of work pattern.
+    </li>
+    <li>
+        Scaffold a Users controller which will eventually define the REST-Api
+        <dfn>actions</dfn> (methods) that invoke CRUD operations (business logic)
+        to create, read, update, and delete user related data to/from the database.
+    </li>
+    <li>
+        Incorporate the ApplicationUser data entity type to the IApiService which
+        acts as an intermediary between the Application/Client and the
+        Application/Server-Api. Handles Http requests/responses and
+        serializes/deserializes the data.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure the web server-API to have the capability to handle the <strong>
+        <code>ApplicationUser</code>
+    </strong> data entity.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Incorporate the ApplicationUser data entity type to the <a href="07-api-repository">
+        repository pattern
+    </a>.
+</p>
+<p>
+    The repository pattern is responsible for encapsulating the business logic of
+    the application. It operates as an intermediary between
+    the Application/Server-Api/UnitOfWork and the Application/Server-Api/DataStore
+    (database).
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Go to the Application/Client/ApiServices/IRepositories directory and add an
+    IEntityName interface (IUsers):
+</p>
+<p>
+    This interface establishes a contract for entity specific methods; i.e., for
+    any methods that do not fit in the IRepository&lt;TEntity&gt; generic interface
+    that it implements. It is application specific based on the requirements for
+    more unique functionality:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/18-iusers-interface.png"
+         alt="IUsers interface." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Go to the Application/Server-Api/Repositories directory and add an EfEntityName
+    class (EfUsers). It should derive from the generic EfRepository&lt;TEntity&gt;
+    class to inherit the implementation of the general functionality that is
+    applicable to any entity type.
+</p>
+<p>
+    Additionally, each EfEntityName class (e.g., EfUsers) must implement the entity
+    specific functionality defined in its corresponding IEntityName interface (IUsers);
+    i.e., any methods that do not fit in the EfRepository&lt;TEntity&gt; class:
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    We have included a constructor injection of the built-in type <strong>
+        <code>
+            UserManager&lt;TUser&gt;
+        </code>
+    </strong> which provides access to the APIs for managing User in a
+    persistence store:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/19-efusers-one.png"
+         alt="EfUsers class part one." />
+    <img src="Images/22-identity-user/20-efusers-two.png"
+         alt="EfUsers class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Incorporate the ApplicationUser data entity type to the <a href="07-api-repository">
+        unit of work pattern
+    </a>.
+</p>
+<p>
+    A unit of work keeps track of everything it is done during a business transaction
+    that can affect the database. When the business transaction is completed, it figures
+    out everything that needs to be done to alter the database because it maintains a
+    list of objects affected as a result of the work.
+</p>
+<p>
+    It coordinates the operations of multiple repositories (EfEntityName) by creating a
+    single database context instance shared by all of them. The
+    Application/Client/IUnitOfWork interface establishes a contract or protocol for
+    persisting to the database any changes made to in-memory objects (DbSet&lt;T&gt;s)
+    during a business transaction.
+</p>
+<p>
+    The IUnitOfWork exposes each abstract IEntityName (e.g., IUsers) and includes a
+    <dfn>SaveAsync()</dfn> method which indicates the end of a unit of work (or business
+    transaction) to update the database.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Go to the Application/Client/ApiServices/IRepositories IUnitOfWork interface and
+    add the IUsers interface which is a representation of the data entity that the
+    Application/Server-Api/Controllers UsersController will consume to access business
+    logic operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/21-i-unit-of-work.png"
+         alt="IUnitOfWork with an IUsers interface registered part one." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Go to the Application/Server-Api/Repositories UnitOfWork class and add the
+    IUsers interface as a read-only property. Ensure it is initialized with a
+    concrete instance of the type that implements the entity's functionality:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/22-unit-of-work-one.png"
+         alt="UnitOfWork with IUsers interface registered part one." />
+    <img src="Images/22-identity-user/23-unit-of-work-two.png"
+         alt="UnitOfWork with IUsers interface registered part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Scaffold a User <a href="08-api-controllers">controller</a> which will define the
+    REST-Api <dfn>actions</dfn> such as [HttpPost], [HttpGet], [HttpPut], and [HttpDelete]
+    that map to CRUD operations to Create, Read, Update, and Delete user related data
+    to/from the database.
+</p>
+<p>
+    The Users controller will model the functionality for the user management UI as a
+    set of resources where operations are represented by HTTP verbs. MVC controllers
+    are responsible for responding to Http requests which are mapped to a particular
+    controller endpoint (<dfn>action</dfn>).
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Do <strong>not</strong> include an "Async" suffix to the name of the <dfn>action</dfn>
+        methods because ASP.Net Core MVC trims the suffix "Async" from <dfn>action</dfn>
+        names by default. This change affects both routing and link generation.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Go to the Application/Server-Api/Controllers directory and scaffold a controller
+    named UsersController. It must derive from <code>ControllerBase</code> and include
+    a constructor injection of the IUnitOfWork interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/24-users-controller.png"
+         alt="Users controller empty (no actions)." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The controller actions that can be mapped to CRUD operations; e.g., to EfRepository
+    for general functionality and to EfUser for data entity specific functionality will
+    be defined until we finish configuring the web server-API to handle the
+    <code>ApplicationUser</code> data entity type.
+</p>
+<p>
+    Nevertheless, we need to <strong>test the controller</strong> before going any
+    further with the configuration.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Define a "GetPaginatedUsersTask" action to retrieve all the available application users
+    from the data store.
+</p>
+<p>
+    Recall that we previously implemented a generic
+    Application/Server-Api/Repositories/EfRepository GetPaginatedAsync method capable of
+    paginating query results of any data entity type. You can refer to the end of the
+    <a href="08-pagination">Pagination</a> lesson for more info.
+</p>
+<p>
+    For simplicity, we can use this method in the Users controller
+    for testing purposes to retrieve and paginate the application
+    Users stored in the database. However, keep in mind that this
+    <strong>will not be the final version of the controller action</strong>
+    responsible for retrieving application Users.
+</p>
+<p>
+    The generic version does not include the mapping functionality
+    from a data entity type (ApplicationUser) to a DTO (UserDto). This
+    means that it exposes database entities <strong>
+        when invoked through the ApiService from the
+        Application/Client.
+    </strong>
+
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        As explained in the <a href="04-forms-part-two">
+            Entities, Models, Data Transfer Objects (DTOs), and
+            Mapping
+        </a> section of the Forms part II module, <strong>
+            a web API should not expose database entities to the
+            client.
+        </strong>
+    </p>
+</div>
+<p>
+    In next lesson, we will implement specific functionality which will
+    include an EfRepository GetPaginatedUsersAsync method that maps
+    ApplicationUser items to UserDto objects to avoid any risks from
+    exposing the data entity type to the Client.
+</p>
+<p>
+    Create a <code>UserDto</code> to flatten the ApplicationUser type
+    to serve Http requests for the current Users stored in the data
+    store:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/25-user-dto.png"
+         alt="UserDto." />
+</div>
+<p>
+    Declare the code logic for the GetPaginatedUsersTask action:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/26-get-paginated-users-task-one.png"
+         alt="Users controller with GetPaginatedUsersTask action part one." />
+    <img src="Images/22-identity-user/27-get-paginated-users-task-two.png"
+         alt="Users controller with GetPaginatedUsersTask action part two." />
+    <img src="Images/22-identity-user/27-get-paginated-users-task-three.png"
+         alt="Users controller with GetPaginatedUsersTask action part three." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You should always test the <dfn>location header</dfn> URI for each <a href="08-api-controllers">
+            controller
+        </a> <dfn>action</dfn>; i.e., type the "api/controllername" URI directly
+        into the web browser's address bar (e.g., https://localhost:7077/api/users)
+        to ensure the Api responds with an object in JSON format. Alternatively,
+        you can use the <a href="https://www.postman.com/downloads/">Postman</a>
+        platform.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Test the <dfn>location header</dfn> for the GetPaginatedUsersTask action.
+</p>
+<p>
+    Its URI is composed with the applcation URL plus the route segment of the
+    controller endpoint; e.g., https://localhost:7077/api/users. Recall that
+    you can get or set the application's URL in the
+    Application/Server-Api/Properties launchsettings.json file.
+</p>
+<p>
+    If you type the URI in the web browser's address bar, you should get something
+    like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/28-get-paginated-users-browser-response.png"
+         alt="Http browser response for the GetPaginatedUsersTask action." />
+</div>
+<p>
+    As mentioned earlier, this is not the final version of the
+    controller action because it consumes the generic GetPaginatedAsync
+    method which expects a type ApplicationUser when invoked through
+    the ApiService from the Application/Client.
+</p>
+<p>
+    Make sure you check out the Network tab of the web browser's dev tools where you
+    can find the Http Headers, the Http request, the Htt response, etc.:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/29-get-paginated-users-network-tab.png"
+         alt="Network tab of the browser's developer tools." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Incorporate the ApplicationUser data entity type to the <a href="09-api-connector-service">
+        IApiService
+    </a> which acts as an intermediary between the Application/Client and the
+    Application/Server-Api.
+</p>
+<p>
+    The module of the Application/Server-RESTful web API for a type
+    <code>ApplicationUser</code> is configured but we are not done yet. The next step
+    is to create a way for the Application/Client to call and consume the
+    Application/Server-RESTful web API resources to manage application Users.
+</p>
+<p>
+    As we mentioned earlier, the Application/Client makes a data request and the
+    IApiService (abstract layer) sends the HttpRequest to the
+    Application/Server-Api/Controllers. The Application/Server-Api/Controllers layer
+    employs the IUnitOfWork (abstract layer).
+</p>
+<p>
+    The IUnitOfWork exposes the business logic methods to query the
+    Application/Server-Api/DataStore database and, if necessary, persist any changes
+    made to in-memory objects during a business transaction. Both abstract layers,
+    the IApiService and the IUnitOfWork, establish a contract for exposing one
+    IEnityName interface, in the form of a read-only property, for each data entity
+    mapped to the database.
+</p>
+<p>
+    In other words, both abstract layers employ a shared IEntityName interface (e.g.,
+    IUsers) to expose and represent data entities which in turn implement the
+    IRepository&lt;TEntity&gt; interface which establishes a contract for the required
+    general functionality applicable to all data entities.
+</p>
+<p>
+    IEntityName interfaces are exposed, and implemented in their own way, by the
+    IApiService and the IUnitOfWork interfaces. IEntityName interfaces not only
+    implement the IRepository&lt;TEntity&gt;, they also extend its functionality
+    with operations that are specific to the enity type they represent.
+</p>
+<p>
+    The structure of the Application/Client/ApiServices "IApiService" that connects
+    the Application/Client with the Application/Server-Api is equivalent to the
+    Application/Client/ApiServices "IUnitOfWork" that connects the
+    Application/Server-Api Controllers to the application business logic and
+    the Application/Server-Api Data Store because it also implements the repository
+    pattern except that <strong>
+        instead of declaring the business logic, it defines the code
+        logic to invoke web API endpoints and to serialize/deserialize data.
+    </strong>
+</p>
+<p>
+    The class that implements the Application/Client/ApiServices IUnitOfWork interface
+    (UnitOfWork) has a constructor injected dependency to the AppDbContext that
+    represents a session with the database that can be used to query and save instances.
+</p>
+<p>
+    The class that implements the Application/Client/ApiServices IApiService interface
+    (ApiService) has a constructor injected dependency to an
+    Application/Client/ApiService ApiConnector class responsible for serializing and
+    deserializing .Net objects to JSON format because it acts as an Http session
+    to send/receive Http requests/responses. The ApiConnector class is also responsible
+    for defining the <a href="08-api-controllers">media type</a> of the
+    resource representations.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Go to the Application/Client/ApiServices/ApiManager IApiService and add the IUsers
+    interface which is a representation of the data entity that the Application/Client
+    can consume to invoke Application/Server-Api controller endpoints to send/receive
+    Http requests/responses safely:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/30-i-api-service.png"
+         alt="IApiService with IUsers interface." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Go to the Application/Client/ApiServices/ApiManager and add the ApiUsers class
+    which wraps the code logic to serialize/deserialize and build the URI for the
+    Http requests/responses for specific functionality on an entity type
+    (e.g., ApplicationUser):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/33-api-users-one.png"
+         alt="ApiUsers class part one." />
+    <img src="Images/22-identity-user/34-api-users-two.png"
+         alt="ApiUsers class part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3</span>
+    Go to the Application/Client/ApiServices ApiService class and add the IUsers
+    interface as a read-only property. Ensure it is initialized with a
+    concrete instance of the type that serializes/deserializes the Http requests/responses
+    and builds the URI to the appropriate controller endpoint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/31-api-service-one.png"
+         alt="ApiService class with IUsers interface initialized part one." />
+    <img src="Images/22-identity-user/32-api-service-two.png"
+         alt="ApiService class with IUsers interface initialized part two." />
+</div>
+<p>
+    Success! The web server API is ready to handle Http requests/responses
+    for ApplicationUser operations.
+</p>

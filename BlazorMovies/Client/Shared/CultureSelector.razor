@@ -1,0 +1,18 @@
+﻿
+@using System.Globalization
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+
+<!-- Does not have any semantic structural elements (e.g., row, col, justify)   -->
+<!-- to allow its consumer to position it as required within its layout         -->
+<!-- structure.                                                                 -->
+<label class="small">
+    <select @bind="Culture" class="form-select form-select-sm">
+        @foreach (CultureInfo culture in _supportedCultures)
+        {
+            <option class="fs-6 small" value="@culture">
+                @culture.DisplayName
+            </option>
+        }
+    </select>
+</label>

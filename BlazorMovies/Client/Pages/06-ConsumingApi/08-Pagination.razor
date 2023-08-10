@@ -1,0 +1,917 @@
+﻿@page "/08-pagination"
+<PageTitle>Pagination</PageTitle>
+
+<h2>Consuming the Api - Pagination</h2>
+<p>
+    <dfn>Pagination</dfn>, also known as <dfn><strong>data navigation</strong></dfn>,
+    is a sequence of web site pages which are connected and have similar content. If
+    to much information is published on one page, the user may get overwhelmed.
+    Pagination allows to present a lot of information in small and manageable portions.
+</p>
+<p>
+    Pagination avoids wasting CPU and bandwith resources. Data navigation also
+    makes it easier for users to find the information that they are looking for
+    because it delivers partial results from the API.
+</p>
+<h3>Pagination - Back end</h3>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement the pagination code logic for
+    the back-end of the application.
+</p>
+<p>
+    As usual, the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data entity
+            type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">QueryFilterDtos</span>/<dfn>DTO</dfn>
+        to encapsulate the basic information (parameters) for data pagination.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaion's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions (e.g., updating a Movie object), it is also required to extend
+        the Application/Client/ApiServices/ApiManager/IApiConnector interface and its
+        implementation (ApiConnector class).
+    </p>
+</div>
+<p>
+    We need to create two special purpose DTOs. One for the Http request responsible for
+    encapsulating the pagination parameters (number of page to serve and number of records
+    per page).
+</p>
+<p>
+    The other DTO is for the Http response. It is needed to encapsulate the object value
+    and the pagination metadata (description and context of the paginated data) such as
+    total number of records, total pages, has previous, and has next. It <strong>
+        must be generic
+    </strong> to be re-usable; i.e., to be capable of encapsulating any type for the
+    object value returned.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Shared/QueryFilterDtos folder and create a <em>PaginationRequestDto</em>
+    to encapsulate the pagination parameters such as number of page and number of records
+    per page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/01-pagination-request-dto.png"
+         alt="PaginationRequestDto." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Now create a <em>PaginatedResponseDto</em>
+    responsible for encapsulating the object value (data) and its metadata (description and
+    context of the paginated data):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/02-paginated-response-dto.png"
+         alt="PaginatedResponseDto." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> This is not the final version of the
+    PaginatedResponseDto.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Client/ApiServices/IRepositories/IPeople interface to expose the specific
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/03-i-people-get-people-paginated.png"
+         alt="IPeople exposes GetPeoplePaginatedAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Server-Api/Repositories/EfPeople class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the data entity. It mediates between
+    the RESTful API service (Application/Server-Api/Controllers) and the data source
+    layer (Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/05-ef-people-one.png"
+         alt="EfPeople/GetPeoplePaginatedAsync method part one." />
+    <img src="Images/14-pagination/06-ef-people-two.png"
+         alt="EfPeople/GetPeoplePaginatedAsync method part two." />
+    <img src="Images/14-pagination/07-ef-people-three.png"
+         alt="EfPeople/GetPeoplePaginatedAsync method part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> This is not the final version of the
+    Application/Server-Api/Repositories/EfPeople GetPeoplePaginatedAsync method.
+</p>
+<p>
+    You might recall from the <a href="10-ef-soft-delete-audit">
+        Soft Delete & Audit
+    </a> section of the 05. Server-Api module that the <dfn>HttpContext</dfn> encapsulates
+    all HTTP-specific information about an individual HTTP request. It provides access to
+    the intrinsic <dfn>HttpContext.Request, HttpContext.Response,</dfn> and
+    <dfn>HttpContext.Server</dfn> properties.
+</p>
+<p>
+    There are several ways to access the HttpContext in an ASP.Net core application. In
+    our case, we access it as a <a href="02-components-part-two">service</a> which we
+    must configure in the dependency injection container of the application located in the
+    Application/Server-Api/Program.cs for .Net 6 and later and in the
+    Application/Server-Api/Startup.cs for earlier .Net versions. However, we have already
+    configured the service during the implementation of the <a href="10-ef-soft-delete-audit">
+        Soft Delete & Audit
+    </a> mechanism.
+</p>
+<p>
+    The GetPeoplePaginatedAsync() method <span class="mark">
+        <strong>
+            uses an instance of the IHttpContextAccessor to add a custom Http response
+            header to the Http response and it employs a <code>JsonSerializer.Serialize</code>
+        </strong> method to convert the value of a .Net type into a Json string.
+    </span> The custom Http header includes the serialized metadata of the paginated response;
+    e.g., records per page, page number, total pages, etc. As explained in section
+    <a href="08-api-controllers">Api Controllers</a>, response headers contain additional
+    information about the response.
+</p>
+<p>Example of Http response metadata in the Network tab of the browser's developer tools: </p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/40-http-response.png"
+         alt="Http metadata using Network tab of browser's web developer tools." />
+</div>
+<p>
+    The approach to consume the IHttpContextAccessor from the GetPeoplePaginatedAsync
+    method is the same as the one established to consume the application specific DbContext.
+    The higher level layer that represents a single and unique session with the database
+    for a complete business transaction, <a href="07-api-repository">
+        IUnitOfWork
+    </a> interface, is configured as a service in the Application/Server-Api/Program.cs.
+</p>
+<p>
+    Its implementation, UnitOfWork class, has a constructor dependency injection of the
+    application specific DbContext and now it also has a dependency to an
+    IHttpContextAccessor.
+</p>
+<p>
+    This means that each time we consume an instance of the IUnitOfWork (each time we
+    perform a business transaction with the database), the system automatically creates
+    an instance of the DbContext and an instance of the IHttpContextAccessor which are
+    then passed to each and every data entity instance exposed to the Application/Client:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/04-unit-of-work.png"
+         alt="UnitOfWork class." />
+</div>
+<p>
+    Keep in mind that this is not the final version of the
+    Application/Server-Api/Repositories/EfPeople GetPeoplePaginatedAsync method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiPeople class to implement the newly
+    exposed functionality. This is the application's layer responsible for creating
+    the Http request/response that serializes/deserializes the data and builds the route
+    to match the endpoint's route template (relative URL to the appropriate controller
+    <dfn>action</dfn>):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/08-api-people-one.png"
+         alt="ApiPeople class part one." />
+    <img src="Images/14-pagination/09-api-people-two.png"
+         alt="ApiPeople class part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The <dfn>routeTemplateComplement</dfn> argument
+    is required because the endpoint we are targeting (the GetPeoplePaginatedTask() action will
+    be created in next step) has a formal input parameter decorated with a <strong>
+        <code>
+            [FromQuery]
+        </code>
+    </strong> <dfn>binding source attribute</dfn>. This means that we need to provide
+    its parameter values (PaginationRequestDto values) in the form of a query string. EF
+    Core will perform <a href="08-api-controllers">model binding</a> using these values.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Go to the
+    Application/Server-Api/Controllers/PeopleController to refactor the "Get"
+    <dfn>action</dfn> (controller endpoint). This controller will be responsible for
+    responding to the Http request produced in the last step. It is the intermediary
+    between the client layer (Application/Client) and the back-end layer
+    (Application/Server-Api/Repositories and Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/10-people-controller-one.png"
+         alt="PeopleController part one." />
+    <img src="Images/14-pagination/11-people-controller-two.png"
+         alt="PeopleController part two." />
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    With the current code logic, the back-end should be able to produce a paginated
+    collection of Person items that adheres to the pagination specifications encapsulated
+    in the PaginationRequestDto. It would be wise to test what we have so far before
+    continuing.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Go to the IndexPeople routable component
+    and refactor it to consume the IApiService/People/GetPeoplePaginatedAsync() method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/12-index-people-component.png"
+         alt="IndexPeople component." />
+</div>
+<p>
+    If you run the application and navigate to the Index People routable component, you
+    should get the following result:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/13-index-people-ui-one.png"
+         alt="User interface of the Index People component part one." />
+    <img src="Images/14-pagination/14-index-people-ui-two.png"
+         alt="User interface of the Index People component part two." />
+</div>
+<p>
+    Although the server-side code logic is working as expected, we are not done yet. The
+    GetPeoplePaginatedAsync() method of the Application/Server-Api/Repositories/EfPeople
+    implementation class is currently responsible for multiple operations:
+</p>
+<ol>
+    <li>
+        Retrieve the full collection of Person items from the database in the form of
+        an IQueryable.
+    </li>
+    <li>
+        Formulate the description and context of the paginated data; i.e., formulate
+        the metadata, serialize it, and include it in the HttpResponse as a custom
+        response header.
+    </li>
+    <li>
+        Paginate the query result based on the specifications outlined in the
+        PaginationRequestDto.
+    </li>
+    <li>
+        Construct the PaginatedResponseDto that includes the actual data and its
+        metadata.
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/15-ef-people-one.png"
+         alt="EfPeople class part one." />
+    <img src="Images/14-pagination/16-ef-people-two.png"
+         alt="EfPeople class part two." />
+</div>
+<p>
+    It has code logic that can be reused. We shouldn't have to re-write exactly the same
+    code everytime we want to serve a paginated query result. Besides, we should always
+    have a good and clear separation of concerns. In other words, we can extract the
+    process to formulate the Http response header (numeral 2) and the code to paginate the
+    query result (numeral 3).
+</p>
+<p>
+    You might have noticed that we are currently using two different channels to return
+    very similar information; i.e., the GetPeoplePaginatedAsync() method builds two
+    objects that are comparable:
+</p>
+<ol>
+    <li>
+        The anonymous type named "metadata": Inserts into the HttpResponse the description
+        and context of the paginated data.
+    </li>
+    <li>
+        The PaginatedResponseDto: Inserts into the return type the description and context
+        of the paginated data.
+    </li>
+</ol>
+<p>
+    We can improve our code logic by creating a type named "PaginationMetadata" and use it
+    to insert the description and context of the paginated data into the HttpResponse and
+    also to encapsulate the metadata in the return type (PaginatedResponseDto). Go to the
+    Application/Shared project, create a folder named "Helpers" and add the type
+    PaginationMetadata:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/17-pagination-metadata-type.png"
+         alt="PaginationMetadata type." />
+</div>
+<p>
+    Refactor the PaginatedResponseDto to be capable of handling the PaginationMetadata type:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/21-paginated-response-dto-final-version.png"
+         alt="Final version of the PaginatedResponseDto." />
+</div>
+<p>
+    Now that we have a single and unique model for the metadata, let's extract the
+    functionality of numeral 2. Since it requires an IHttpContextAccessor,
+    we can <span class="mark">
+        <strong>
+            extend the built-in <code>IHttpContextAccessor</code> type with an extension method
+        </strong>
+    </span> that encapsulates the code logic.
+</p>
+<p>
+    Go to the Application/Server-Api/Helpers folder and add a type named
+    HttpContextExtensions with an extension method named "InsertPaginationMetadataInResponse".
+    Make sure it is generic and that it has a generic formal input parameter
+    <code>IQueryable&lt;T&gt;</code> so it can be re-used with different data entity types:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/18-ihttpcontext-extensions-one.png"
+         alt="IHttpContextExtensions type part one." />
+    <img src="Images/14-pagination/19-ihttpcontext-extensions-two.png"
+         alt="IHttpContextExtensions type part two." />
+</div>
+<p>
+    The approach to extract the code logic for numeral 3 to paginate the query result is
+    analogus to extracting the code logic for numeral 2. We can <span class="mark">
+        <strong>
+            extend the built-in <code>IQueryable&lt;T&gt;</code> interface with an extension
+            method
+        </strong>
+    </span> that encapsulates the functionality to determine which objects should be included
+    in the query result. Go to the Application/Server-Api/Helpers directory and create a
+    class named "QueryableExtensions" with a generic method named "Paginate":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/20-iqueryable-extensions.png"
+         alt="IQueryable extensions type." />
+</div>
+<p>
+    Refactor the GetPeoplePaginatedAsync() method of the
+    Application/Server-Api/Repositories/EfPeople implementation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/22-efpeople-final-version-one.png"
+         alt="GetPeoplePaginatedAsync method final version part one." />
+    <img src="Images/14-pagination/23-efpeople-final-version-two.png"
+         alt="GetPeoplePaginatedAsync method final version part two." />
+    <img src="Images/14-pagination/24-efpeople-final-version-three.png"
+         alt="GetPeoplePaginatedAsync method final version part three." />
+</div>
+<p>
+    With these modifications, we can reuse the
+    IHttpContextAccessor.InsertPaginationMetadataInResponse and the
+    IQueryable&lt;T&gt;.Paginate extension methods with any data entity
+    type.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Although we are not actually consuming
+    the data from the custom Http header inserted in the Http response, it was
+    implemented for illustrative purposes. Suppose that for some reason, you need to
+    have access to the "value" of the custom Http header from the GetPeoplePaginatedAsync
+    method.
+</p>
+<p>
+    In that case, you could
+    <span class="mark">
+        <strong>
+            use an instance of the IHttpContextAccessor to access the HttpContext.Response
+            property and employ a <code>JsonSerializer.Deserialize</code>
+        </strong>
+    </span> method to convert the string values of the serialized data into a .Net type:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/25-ef-people-deserialize-data.png"
+         alt="Deserializing Json to .Net type demo." />
+</div>
+<p>
+    If you run the application and navigate to the Index People routable component, you should
+    get exactly the same result as before.
+</p>
+<p>
+    For more info visit <a href="https://code-maze.com/paging-aspnet-core-webapi/">
+        Paging in ASP.Net Core Web API
+    </a>,
+    <a href="https://code-maze.com/blazor-webassembly-pagination/">
+        Blazor WebAssembly Pagination with ASP.Net Core Web API
+    </a>,
+    <a href="https://youtu.be/nRyLXP7WLxI">
+        Paging in ASP.Net Core Web API
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/querying/pagination">
+        Pagination
+    </a>,
+    <a href="https://code-maze.com/aspnetcore-add-custom-headers/">
+        How to Add Custom Headers in ASP.Net Core Web API
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0">
+        Model Binding in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-6.0#binding-source-parameter-inference">
+        Binding source parameter inference
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/routing?view=aspnetcore-6.0">
+        Routing to controller actions in ASP.Net Core
+    </a>
+</p>
+<p>
+    At this point, the back-end is capable of paginating the result to serve an Http
+    request for any data entity type without having to rewrite code related to inserting
+    the custom Http header in the response nor the pagination code logic.
+</p>
+<h3>Pagination - Front end</h3>
+<p>
+    As mentioned earlier, <dfn>pagination</dfn> is a way to present information to the
+    client in small and manageable portions; therefore, it is likely to be used often.
+    This means we should create a self-contained, reusable piece of user interface (a
+    Razor component) with the processing logic to produce pagination controls that
+    allow the user to navigate through the available portions of data (pages).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement pagination for the front-end
+    of the application. Create a Razor component responsible for rendering a pagination
+    control with the following specifications:
+</p>
+<ul>
+    <li>
+        Has a <dfn>pagination radius</dfn> value of 1 (the total number of button elements
+        to display before and after the active page. Does not include "previous" or
+        "next".
+    </li>
+    <li>
+        Has button elements for "Previous", and "Next".
+    </li>
+    <li>
+        "Previous" and "Next" button elements are disabled when there is no previous or
+        next page available; i.e., when the current page is either the first or last
+        one from the full set.
+    </li>
+    <li>
+        Indicates the current page using an "active" attribute (Bootstrap).
+    </li>
+</ul>
+<p>
+    Before going any further, it is worth mentioning that from now on, we will no
+    longer separate CSharp logic from HTML (Razor markup syntax) inside a single file;
+    i.e., using an <strong><code>@@code{ }</code></strong> Razor directive. Instead,
+    we will use <dfn>partial</dfn> classes.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <a href="02-components-part-two">Splitting Components</a> into different files
+        (partial or base classes) to separate Razor markup from CSharp logic facilitates
+        keeping your codebase clean and easier to maintain. What's more, XML comments in
+        scoped classes are displayed by Intellisense when hovering the mouse pointer over
+        component instances and/or component members.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Add a Razor component file named
+    "Pagination". Since it is not a routable component, it should reside in the
+    Application/Client/Shared folder. Create a <em>scoped</em> file in the same folder
+    named "Pagination.razor.cs". This is where we will declare the CSharp logic:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/26-pagination-folder-tree.png"
+         alt="Folder tree for the Pagination component files." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Still in the Pagination.razor.cs
+    scoped class, create a type named PaginationButtonModel, without an access
+    modifier (defaults to private), that models the state of a given button element
+    in the pagination control. <strong>
+        Use constructor overloading to initialize its members with default values:
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/27-pagination-button-model-one.png"
+         alt="PaginationButtonModel type part one." />
+    <img src="Images/14-pagination/28-pagination-button-model-two.png"
+         alt="PaginationButtonModel type part two." />
+    <img src="Images/14-pagination/29-pagination-button-model-three.png"
+         alt="PaginationButtonModel type part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Still in the Pagination.razor.cs
+    partial class, define the CSharp logic following the specifications outlined
+    earlier. This is the functionality that produces the button elements in the
+    pagination component and notifies the parent (consumer) component when a button
+    element (a page) has been selected by the user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/30-pagination-csharp-logic-one.png"
+         alt="Pagination component CSharp logic part one." />
+    <img src="Images/14-pagination/31-pagination-csharp-logic-two.png"
+         alt="Pagination component CSharp logic part two." />
+    <img src="Images/14-pagination/32-pagination-csharp-logic-three.png"
+         alt="Pagination component CSharp logic part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Define the markup logic for the
+    Pagination component. We can build on Bootstrap's <a href="https://getbootstrap.com/docs/5.0/components/pagination/#disabled-and-active-states">
+        Pagination
+    </a> component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/33-pagination-markup.png"
+         alt="Markup section for the Pagination component." />
+</div>
+<p>
+    Both back-end and front-end are finally configured to be capable of paginating
+    query results for data entities of any type.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Refactor the Index People routable
+    component to consume the recently added functionality. Pass a
+    PaginationRequestDto.RecordsPerPage property value of 2 and split the component
+    into separate files. One with the CSharp logic (e.g., IndexPeople.razor.cs) and
+    the actual Razor component file (e.g., IndexPeople.razor) with the markup.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Define the CSharp logic to consume
+    the Pagination component to display Person items and a navigation control with
+    button elements that represent pages with portions of data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/34-index-people-csharp-one.png"
+         alt="CSharp logic for IndexPeople routable component part one." />
+    <img src="Images/14-pagination/35-index-people-csharp-two.png"
+         alt="CSharp logic for IndexPeople routable component part two." />
+    <img src="Images/14-pagination/36-index-people-csharp-three.png"
+         alt="CSharp logic for IndexPeople routable component part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define the markup section that
+    consumes the Pagination component to display Person items and a navigation control
+    with button elements that represent pages with portions of data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/37-index-people-markup.png"
+         alt="IndexPeople routable component markup section." />
+</div>
+<p>
+    As explained in the <a href="02-components-part-one">02. Components</a> section,
+    <dfn>event callbacks</dfn> allow components (Pagination component) to execute a
+    parent component's method (IndexPeople.LoadSelectedPageAsync(pageNumber)) when a
+    child component (Pagination component) event
+    (Pagination.OnPageSelected(paginationButton)) occurs such as an <code>@@onclick</code>
+    event occurring in the child component.
+</p>
+<p>
+    The "pageNumber" value is captured in the Pagination.OnPageSelected(paginationButton)
+    handler and passed as an argument to the Pagination.OnSelectedPageValidated event
+    callback which in turn supplies the value to the IndexPeople.LoadSelectedPageAsync
+    event handler.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Run the application and navigate to
+    the IndexPeople routable component. You should get:
+</p>
+<ul>
+    <li>
+        The query result paginated in segments of two items.
+    </li>
+    <li>
+        A pagination control with button elements in a "disabled", "enabled", and/or
+        "active" state.
+    </li>
+    <li>
+        A pagination Radius of 1 (since it initializes in page one, the Radius is only
+        valid for pages to the right).
+    </li>
+    <li>
+        A custom Http header inserted into the Http response with a Key:
+        "pagination-metadata" and a value analogus to a PaginationMetadata type.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/38-index-people-ui-completed.png"
+         alt="Index People UI with paginated query result and navigation control." />
+</div>
+<p>
+    The dimensions of the Person.Picture are not consistent. Let's replace the
+    <code>style</code> attribute value for the Person.PictureUrl property value
+    of the IndexPeople table in the markup section:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/39-index-people-markup-final-version.png"
+         alt="IndexPeople markup with consistent dimensions for Person.PictureUrl." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The exercises demonstrated here do not
+    overwrite the web browser's URL to be more descriptive of the actions performed and
+    it does not implement <dfn>deep linking</dfn> to provide support for the user to share
+    a link based on the current selection so the current state is restored when someone
+    else visits the same link (URL). Refer to the topic on Data Filtering and Pagination
+    of the <a href="05-filters">Filters</a> section for an example on both topics.
+</p>
+<p>
+    The pagination system is working as expected. However, <strong>
+        we are not done yet
+    </strong>. Recall from the lesson to <a href="03-create-complex-data">Create Data</a>,
+    that for cases where you do not need to load related data, you can (and should) use
+    the methods defined by the
+    Application/Repository/EFManager/<a href="07-api-repository">EfRepository</a> which
+    contains general functionality equivalent to CRUD operations applicable to all data
+    entity types.
+</p>
+<p>
+    In other words, we should implement a generic GetPaginatedAsync(PaginationRequestDto)
+    method which can be consumed by any data entity type as long as we don't need to
+    load any related data; i.e., as long as we don't need to include any relationship
+    data. <strong>
+        The process is very straight forward because we simply have to replace the
+        type Person with a generic type parameter TEntity.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement a generic
+    GetPaginatedAsync(PaginationRequestDto) capable of paginating query results of any
+    data entity type.
+</p>
+<p>
+    As usual, the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data entity
+            type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">QueryFilterDtos</span>/<dfn>DTO</dfn>
+        to encapsulate the basic information (parameters) for data pagination.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaion's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions (e.g., updating a Movie object) it is also required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its
+        implementation (ApiConnector class).
+    </p>
+</div>
+<p>
+    We already have two special purpose DTOs. One for the Http request responsible for
+    encapsulating the pagination parameters (number of page to serve and number of records
+    per page) and one for the Http response. It encapsulates the object value and the
+    pagination metadata (description and context of the paginated data). Let's take it from
+    here.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/ApiServices/IRepositories/IRepository interface to expose the generic
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/40-irepository-get-paginated-async.png"
+         alt="IRepository.GetPaginatedAsync generic method exposed." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Server-Api/Repositories/EfRepository generic class to implement the
+    newly exposed functionality. This is the application's business logic responsible
+    for building the Linq queries and operations that act on the data entity. It
+    is the intermediary between the RESTful API service (Application/Server-Api/Controllers)
+    and the data source layer (Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/41-ef-repository-one.png"
+         alt="EfRepository class part one." />
+    <img src="Images/14-pagination/42-ef-repository-two.png"
+         alt="EfRepository class part two." />
+    <img src="Images/14-pagination/43-ef-repository-three.png"
+         alt="EfRepository class part three." />
+    <img src="Images/14-pagination/44-ef-repository-four.png"
+         alt="EfRepository class part four." />
+    <img src="Images/14-pagination/45-ef-repository-five.png"
+         alt="EfRepository class part five." />
+</div>
+<p>
+    The EfRepository suffered a slight modification to avoid violating the DRY principle
+    because the DeleteAsync and the GetPaginatedAsync methods use the TEntity primary key
+    name. For this reason, a GetPrimaryKeyName helper method defines the code logic and the
+    value is stored in a local reference variable named _primaryKeyName which is
+    initialized in the constructor.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiRepository generic class to implement
+    the newly exposed functionality. This is the application's layer responsible for
+    creating the Http request/response that serializes/deserializes the data and builds
+    the route to match the endpoint's route template (relative URL to the appropriate
+    controller <dfn>action</dfn>):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/46-api-repository-one.png"
+         alt="ApiRepository part one." />
+    <img src="Images/14-pagination/47-api-repository-two.png"
+         alt="ApiRepository part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the
+    Application/Server-Api/Controllers/PeopleController and configure its
+    GetPeoplePaginatedTask action to consume the generic GetPaginatedAsync method we
+    just created.
+</p>
+<p>
+    The controller is responsible for responding to the Http request
+    produced in last step. It is the intermediary between the client layer
+    (Application/Client) and the back-end layer (Application/Server-Api/Repositories and
+    Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/48-people-controller-one.png"
+         alt="PeopleController consumes generic method GetPaginatedAsync part one." />
+    <img src="Images/14-pagination/49-people-controller-two.png"
+         alt="PeopleController consumes generic method GetPaginatedAsync part two." />
+    <img src="Images/14-pagination/50-people-controller-three.png"
+         alt="PeopleController consumes generic method GetPaginatedAsync part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Go to the code file of the IndexPeople
+    routable component and configure it to consume the IApiService/People/GetPaginatedAsync
+    generic method we just implemented:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/51-index-people-code-file.png"
+         alt="IndexPeople routable component consumes GetPaginatedAsync generic method." />
+</div>
+<p>
+    Done!! We have provided our application a pagination feature that can be used with
+    any data entity type. If you navigate to the Index People component, you should get
+    exactly the same UI as the one in last exercise.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The exercises demonstrated here do not
+    overwrite the web browser's URL to be more descriptive of the actions performed and
+    it does not implement <dfn>deep linking</dfn> to provide support for the user to share
+    a link based on the current selection so the current state is restored when someone
+    else visits the same link (URL). Refer to the topic on Data Filtering and Pagination
+    of the <a href="05-filters">Filters</a> section for an example on both topics.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement a PersonDetails routable component
+    that displays a given Person object's info. Make sure that:
+</p>
+<ol>
+    <li>
+        The component is split between a <dfn>view</dfn> and a <dfn>code</dfn> file.
+    </li>
+    <li>
+        It contains the Person (actor's) data such as name, date of birth, biography, related
+        movies, etc.
+    </li>
+    <li>
+        The first 5 movie titles related to the Person object are displayed as hyperlinks
+        right below the actor's name.
+    </li>
+    <li>
+        The biography has the capability to render <a href="04-forms-part-one">markdown</a>
+        content (formatted text).
+    </li>
+    <li>
+        The collection of films where the actor has participated is presented in descending
+        order by their release date.
+    </li>
+    <li>
+        The picure of each Movie item redirects the user to the MovieBulletin component.
+    </li>
+    <li>
+        The PersonDetails routable component is reachable from any Person item displayed in
+        IndexPeople routable component.
+    </li>
+</ol>
+<p>
+    When finished, the UI should be something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/52-people-details-ui.png"
+         alt="UI of the PersonDetails component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/Pages/People folder to create the PersonDetails routable component
+    and its PersonDetails.razor.cs code file.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the IPeople.FilterAsync method created
+    in the <a 05-filters>Filters</a> section to build a query for a Person object using the
+    component's route parameters:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/53-person-details-code-file.png"
+         alt="PersonDetails code file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define the markup to render the Person
+    (actor's) data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/54-person-details-view-one.png"
+         alt="View file for the PersonDetails component part one." />
+    <img src="Images/14-pagination/55-person-details-view-two.png"
+         alt="View file for the PersonDetails component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use <a href="02-components-part-two">
+        CSS Isolation
+    </a> to define specific CSS rules for the "actor-container". Include <code>@@media</code>
+    queries to make the container <dfn>responsive</dfn>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/56-person-details-css-one.png"
+         alt="CSS Isolation file for the PersonDetails component part one." />
+    <img src="Images/14-pagination/57-person-details-css-two.png"
+         alt="CSS Isolation file for the PersonDetails component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Go to the IndexPeople routable
+    component and refactor its people table to redirect the user to the PersonDetails
+    component when the user clicks on the image of a given Person (actor) item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/58-index-people-anchored.png"
+         alt="IndexPeople component with anchor to redirect user to PersonDetails component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Use the <a href="people">IndexPeople</a>
+    component to test the PersonDetails components we just created.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Go to the Application/Client/Pages MovieBulletin routable component and modify the
+    route for the anchor element of the actor names to redirect the User to the
+    PersonDetails component we just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/14-pagination/"
+         alt="MovieBulletin actor hypertext redirects to PersonDetails." />
+</div>
+<p>
+    Congratulations!!! You have finished the "Consuming the API" module which means that most of
+    the application is finished. We can now start with the <a href="01-security">Security</a> module
+    which deals with Authentication and Authorization.
+</p>

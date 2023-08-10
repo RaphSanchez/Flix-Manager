@@ -1,0 +1,795 @@
+﻿@page "/03-security-id-server"
+<PageTitle>Identity Server Engine</PageTitle>
+
+<h2>Security - Duende IdentityServer Engine</h2>
+<p>
+    It is <strong>strongly advised</strong> to go through the information available in
+    the links provided at the end of <a href="02-security-building-blocks">
+        last lesson
+    </a> where we introduce the building blocks of the security system we will implement.
+    In this lecture, we will integrate the Duende IdentityServer engine, responsible for
+    authenticating Clients (Application/Client - web application) and/or Users (end-user),
+    with the Application/Server-Api project as the host.
+</p>
+<p>
+    Whether using <dfn>external identity providers</dfn> (e.g., Google, Microsoft Identity
+    Platform, Twitter) or not, Duende IdentityServer (DIS) engine is responsible for
+    granting (or not) to our web client application (Application/Client - the Client)
+    consent from the end-user (the User) to his personal data (OIDC scopes such as profile,
+    email, phone number, image, etc).
+</p>
+<p>
+    Although each section will have links to related information, we provide the following
+    documentation as a starting point.
+</p>
+<p>Duende Identity Server</p>
+<ul>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/fundamentals/">
+            Fundamentals
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/quickstarts/">
+            Quickstarts
+        </a>
+    </li>
+</ul>
+<p>Microsoft:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio">
+            Introduction to Identity on ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.NET Core Blazor authentication and authorization
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#authentication-process-with-oidc">
+            Secure ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/additional-scenarios?view=aspnetcore-6.0">
+            ASP.Net Core Blazor WebAssembly additional security scenarios
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/project-structure?view=aspnetcore-6.0">
+            ASP.Net Core Blazor project structure
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/razor-pages/razor-pages-start?view=aspnetcore-6.0&tabs=visual-studio">
+            Tutorial: Get started with Razor Pages in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-6.0&tabs=visual-studio">
+            Introduction to Razor Pages in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<p>
+    For guidance on how to implement a security system on Blazor using ASP.net Core Identity,
+    you can refer to:
+</p>
+<ul>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@e7d0tsBck67Lf7lvpCgZHdOXgA7uWmQp5f5CKqZ4hFL2mrFVHfEB9ZREp0OBVVVn/">
+            Section 7: Security
+        </a> of the Udemy course named "Programming in Blazor - ASP.Net Core 5" by
+        Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/104giU3@zB_JUiyDsVq1BnYoudTCzRdJAM_vZgqVOY0_3RJg0My1e9xkgVxrKGug8q5l8rrP/">
+            Section 14: Security with Identity Server 4
+        </a> of the Udemy course named "Complete Guide to ASP.Net Core RESTful API with Blazor
+        WASM" by Frank Liu.
+    </li>
+    <li>
+        Episodes 65 to 124 of the YouTube course named
+        <a href="https://youtu.be/egITMrwMOPU">ASP.Net core tutorial for beginners</a> by
+        kudvenkat.
+    </li>
+</ul>
+<p>Others:</p>
+<li>
+    <a href="https://youtube.com/playlist?list=PL6n9fhu94yhX6J31qad0wSO1N_rgGbOPV">
+        ASP.Net Core Razor pages tutorial
+    </a> by Kudvenkat.
+</li>
+<p>
+    <span class="badge bg-primary">Task:</span> Secure your hosted ASP.Net Core Blazor
+    WebAssembly app with Duende IdentityServer software. Configure the IdentityServer engine
+    to integrate with ASP.Net Core Identity to authenticate Clients (Application/Client) and
+    API calls in compliance with OpenId Connect and OAuth protocols.
+</p>
+<p>
+    The Duende IdentityServer (DIS) engine should:
+</p>
+<ol>
+    <li>
+        Be hosted in the Application/Server-Api project which is an ASP.Net Core application.
+    </li>
+    <li>
+        Implement JWT Bearer Authentication.
+    </li>
+    <li>
+        Integrate with ASP.Net core Identity to store and retrieve users and their data (e.g.,
+        passwords, roles, claims, profile data, hashes, multifactor authentication (MFA),
+        etc).
+    </li>
+</ol>
+<h4>Configuring IdentityServer Engine in Application/Server</h4>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a new hosted Blazor WASM application named "Demo" and select "Individual
+    User Accounts" for the security model. This application will serve as an example
+    for various configuration options.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to Udemy and watch episodes <a href="https://www.udemy.com/share/102l0i3@wgCePs0_ln0ljrZX_ZecJg6cGbVOuoTMgh8PUkaVaSHxK0_9D3RdjAJCDO36A1ZI/">
+        99. Exploring the New Authentication Template for Blazor WebAssembly
+    </a> of the "Programming in Blazor - ASP.Net Core 5" course by Felipe Gavilan and
+    <a href="https://www.udemy.com/share/104giU3@7m-qsV-fpuQcsiVc3jker7jgArjuBQCzTmrMlcQsH4VuMDXibho64sBCoieVVoUL/">
+        127. The Aspects of Making Blazor WASM work with Identity Server
+    </a> of the "Complete Guide to ASP.Net Core RESTful API with Blazor WASM" by
+    Frank Liu.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Server-Api, update any currently installed NuGet packages and
+    add the following:
+</p>
+<ul>
+    <li>Microsoft.AspNetCore.ApiAuthorization.IdentityServer</li>
+    <li>Microsoft.AspNetCore.Identity.EntityFrameworkCore</li>
+    <li>Microsoft.AspNetCore.Identity.UI</li>
+    <li>Microsoft.VisualStudio.Web.CodeGeneration.Design</li>
+    <li>Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore</li>
+</ul>
+<p>
+    Data Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio">
+            Secure a hosted ASP.Net Core Blazor WebAssembly app with Identity Server
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@wgCePs0_ln0ljrZX_ZecJg6cGbVOuoTMgh8PUkaVaSHxK0_9D3RdjAJCDO36A1ZI/">
+            Episodes 99 - 100
+        </a> of Udemy course: Programming in Blazor - ASP.Net Core 5 by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Prepare the ASP.Net Core Identity model for future <a href="01-identity-model-fundamentals">
+        customization
+    </a>; i.e., create a class named ApplicationUser and derive it from IdentityUser class.
+    This class is a representation of our application Users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/09-application-user.png"
+         alt="ApplicationUser class." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <strong><code>ApplicationUser</code></strong> type should reside in the
+        Application/Shared/EDM directory to make it available throughout the application.
+        Ensure the "Shared" project has the NuGet package <strong>
+            Microsoft.AspNetCore.Identity.EntityFrameworkCore
+        </strong>
+    </p>
+</div>
+<p>
+    This will become specially important in later lessons where we implement a <a>
+        User Manager Api
+    </a> because the <code>ApplicationUser</code> type will be incorporated to
+    the <a href="07-api-repository">repository</a> and <a href="07-api-repository">unit of work</a>
+    patterns. Their abstract layers reside in the Application/Client and their implementations
+    (concrete classes) reside in the Application/Server-Api; i.e., both projects will
+    consume the <code>ApplicationUser</code> type.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Go to the Application/Server-Api/DataStore AppDbContext class and extend the DbContext
+    by deriving your AppDbContext class from <code>ApiAuthorizationDbContext&lt;TUser&gt;</code>
+    to include the database schema for ASP.Net Core Identity and for IdentityServer.
+    ApiAuthorizationDbContext is in turn derived from <code>IdentityDbContext</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/10-app-db-context.png"
+         alt="AppDbContext class with ApiAuthorization schema integrated." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Add a migration and apply it to update the database with the ASP.Net Core Identity
+    schema and the Duende IdentityServer operational data schema.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1</span>
+    Go to the Application/Server-Api/appsettings.json source file and make sure the
+    "ConnectionStrings" section has the correct configuration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/14-app-settings-json.png"
+         alt="Appsettings.json source file." />
+</div>
+<p>
+    The ConnectionStrings section has two connection strings. A "DevelopmentDb" with a value that 
+    points to the MoviesDB database configured in the <a href="06-api-db-support">
+        Adding Database Support</a> section of the
+    05. Server-Api module and a "AzureStorageConnection" with a value that points to the
+    Azure storage account configured in the <a href="02-data-storage-options">
+        Data Storage Options
+    </a> section of the Consuming the API module. 
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2</span>
+    Go to the Packagage Manager Console
+    (<a href="https://docs.microsoft.com/en-us/ef/core/cli/powershell">PMC</a>) and:
+</p>
+<ul>
+    <li>Select BlazorMovies.Server as the "Default Project".</li>
+    <li>
+        " <strong><code>Update-Database</code></strong> " to make sure there are no
+        pending updates. This prevents any pending updates to be included in the
+        migration code logic we will create for the Identity schema.
+    </li>
+    <li>" <strong><code>Add-Migration IdentitySchema</code></strong> "</li>
+    <li>Check the migration file.</li>
+    <li>" <strong><code>Update-Database</code></strong> "</li>
+    <li>Check the database, it should be something like the image shown below.</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/13-identity-schema.png"
+         alt="Database with ASP.Net Core Identity and IdentityServer schemas." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Configure the Duende IdentityServer engine in the Application/Server-Api by adding
+    the relevant services to its dependency injection system.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1:</span>
+    Configure ASP.Net Core Identity with a call to the <code>.AddDefaultIdentity&lt;TUser&gt;</code>
+    extension method. Include a call to the <code>.AddEntityFrameworkStores&lt;DbContext&gt;</code>
+    extension method to enable a connection to ASP.Net Core Identity tables (services):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/15-add-default-identity.png"
+         alt="AddDefaultIdentity configuration." />
+</div>
+<p>
+    Besides requiring a confirmed account to sign in, you can <a href="08-account-confirmation">
+        configure
+    </a> ASP.Net Core Identity options such as lockout, password, sign-in, tokens, user, etc.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> We still need to define the
+    functionality for account confirmation and password recovery. These features will
+    be configured soon.
+</p>
+<p>
+    Data Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0">
+            IdentityModel customization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#applicationdbcontext">
+            ApplicationDbContext
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/quickstarts/4_ef/">
+            Using EntityFramework Core for configuration and operational data
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/ef/core/cli/powershell">
+            Package Manager Console
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-6.0">
+            Configure ASP.Net Core Identity
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#startup-class">
+            Startup class
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio#adddefaultidentity-and-addidentity">
+            AddDefaultIdentity and AddIdentity
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio">
+            Account confirmation and password recovery in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://code-maze.com/email-confirmation-aspnet-core-identity/">
+            Email confirmation with ASP.Net Core Identity
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.2:</span>
+    Call the <code>.AddIdentityServer</code> extension method to add the IdentityServer
+    engine to the Application/Server-Api project and set up the default conventions on top
+    of IdentityServer with a call to the <code>.AddApiAuthorization&lt;TUser, TContext&gt;</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/24-identity-server.png"
+         alt="Adding the IdentityServer engine." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#addapiauthorization">
+            AddApiAuthorization
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-6.0#oidcconfigurationcontroller">
+            OidcConfigurationController
+        </a>
+    </li>
+    <li>
+        <a href="https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes">
+            OpenID Connect Scopes
+        </a>
+    </li>
+    <li>
+        <a href="https://developers.onelogin.com/openid-connect/scopes">
+            onelogin scopes
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-6.0#application-profiles">
+            Application profiles
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.3:</span>
+    Register the authentication services required to provide authentication operations
+    such as authenticating a User and responding when a User tries to access a restricted
+    resource. Include a JWT Bearer token configuration to validate tokens:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/16-authentication.png"
+         alt="Authentication service and JWT Bearer token middleware." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.4:</span>
+    Declare a call to the <code>.AddDatabaseDeveloperPageExceptionFilter</code> to
+    produce details about possible actions to resolve when an exception is thrown:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/17-database-developer-details.png"
+         alt="AddDatabaseDeveloperExceptionFilter extension method." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/?view=aspnetcore-6.0">
+            Overview of ASP.Net Core authentication
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#addidentityserverjwt">
+            AddIdentityServerJwt
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.databasedeveloperpageexceptionfilterserviceextensions.adddatabasedeveloperpageexceptionfilter?view=aspnetcore-6.0">
+            DatabaseDeveloperPageExceptionFilterServiceExtensions
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/choose-web-ui?view=aspnetcore-6.0">
+            Choose an ASP.Net Core web UI
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v5/quickstarts/2_interactive/">
+            Interactive Applications with ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/razor-pages-authorization?view=aspnetcore-6.0">
+            Razor Pages authorization conventions in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Configure the Http request pipeline.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">8.1:</span>
+    Add the IdentityServer middleware to expose the OpenID Connect (OIDC) endpoints:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/18-id-server-pipeline.png"
+         alt="UseIdentityServer pipeline config." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-6.0&tabs=visual-studio&viewFallbackFrom=aspnetcore-2.1#http-strict-transport-security-protocol-hsts">
+            HTTP Strict Transport Security Protocol (HSTS)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.httpspolicybuilderextensions.usehttpsredirection?view=aspnetcore-6.0">
+            HttpsPolicyBuilderExtensions.UseHttpsRedirection
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-6.0&tabs=visual-studio#require-https">
+            Require HTTPS
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-6.0">
+            Static files in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-3.1#routing-basics-1">
+            Routing basics
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#startup-class">
+            Startup class
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/quickstarts/1_client_credentials/#add-jwt-bearer-authentication">
+            Add JWT Bearer Authentication
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">8.2:</span>
+    Add the authentication middleware responsible for validating request credentials
+    and setting the User on the request context:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/19-authentication-pipeline.png"
+         alt="Authentication pipeline config." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">8.3:</span>
+    Add the authorization middleware to protect API endpoints from unwanted Users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/20-authorization-pipeline.png"
+         alt="Authorization pipeline config." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#startup-class">
+            Startup class
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/quickstarts/1_client_credentials/#add-jwt-bearer-authentication">
+            Add JWT Bearer Authentication
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.authorizationappbuilderextensions.useauthorization?view=aspnetcore-6.0">
+            AuthorizationAppBuilderExtensions.UseAuthorization method
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/razor-pages/?view=aspnetcore-6.0&tabs=visual-studio">
+            Introduction to Razor Pages in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/razor-pages/razor-pages-conventions?view=aspnetcore-6.0">
+            Razor Pages route and app conventions in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<p>
+    As mentioned in Step 7.2, the support for API authorization builds on top of
+    IdentityServer with a set of conventions, default values, and enhancements to
+    simplify the experience for Single Page Applications (SPAs).
+</p>
+<p>
+    These conventions, default values, and enhancements are wrapped into application
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-6.0#application-profiles">
+        profiles
+    </a> which are predefined configurations for the applications (Clients). At
+    the time, the profiles supported are "IdentityServerSPA", "SPA", "IdentityServerJWT",
+    and "API".
+</p>
+<p>
+    <span class="badge bg-dark">Step Nine:</span>
+    Create the OidcConfigurationController responsible for retrieving the Client instance
+    making the Http request and configuring its parameters.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">9.1</span>
+    Go to the Application/Server-Api/Controllers folder and create a controller named
+    <dfn>OidcConfigurationController</dfn>. Use the Demo solution created in Step One
+    for the code logic.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/21-oidc-config-controller.png"
+         alt="OidcConfigurationController." />
+</div>
+<p>
+    This controller is responsible for retrieving the Client instance making the Http
+    request; i.e., the "_configuration/{clientId}" endpoint is provisioned to serve OIDC
+    parameters with pre-defined application profiles. These parameters include "Authority"
+    (or domain), "Client Id", "RedirectUri", "PostLogoutRedirectUri", "ResponseType", and
+    "AllowedScopes":
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">9.2</span>
+    Configure the Client(s) by adding a section named "IdentityServer" in the
+    appsetttings.json configuration source file at the project root.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/22-id-server-section-config.png"
+         alt="Appsettings.json file with IdentityServer section." />
+</div>
+<p>
+    The IdentityServer section describes the list of configured clients. In the
+    image above, there is a single Client. The <span class="mark">
+        <strong>
+            Client name corresponds to the app's assembly name (Application/Client)
+        </strong>
+    </span> and it is mapped by convention to the OAuth <code>ClientId</code>
+    parameter.
+</p>
+<p>
+    The profile indicates the app type being configured. It is used internally to
+    drive conventions that simplify configuration process for the  server.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#oidcconfigurationcontroller">
+            OidcConfigurationController
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-6.0#application-profiles">
+            Application profiles
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Ten:</span>
+    Use the appsettings.json source file to define the configuration for the Key used to sign the
+    tokens.
+</p>
+<p>
+    The Key type can be any of the following values:
+</p>
+<ul>
+    <li><strong><code>File</code></strong>: specify the certificate file on disk.</li>
+    <li><strong><code>Development</code></strong>: generates a temporary certificate.</li>
+    <li><strong><code>Store</code></strong>: specify a certificate in the certificate store.</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/23-key-to-sign-in.png"
+         alt="Appsettings.json source file with Key config." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> When deploying to production, a key
+    needs to be provisioned and deployed alongside the app.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-3.0#appsettingsdevelopmentjson-1">
+            appsettings.Development.json
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-3.0#deploy-to-production-1">
+            Deploy to production
+        </a>
+    </li>
+    <li>
+        <a href="https://www.reddit.com/r/aspnetcore/comments/bmq2n3/asp_net_core_3_angular_template_problem/">
+            ASP Net Core 3 Angular Template Problem
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/data-protection/implementation/key-storage-providers?view=aspnetcore-6.0&tabs=visual-studio">
+            Key storage providers in ASP.Net Core
+        </a>
+    </li>
+</ul>
+
+<h4>Scaffold Identity in ASP.Net Core</h4>
+<p>
+    ASP.Net Core provides ASP.Net Core Identity as a Razor class library. Applications
+    that include Identity can apply the scaffolder to selectively add the source code
+    contained in the Identity Razor class library to have control over its code and
+    behaviour.
+</p>
+<p>
+    Generated code takes precedence over the same code in the Identity RCL. Although
+    the scaffolder generates most of the necessary code, you need to update your project
+    to complete the process. It is reccommended to use a source control system
+    (migrations) that shows file differences and allows to back out of changes. Inspect
+    the changes after executing the Identity scaffolder.
+</p>
+<p>
+    The UI library includes Razor pages for operations like two factor authentication,
+    account confirmation, and password recovery. You need to add the code logic for
+    these services manually.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        ASP.Net Core apps that use ASP.Net Core Identity for user management should
+        use Razor Pages instead of Razor components for identity-related UI, such as
+        registration, login, logout, and other user management tasks. For more info
+        visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor AuthN and AuthZ
+        </a>.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Confirm that the Application/Server-Api project has the
+    <strong>Microsoft.VisualStudio.Web.CodeGeneration.Design</strong> NuGet package.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Server-Api/Pages/Shared folder and ensure that there is no
+    "_Layout.cshtml" file. Otherwise, delete the file because it will cause a conflict
+    with the UI library we are about to install.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the scaffolder:
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    From the Solution Explorer, right click the Application/Server-Api project, select
+    Add, New Scaffolded Item.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    From the left pane of the Add New Scaffolder Item dialog, select Identity and
+    click the Add button.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    In the Add Identity dialog, select the options you want. In this example, we are
+    overriding all files to import the full UI library:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/15-security/25-add-identity-ui.png"
+         style="max-width: 140%"
+         alt="Add Identity dialog box." />
+</div>
+<p>
+    After the scaffolder is executed, you should have something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/29-identity-ui-folder-tree.png"
+         alt="Full Razor class library with Identity UI." />
+</div>
+<p>
+    The scaffolder may add a new declaration with a .GetConnectionString method in the
+    dependency injection container of the Application/Server-Api. This configuration will
+    obviously cause a conflict with your existing connection string.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4</span>
+    Delete the extra call to the <dfn>.GetConnectionString</dfn> extension method to avoid
+    any compiler errors:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/26-extra-get-connection-string.png"
+         alt="Extra call to the GetConnectionString extension method." />
+</div>
+<p>
+    The scaffolder may also add an extra call to the
+    .AddDefaultIdentity&lt;TUser&gt; extension method in the dependency injection container
+    of the Application/Server-Api. If you run your application with a duplicate call it
+    will throw a <dfn>System.InvalidOperationException</dfn> exception because the
+    "Scheme already exists: Identity.Application":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/28-extra-add-default-identity.png"
+         alt="Extra call to the .AddDefaultIdentity extension method." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.5</span>
+    Delete the extra call to the <dfn>.AddDefaultIdentity</dfn> extension method to avoid
+    any exceptions, "Clean", and "Rebuild" the solution.
+</p>
+<p>
+    In some cases, the scaffolder may add a Data folder with an AppDbContext in
+    Application/Server-Api/Areas/Identiy/Area.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.6</span>
+    Delete the Data folder to avoid any conflicts with the existing AppDbContext.
+</p>
+<p>
+    The Razor class library with the Identity UI created by the scaffolder may use
+    IdentityUser class to represent the application users instead of the ApplicationUser
+    class configured earlier. Recall that the Application/Server-Api/Models
+    ApplicationUser class is derived from IdentityUser and it was created to enable
+    extending the Identity model.
+</p>
+
+<p>
+    Take for example the Login PageModel in Application/Server-Api/Pages/Account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/27-login-page-model.png"
+         alt="Login PageModel class with references to IdentityUser." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.7</span>
+    Replace all the "IdentityUser" calls with "ApplicationUser" class in the
+    Application/Server-Api project to enable extending the full Razor UI; i.e., to enable
+    adding properties to a User without breaking the UI code logic. Keep in mind that the
+    <strong>
+        <code>ApplicationUser</code> class must derive from IdentityUser.
+    </strong> This is the only reference to IdentityUser that we need.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/scaffold-identity?view=aspnetcore-6.0&tabs=visual-studio#scaffold-identity-into-a-razor-project-with-authorization">
+            Scaffold Identity in ASP.Net Core projects
+        </a>
+    </li>
+    <li>
+        <a href="https://devblogs.microsoft.com/dotnet/aspnetcore-2-1-identity-ui/">
+            ASP.Net Core 2.1.0-preview1: Introducing Identity UI as a library
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio#require-email-confirmation">
+            Account confirmation and password recovery in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-enable-qrcodes?view=aspnetcore-6.0">
+            Enable QR Code generation for TOTP authenticator apps in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<p>
+    We have completed the basic steps to integrate the IdentityServer engine with
+    the Application/Server-Api project as the host. It is time to focus on configuring
+    the Application/Client to communicate with IdentityServer.
+</p>

@@ -1,0 +1,884 @@
+﻿@page "/09-api-connector-service"
+<PageTitle>API Connector Service</PageTitle>
+
+<h2>Web Server-API - Calling a REST-Api from Blazor</h2>
+<p>
+    We have successfully built an Application/Server-RESTful
+    <a href="08-api-controllers">web API</a> with a GenresController
+    responsible for retrieving and storing Genre items from an SqlServer
+    database.
+</p>
+<p>
+    The next step is to create a way for the Blazor WebAssembly
+    Application/Client to call and consume the Application/Server-RESTful
+    web API.
+</p>
+<p>
+    Blazor WebAssembly applications make requests back to the origin server
+    (RESTful API) using a pre-configured <a href="02-components-part-two">
+        default HttpClient service
+    </a>. These Http requests are composed using the HttpClient class and "JSON
+    helpers" <dfn>System.Net.Http.Json.HttpClientJsonExtensions</dfn> which are
+    extension methods to send and receive HTTP content as JSON.
+</p>
+<p>
+    .Net's JSON helpers are <dfn>resource methods</dfn> that can be used to perform
+    the desired transition between two states of any resource. They serialize and
+    deserialize .Net objects to JSON format so they can travel through the internet
+    to the Application/Server-Api/Controllers and back.
+</p>
+<p>
+    As we explained in the <a href="08-api-controllers">Api Controllers</a> section,
+    after receiving and interpreting a request message, a server responds with an
+    Http response as plain text in either JSON or XML format, just like Http
+    requests. An <strong>Http response is structured with</strong> the following
+    components:
+</p>
+<ol>
+    <li>
+        <strong>Status Line</strong> consists of:
+        <ul>
+            <li>Http Protocol Version (e.g., HTTP).</li>
+            <li>Status Code (e.g., 200 or 404).</li>
+            <li>Reason Phrase (e.g., OK or NotFound)</li>
+        </ul>
+    </li>
+    <li>
+        <strong>Http Response Headers</strong> with additional info about the
+        response. For example:
+        <ol>
+            <li>
+                <dfn>"Server"</dfn> describes the software of the origin
+                server.
+            </li>
+            <li>
+                <dfn>"Content-Type"</dfn> depicts the <a href="08-api-controllers">
+                    media type
+                </a> (data format) of the representation (of the content of the
+                response). For example "application/json; char=utf8".
+            </li>
+            <li>
+                <dfn>"Content-Length"</dfn> defines the length of the data, in
+                bytes; i.e., the number of bytes in the response body.
+            </li>
+            <li>
+                <dfn>"Response Body"</dfn> consists of the resource data requested
+                by the client.
+            </li>
+        </ol>
+    </li>
+    <li>
+        <strong>Message Body</strong> (optional).
+    </li>
+</ol>
+<p>Http response metadata:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/40-http-response.png"
+         alt="Http metadata using Network tab of browser's web developer tools." />
+</div>
+<p>
+    For more info visit <a href="https://www.toolsqa.com/client-server/http-response/">
+        What is HTTP Response
+    </a>,
+    <a href="https://restfulapi.net/">
+        What is REST
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient?view=net-6.0">
+        HttpClient Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-overview?pivots=dotnet-6-0">
+        JSON serialization and deserialization in .Net
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.text.json?view=net-6.0">
+        System.Text.Json Namespace
+    </a>,
+    <a href="https://www.youtube.com/watch?v=N6JBjzPssQI">
+        JSON in C# - Downloading Data and Making Objects From It
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/windows/apps/hh781239(v=win.10)?redirectedfrom=MSDN">
+        How to connect using System.Net.Http.HttpClient
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-preserve-references?pivots=dotnet-6-0#ignore-circular-references">
+        How to preserve references and handle or ignore circular references in System.Text.Json
+    </a>, and
+    <a href="https://stackoverflow.com/questions/60197270/jsonexception-a-possible-object-cycle-was-detected-which-is-not-supported-this">
+        JsonException: A possible object cycle was detected...
+    </a>
+</p>
+<p>
+    Although Blazor components can directly call (consume) a REST-API, it is
+    important to maintain an adequate separation of concerns. In other words,
+    we could go to the Application/Client/Pages/Genres/IndexGenres.razor
+    component (or any other routable component) and call the Server-Api from there
+    but defining the code logic to connect to the Server-Api is not the responsibility
+    of the IndexGenres.razor component.
+</p>
+<p>
+    Besides an appropriate separation of concerns, it is advisable to centralize
+    the code logic that handles connecting to the Server-Api to avoid having to
+    repeat code over and over again each time an Application/Client component
+    needs to make a request.
+</p>
+<p>
+    You might recall from the introduction of the
+    <a href="07-api-repository">Repository Pattern</a> section that with our
+    application architecture, the Appliation/Client makes a data request and the
+    IApiService (abstract layer) sends the HttpRequest to the
+    Application/Server-Api/Controllers.
+</p>
+<p>
+    The Application/Server-Api/Controller employs the
+    Application/Client/ApiServices IUnitOfWork (abstract layer) that exposes the business
+    logic methods to query the Application/Server-Api/DataStore database and, if necessary,
+    persist any changes made to in-memory objects during the business transaction:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/39-api-service.svg"
+         alt="Application ApiService diagram." />
+</div>
+<p>
+    Both abstract layers, the IApiService and the
+    <a href="07-api-repository">IUnitOfWork</a>, establish a contract for exposing
+    one IEntityName interface, in the form of a read-only property, for each data
+    entity mapped to the database.
+</p>
+<p>
+    For this reason, both abstract layers employ a shared IEntityName interface to
+    expose and represent data entities which in turn implement a single (unique)
+    IRepository&lt;TEntity&gt; interface which establishes a contract for the required
+    general functionality applicable to all data entities.
+</p>
+<p>
+    In other words, IEntityName interfaces are exposed, and implemented in their own
+    way, by the IApiService and the IUnitOfWork interfaces. IEntityName interfaces not
+    only implement the IRepository&lt;TEntity&gt;, they also extend its functionality
+    with operations that are specific to the entity type that they represent.
+</p>
+<p>
+    The architecture of the Application/Client/ApiServices "IApiService" that connects the
+    Application/Client with the Application/Server-Api is identical to the
+    Application/Client/ApiServices "IUnitOfWork" that connects the Application/Server-Api
+    to the application business logic and Application/Server-Api/DataStore database because
+    it also implements the repository pattern except that instead of declaring the
+    business logic, it defines the code logic to invoke Web API endpoints and to
+    serialize/deserialize data:
+</p>
+<p>
+    Encapsulating business logic workflow:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/20-repository-workflow.png"
+         alt="Workflow of the business logic - repository pattern." />
+</div>
+<p>
+    Encapsulating Http requests/responses:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/21-repository-workflow-2.png"
+         alt="Workflow of the Api service logic - repository pattern." />
+</div>
+<p>
+    Both layers base their service protocol on the repository pattern because both
+    implement, in their own way, the IRepository&lt;TEntity&gt; interface which defines
+    the contract for the general functionality applicable to all data entities (e.g.,
+    CRUD operations). The operations exposed to the Application/Client (by the IApiService)
+    mirror the operations executed by the IUnitOfWork (business logic and database
+    operations).
+</p>
+<p>
+    The class that implements the Application/Client/ApiServices/IUnitOfWork interface
+    (Application/Server-Api/Repositories/UnitOfWork.cs) has a
+    constructor injected dependency to the AppDbContext class that coordinates Entity
+    Framework's functionality for the data model because it represents a session with
+    the database that can be used to query and save instances.
+</p>
+<p>
+    The class that implements the Application/Client/ApiServices/IApiService interface
+    (Application/Client/ApiService.cs) will have a constructor injected dependency to
+    an Application/Client/ApiService/ApiConnector class that coordinates serializing 
+    and deserializing of .Net objects to JSON format because it acts as an Http session
+    to send/receive Http requests/responses. The ApiConnector class
+    will also be responsible for defining the
+    <a href="08-api-controllers">media type</a> of the resource representations
+    (e.g., application/json) among other things.
+</p>
+<h3>Adding the Unit Of Work Pattern to the IApiService</h3>
+<p>
+    A unit of work represents a complete Http communication cycle with a data
+    request (made by the client) and its response (produced by the server) using 
+    a <strong>
+        single and unique HttpClient instance that is re-used throughout the life
+        of the application.
+    </strong> Otherwise, if a new instance of the HttpClient class is used for 
+    every communication cycle, the number of available sockets might be
+    exhausted under heavy loads (multiple requests).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Add the unit of work pattern to the
+    IApiService and create its implementation for building the Http requests/responses
+    to serialize/deseriale objects to JSON format.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the 
+    Application/Client/ApiServices/ApiManager folder and create:
+</p>
+<ul>
+    <li>
+        An IApiService interface that exposes one read-only property of type
+        IEntityName for each domain entity mapped to the database; i.e., for each
+        DbSet&lt;TEntity&gt; exposed in the
+        Application/Server-Api/DataStore/<a href="06-api-db-support">DbContext</a> 
+        derived class.
+    </li>
+    <li>
+        An IApiConnector interface to establish a protocol that defines methods that
+        encapsulate <dfn>resource methods</dfn> that are equivalent to Http verbs that
+        can be mapped to any
+        Application/Server-Api/Controllers/Controller/action.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/41-iapiservice-folder-tree.png"
+         alt="IApiService folder tree." />
+</div>
+<p>
+    The IApiService interface exposes IEntityName interfaces as read-only properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/42-iapiservice-interface.png"
+         alt="IApiService interface." />
+</div>
+<p>
+    The IApiConnector interface establishes a protocol that defines methods that are
+    equivalent to Http verbs that can be mapped to the
+    Application/Server-Api/Controllers/EntityController/actions. These methods are generic
+    which means <strong>
+        they can be reused to reach any resource type and receive any type encapsulated
+        in an Http response.
+    </strong> As mentioned above, an Http response contains a <dfn>Status Line</dfn>,
+    <dfn>Http Response Headers</dfn>, and an optional <dfn>Message Body</dfn>.
+</p>
+<p>
+    The purpose of the IApiConnector methods is to encapsulate the required code logic
+    for the <dfn>resource methods</dfn> (.Net's JSON helpers) that build the Http
+    requests/responses and serialize/deserialize .Net objects to JSON format so they can
+    travel through the internet to the Application/Server-Api/Controllers and back:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/43-iapiconnector-interface-one.png"
+         alt="IApiConnector interface part one." />
+    <img src="images/08-ServerApi/43-iapiconnector-interface-two.png"
+         alt="IApiConnector interface part two." />
+    <img src="images/08-ServerApi/43-iapiconnector-interface-three.png"
+         alt="IApiConnector interface part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create the implementations for the
+    IApiService and IApiConnector interfaces. Still in the 
+    Application/Client/ApiServices/ApiManager folder, add the classes that will contain 
+    the functionality of the IApiService. For now, they can be declared empty and
+    according to the following list:
+</p>
+<ol>
+    <li>
+        An ApiService class that will implement the functionality for the IApiService
+        interface.
+    </li>
+    <li>
+        An ApiConnector class that will implement the IApiConnector interface.
+    </li>
+    <li>
+        An ApiRepository class that implements the generic IRepository&lt;TEntity&gt;
+        interface.
+    </li>
+    <li>
+        An ApiEntityName class (file) for each read-only property exposed in the
+        IApiService interface.
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/44-api-manager-folder-tree.png"
+         alt="ApiManager folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define the code logic for the ApiService
+    class that implements the IApiService interface with the following specifications:
+</p>
+<ul>
+    <li>
+        Declare one read-only property of type IEntityName for each IEntityName exposed
+        in the IApiService interface.
+    </li>
+    <li>
+        Constructor inject the IApiConnector interface. It will be consumed by concrete
+        instances of the IEntityName interfaces exposed.
+    </li>
+    <li>
+        Use the constructor to create concrete instances for each IEtityName declared.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/45-api-service-one.png"
+         alt="ApiService class part one." />
+    <img src="images/08-ServerApi/45-api-service-two.png"
+         alt="ApiService class part two." />
+</div>
+<p>
+    The compiler error is because we haven't worked on the content of the ApiEntityName
+    classes. This includes adding a dependency to the IApiConnector interface. We will
+    fix this issue soon.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Define the code logic for the
+    ApiConnector class that implements the IApiConnector interface with the following
+    specifications:
+</p>
+<ul>
+    <li>
+        Constructor inject an instance of the HttpClient class to enable sending/receiving
+        Http requests/responses.
+    </li>
+    <li>
+        Define generic async methods that encapsulate the functionality for resource
+        methods to send/receive Http requests/responses; i.e., they encapsulate  "JSON
+        helpers" <dfn>System.Net.Http.Json.HttpClientJsonExtensions</dfn>. Extension
+        methods to send and receive HTTP content as JSON.
+    </li>
+    <li>
+        Include one method for each CRUD operation and ensure they are generic.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/46-api-connector-one.png"
+         alt="ApiConnector class part one." />
+    <img src="images/08-ServerApi/46-api-connector-two.png"
+         alt="ApiConnector class part two." />
+    <img src="images/08-ServerApi/46-api-connector-three.png"
+         alt="ApiConnector class part three." />
+    <img src="images/08-ServerApi/46-api-connector-four.png"
+         alt="ApiConnector class part four." />
+    <img src="images/08-ServerApi/46-api-connector-five.png"
+         alt="ApiConnector class part five." />
+    <img src="images/08-ServerApi/46-api-connector-six.png"
+         alt="ApiConnector class part six." />
+    <img src="images/08-ServerApi/46-api-connector-seven.png"
+         alt="ApiConnector class part seven." />
+    <img src="images/08-ServerApi/46-api-connector-eight.png"
+         alt="ApiConnector class part eight." />
+    <img src="images/08-ServerApi/46-api-connector-nine.png"
+         alt="ApiConnector class part nine." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The BuildUri helper method responsible for producing
+    the URL for the HTTP request to target a specific controller endpoint includes a forward slash
+    "/" between the <code>{controllerName}</code> and the <code>{routeTemplateComplement}</code>
+    segments. However, <strong>
+        it was later discovered that in some scenarios this forward slash is not necessary.
+    </strong> In fact, it should not be there at all.
+</p>
+<p>
+    For example, when building a URL that includes a <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        query string
+    </a>. The start of a query string is separated from the rest of the URL by a question mark
+    symbol: "<code>?</code>". The image shown below consumes the BuildUri helper method in its
+    current form to build a query string:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/85-url-extra-forward-slash.png"
+         alt="URL with query string and an unnecessary forward slash." />
+</div>
+<p>
+    Although the URL does its job, it is not ideal to have both delimiters (forward slash and
+    question mark) next to each other. Instead, we can <strong>remove the forward slash delimiter</strong>
+    between the <code>{controllerName}</code> and the <code>{routeTemplateComplement}</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/86-build-uri-correct.png"
+         alt="BuildUri method without a delimiter." />
+</div>
+<p>
+    The delimiter, if any, should be included when producing the routeTemplateComplement which
+    is usually inside the Application/Client/ApiServices/ApiManager/ApiEntityName class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/87-query-string-with-delimiter.png"
+         alt="Route template complement produced with a query string delimiter." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/call-web-api?view=aspnetcore-6.0&pivots=webassembly#httpclient-and-json-helpers">
+        HttpClient and JSON helpers
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/?view=aspnetcore-6.0&tabs=visual-studio#app-base-path">
+        App base path
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.uri?view=net-6.0">
+        Uri Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient.baseaddress?view=net-6.0">
+        HttpClient.BaseAddress Property
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.uri.absoluteuri?view=net-6.0">
+        Uri.AbsoluteUri Property
+    </a>
+</p>
+<p>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers">
+        Http headers
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.headers.mediatypewithqualityheadervalue?view=net-6.0">
+        MediaTypeWithQualityHeaderValue class
+    </a>,
+    <a href="https://stackoverflow.com/questions/30649347/setting-accept-header-without-using-mediatypewithqualityheadervalue">
+        Setting Accept Header without using MediaTypeWithQualityHeaderValue
+    </a>,
+    <a href="https://restfulapi.net/introduction-to-json/">
+        What is JSON
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.headers?redirectedfrom=MSDN&view=net-6.0">
+        System.Net.Http.Headers namespace
+    </a>
+</p>
+<p>
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/console-webapiclient#make-http-requests">
+        Make Http requests
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient?view=net-6.0">
+        HttpClient Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-overview?pivots=dotnet-6-0">
+        JSON serialization and deserialization in .Net
+    </a>,
+    <a href="https://esg.dev/posts/httpclient-with-system-text-json/">
+        Using HttpClient with System.Text.Json
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient.getasync?view=net-6.0#system-net-http-httpclient-getasync(system-string">
+        HttpClient.GetAsync Methods
+    </a>
+</p>
+<p>
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage?view=net-6.0">
+        HttpResponseMessage Class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage.content?view=net-6.0#system-net-http-httpresponsemessage-content">
+        HttpResponseMessage.Content Property
+    </a>,
+    <a href="https://youtu.be/N6JBjzPssQI">
+        Downloading Data and Making Objects From It
+    </a>
+</p>
+<p>
+    <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        Working with Query Strings in Blazor by Chris Sainty
+    </a>,
+    <a href="https://web.archive.org/web/20151229061347/http://blog.lunatech.com/2009/02/03/what-every-web-developer-must-know-about-url-encoding">
+        What every web developer must know about URL encoding
+    </a>,
+    <a href="https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string">
+        What characters must be escaped in an HTTP query string?
+    </a>
+</p>
+<h4>Circular References</h4>
+<p>
+    <span class="badge bg-warning">Warning:</span> Collection navigation properties
+    with inverse navigation properties will most likely produce a
+    <span class="mark"><strong>circular reference</strong></span> during serialization
+    of an Http response. For example, the Person type has a collection navigation
+    property of type Movie. The type Movie in turn, has an inverse navigation property
+    with a collection of type Person.
+</p>
+<p>
+    By default, when the web API code serializes the Http response to JSON, a seriliazed
+    collection of Person objects would include a collection of every related Movie. Each
+    Movie in that collection would contain a collection of Person objects (actors), which
+    would again contain a collection of Movie objects. This type of infinite loop is called
+    a <span class="mark"><strong>circular reference</strong></span> and cannot be
+    serialized. Instead, it produces a <dfn>System.Text.Json.JsonException</dfn> because
+    "a possible object cycle is detected".
+</p>
+<p>
+    Although this is not an issue yet (because we are not explicitly including any related
+    data in our queries), you should know that given the case, you can use the
+    <code>JsonSerializerOptions.ReferenceHandler</code> property to configure how object
+    references are handled when reading and writing JSON. Refer to the topic on Loading
+    Related Data in lesson <a href="03-create-read-data">Create & Read Data</a> of the
+    <dfn>Consuming the Api</dfn> module where it is exaplained and applied to our application.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> By default, System.Text.Json deserialization
+    looks for <strong>case-insensitive</strong> property name matches between JSON and the
+    target object properties <strong>in a web environment</strong>. In any case, it does not
+    hurt to define this configuration explicitly in the Application/Server/Program class
+    for .Net 6 or the Startup class for .Net 5:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/78-json-serializer-options.png"
+         alt="Json serializer options configuration." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-character-casing">
+        How to enable case-insensitive property name matching with System.Text.Json
+    </a> and
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-configure-options?pivots=dotnet-6-0#web-defaults-for-jsonserializeroptions">
+        Web defaults for JsonSerializerOptions
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Define the code logic for the
+    ApiRepository class that implements the generic IRepository&lt;TEntity&gt; interface
+    with the following specifications:
+</p>
+<ul>
+    <li>
+        Constructor inject an instance of the IApiConnector interface to allow invoking
+        the functionality of its implementation (class). Its implementation contains the
+        resource methods responsible for serializing/deserializing Http requests/responses.
+    </li>
+    <li>
+        Include a formal input parameter in its constructor of type string named
+        "controllerName". This parameter will be satisfied by any class that derives
+        from the ApiRepository to inherit its functionality and extend it with specific
+        entity type operations.
+    </li>
+    <li>
+        Declare a class level field type IApiConnector with a <dfn>protected</dfn> access
+        modifier. This field will be consumed by any derived class to consume its base
+        class's functionality.
+    </li>
+    <li>
+        Define the code logic for the functionality protocol established by the
+        IRepository&lt;TEntity&gt; interface that it implements.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/47-api-repository-one.png"
+         alt="ApiRepository class part one." />
+    <img src="images/08-ServerApi/47-api-repository-two.png"
+         alt="ApiRepository class part two." />
+    <img src="images/08-ServerApi/47-api-repository-three.png"
+         alt="ApiRepository class part three." />
+    <img src="images/08-ServerApi/47-api-repository-four.png"
+         alt="ApiRepository class part four." />
+    <img src="images/08-ServerApi/47-api-repository-five.png"
+         alt="ApiRepository class part five." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Define the code logic for each
+    ApiEntityName class declared in the ApiService class as a concrete instance. All 
+    of them should adhere to the following specifications:
+</p>
+<ul>
+    <li>
+        Derive from ApiRepository&lt;EntityName&gt; class and implement its related
+        IEntityName interface.
+    </li>
+    <li>
+        Define a class level field with a string value of the controller name that
+        relates to the specific entity type. Use it to satisfy one of its base class
+        constructor parameters.
+    </li>
+    <li>
+        Include a formal input parameter in its constructor of type IApiConnector and
+        use it to satisfy the second parameter of its base class constructor.
+    </li>
+    <li>
+        Define functionality specific to the data entity type they represent. For example,
+        using the "Include" extension to include related entitities of a navigation
+        property or a Search() method using filtering criteria specific to the
+        Entity.Properties. This will be done later as required.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/48-api-genres-one.png"
+         alt="ApiGenres class part one." />
+    <img src="images/08-ServerApi/48-api-genres-two.png"
+         alt="ApiGenres class part two." />
+</div>
+<p>
+    You might recall that for simplicity, we didn't establish specific functionality
+    when we created the Repository Pattern. We will create it later as needed. This
+    means that the ApiEntityName implementations (ApiGenres, ApiMovies, and ApiPeople)
+    don't have to implement (define the code logic) specific functionality; at least
+    not yet:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/49-api-movies.png"
+         alt="ApiMovies class." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/50-api-people.png"
+         alt="ApiPeople class." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Configure the IApiService interface
+    as a <a href="02-components-part-two">service</a> for the Application/Client project.
+    In other words, go to its dependency injection container in the
+    Application/Client/Program.cs class and configure the service.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The implementation (class) of the
+    IApiService consumes a concrete instance of the IApiConnector interface that
+    builds the URI endpoints and serializes/deserializes .Net objects to JSON format.
+</p>
+<p>
+    The implementation of the IApiConnector has a constructor dependency injection
+    of an HttpClient that it uses to send/receive Http requests/responses. This means
+    that we also need to configure the IApiConnector as a service.
+</p>
+<p>
+    Also keep in mind that their lifetime must be
+    <span class="mark"><strong>scoped</strong></span> because the HttpClient is
+    intended to be instantiated once and re-used throughout the life of an application.
+    Instantiating an HttpClient for every request will exhaust the number of web
+    sockets available under heavy loads:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/51-iapiservice-configuration.png"
+         alt="Configuration of the IApiService and IApiConnector interfaces as services." />
+</div>
+<p>
+    Success!! We have a fully functional web server that adheres to the RESTful
+    API standards and we have configured an IApiService that consumes HttpClient
+    to communicate the Application/Client requests with the Application/Server web
+    API. It is time to put it to the test.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Wire up the GenreCreate routable component
+    to consume the IApiService to create Genre items and persist them to the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/52-genre-create-component.png"
+         alt="GenreCreate component consuming the IApiService." />
+</div>
+<p>
+    The GenreCreate component creates a Genre item named "Horror" and you can confirm this
+    with the web browser's console:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/53-created-genre-console.png"
+         alt="Web browser console with created Genre item name." />
+</div>
+<p>
+    You can also go to the Network tab of the web browser developer tools and
+    you'll find the "POST" request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/54-created-genre-network-post.png"
+         alt="Web browser network tab with POST request." />
+</div>
+<p>
+    If you click on the POST request, the browser developer tools display the HTTP headers.
+    Both <dfn>Http Request Headers</dfn> and <dfn>Http Response Headers</dfn>. You might
+    recall from the AddGenre() method of the <a href="08-api-controllers">
+        GenresController
+    </a> that on a successful post (creation of an object), 3 things should be performed:
+</p>
+<ol>
+    <li>
+        Returning the Http StatusCodes.StatusCode201Created.
+    </li>
+    <li>
+        Add the <dfn>location header</dfn> to the response to specify the URI where the
+        newly created object is available.
+    </li>
+    <li>
+        Return the newly created resource (object value) in JSON format.
+    </li>
+</ol>
+<p>
+    The AddGenre() action of the Genres controller:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/55-add-genre-controller-action.png"
+         alt="AddGenre action of the GenresController." />
+</div>
+<p>
+    Produces the Http respose header:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/55-created-genre-headers.png"
+         alt="Web browser headers tab." />
+</div>
+<p>
+    Next to the headers tab, you'll find the Request tab with the request body sent
+    with the Http request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/56-created-genre-request-content.png"
+         alt="Body of the Http request." />
+</div>
+<p>
+    To the right of the Request tab, you can find the Response tab with the response body
+    produced by our web server:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/57-created-genre-response-content.png"
+         alt="Body of the Http response." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The Http request sends the Genre object
+    without a primary key. When the object is inserted (and persisted) into the database,
+    the DBMS (SQL Server) produces a unique primary key and that value is returned with the
+    Http response.
+</p>
+<p>
+    Suggested resources:
+</p>
+<p>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/first-web-api?view=aspnetcore-6.0&tabs=visual-studio">
+        Create a web API with ASP.Net Core
+    </a>,
+    <a href="https://youtu.be/gfMsUmQX_IQ">
+        Blazor Tutorial for beginners by Kudvenkat
+    </a>,
+    <a href="https://youtu.be/Jvu60R-AWQc">
+        Web development with Blazor by Kudvenkat
+    </a>,
+    <a href="https://www.udemy.com/share/104gX03@8Txp0Gr4gA29GV0lTyV0MOee6VE8teGa7NrL-RLmaMG4G-he75247ImZ56K2yxGc/">
+        Complete Guide to ASP.Net Core RESTful API with Blazor WASM (Udemy - Frank Liu)
+    </a>, and
+    <a href="https://www.udemy.com/course/entity-framework-core-tutorial/">
+        Complete guide to Entity Framework Core (Udemy - Scott Noel)
+    </a>
+</p>
+<p>
+    Although this information is useful to the developer, it has no particular meaning for
+    the end user. What the end user expects is some kind of confirmation that the Genre item
+    was successfully created.
+</p>
+<p>
+    To achieve that, we can re-direct the client to the IndexGenres.razor routable component
+    that will eventually display the currently available Genre items.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Configure the GenreCreate component to
+    re-direct the user to the IndexGenres component if the new Genre item was successfully
+    created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/58-genre-create-redirect.png"
+         alt="GenreCreate component re-directing to IndexGenres component." />
+</div>
+<p>
+    We mentioned that we have a fully functional web server that adheres to the RESTful
+    web API standards and we have confirmed that it is working as expected but this does
+    not mean it is complete. We can upscale our web server by adding three important
+    features:
+</p>
+<ul>
+    <li>
+        Soft Deleting (Application/DataStore)
+    </li>
+    <li>
+        Auditing (Application/DataStore)
+    </li>
+    <li>
+        Custom Data Validation (Application/Shared)
+    </li>
+</ul>
+<h4>URL Encoding and Decoding</h4>
+<p>
+    <span class="badge bg-info">Notice:</span> .Net's JSON helpers 
+    (<dfn>resource methods</dfn>) used to perform the desired transition between two
+    states of any resource encode/decode the URL in the process of serializing/deserializing
+    .Net objects to JSON format so they can travel through the internet to the 
+    Application/Server-Api/Controllers and back.
+</p>
+<p>
+    However, for other scenarios you can explicitly encode/decode the URL. Refer to the
+    lesson on Data Filtering and Pagination in the <a href="05-filters">Filters</a> section
+    for an example on building and encoding a URL to overwrite the browser's address bar.
+</p>
+<p>
+    URL encoding ensures that all browsers will correctly transmit text in URL strings.
+    Characters such as a question mark (<code>?</code>), ampersand (<code>&</code>),
+    forward slash (<code>/</code>), and (<code>' '</code>) empty space might be truncated 
+    or corrupted by some browsers. As a result, these characters must be encoded in 
+    <code>&lt;a&gt;</code> (anchor) tags or in query strings where the strings can be
+    sent by a browser in a request string.
+</p>
+<p>
+    In other words, if characters such as blanks and punctuation are passed in an HTTP
+    stream, they might be misinterpreted at the receiving end. URL encoding replaces
+    characters that are not allowed in a URL with character-entity equivalents consisting
+    of hexadecimal escape sequences. The converted string is expected to conform to the
+    UTF-8 format.
+</p>
+<p>
+    URL encoding replaces all character codes except for letters, numbers, and the
+    following punctuation characters:
+</p>
+<ul>
+    <li><strong><code>-</code></strong> (minus sign).</li>
+    <li><strong><code>_</code></strong> (unders score).</li>
+    <li><strong><code>.</code></strong> (period).</li>
+    <li><strong><code>!</code></strong> (exclamation mark).</li>
+    <li><strong><code>*</code></strong> (asterisk).</li>
+    <li><strong><code>( )</code></strong> (open and close parenthesis).</li>
+</ul>
+<p>
+    Simply put, URL encoding replaces non-alphanumeric characters to their hexadecimal
+    representation.
+</p>
+<p>
+    You can encode a URL with the <strong><code>HttpUtility.UrlEncode</code></strong>
+    method or the <strong><code>HttpUtility.UrlPathEncode</code></strong> method. However, 
+    the methods return different results. The <dfn>UrlEncode</dfn> method converts each
+    <strong><code>' '</code></strong> (space character) to a <strong><code>+</code></strong>
+    (plus character). It uses UTF-8 encoding by default. 
+</p>
+<p>
+    The <dfn>UrlPathEncode</dfn> method converts each <strong><code>' '</code></strong> 
+    (space character) into the string <strong><code>"%20"</code></strong> which represents
+    a space in hexadecimal notation. Use the <dfn>UrlPathEncode</dfn> method when you
+    encode the <strong>path portion</strong> of a URL in order to guarantee a consistent
+    decoded URL, regardless of which platform or browser performs the decoding.
+</p>
+<p>
+    To encode or decode values outside of a web application, use the <code>WebUtility</code>
+    class (as opposed to the HttpUtility class).
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Do not confuse <strong>Url</strong> encoding
+    with <strong>Html</strong> encoding. Url encoding will encode characters so that they
+    are valid for URLs and HTML encoding will encode characters so they are valid (and secure)
+    for displaying on an HTML page.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/api/system.web.httpserverutility.urlencode?view=netframework-4.8">
+        HTTPServerUtility.UrlEncode Method
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.webutility.urlencode?view=net-6.0">
+        WebUtility.UrlEncode(String) Method
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.web.httputility.urlencode?view=net-6.0">
+        HttpUtility.UrlEncode Method
+    </a>,
+    <a href="https://stackoverflow.com/questions/1812473/difference-between-url-encode-and-html-encode">
+        Difference between Url Encode and HTML encode
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.web.httputility.htmlencode?view=net-6.0">
+        HttpUtility.HtmlEncode Method
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.webutility.htmlencode?view=net-6.0">
+        WebUtility.HtmlEncode Method
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525347(v=vs.90)?redirectedfrom=MSDN">
+        Server.HTMLEncode Method
+    </a>
+</p>
+<p>
+    Suggested reading <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/f13d73y6(v=vs.100)">
+        Overview of Web Application Security Threats
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/zdh19h94(v=vs.100)">
+        Basic Security Practices for Web Applications
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/w1sw53ds(v=vs.100)">
+        Script Exploits Overview
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/aspnet/a2a4yykt(v=vs.100)">
+        How to: Protect Against Script Exploits in a Web Application by Applying HTML encoding
+        to Strings
+    </a>
+</p>
+

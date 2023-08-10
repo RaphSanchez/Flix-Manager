@@ -1,0 +1,37 @@
+﻿<!-- Note that this component implements CSS Isolation to override the      -->
+<!-- "form-control" original Bootstrap's CSS rule with a                    -->
+<!-- "form-control-my-input" rule with modified values for 'color',         -->
+<!-- 'font-size'and 'box-shadow'.                                           -->
+<div class="form-control mb-3">
+    <h5>Dummy TextBox</h5>
+
+    <input @attributes="AdditionalInputParameters"
+           type="text"
+           class="form-control-my-input mb-3"
+           style="max-width: 200px" />
+</div>
+
+
+@code
+{
+    /// <summary>
+    /// Property of type Dictionary collection defined with the
+    /// [Parameter(CaptureUnmatchedValues = true)] Parameter.Attribute.Property that
+    /// allows the DummyTextBox.razor component to receive additional arbitrary
+    /// attributes when consumed elsewhere. A component can only define a single
+    /// parameter with CaptureUnmatchedValues ParameterAttribute.Property.
+    /// </summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IDictionary<string, object> AdditionalInputParameters { get; set; }
+
+    /// <summary>
+    /// Property of type IEnumerable<KeyValuePair<Key,Value>> collection is another
+    /// option which defined with the [Parameter(CaptureUnmatchedValues = true)]
+    /// Parameter.Attribute.Property also allows the DummyTextBox.razor component to
+    /// receive additional arbitrary attributes when consumed elsewhere.
+    /// </summary>
+    //[Parameter(CaptureUnmatchedValues = true)]
+    //public IEnumerable<KeyValuePair<string, object>> AdditionalParameters { get; set; }
+}
+
+

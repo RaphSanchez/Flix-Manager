@@ -1,0 +1,536 @@
+﻿@page "/06-api-db-support"
+<PageTitle>API DB Support</PageTitle>
+<h2>Web Server-API - Adding Database Support</h2>
+<h4>Entities vs. Models</h4>
+<p>
+    Before going any further, it is paramount that you understand the difference
+    between an <dfn>entity</dfn> and a <dfn>model</dfn>. If you don't, please
+    refer to the <a href="04-forms-part-two">
+        Entities, Models, Data Transfer Objects (DTOs), and Mapping
+    </a> section of the Forms module.
+</p>
+<p>
+    As a quick reminder, a class that communicates to the database is referred
+    to as <dfn>entity</dfn>, <dfn>data entity</dfn>, or <dfn>root entity</dfn>.
+    A class that represents a model of one or more data entities, and their
+    relationships, is called <dfn>model</dfn> or <dfn>data trasnfer object</dfn>
+    (DTO).
+</p>
+<p>
+    For the time being, we will only work with entities; i.e., we won't
+    construct any models during the process of building the Web-Api service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Start building the RESTful Web-Api
+    service by adding database support.
+</p>
+<h3>Adding database support:</h3>
+<div class="image-lesson mt-3 mb-3">
+    <img src="Images/08-ServerApi/36-db-support-diagram.svg"
+         alt="Database support application diagram." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Define the relationships between
+    the entities of the Entity Domain Model (EDM). Include reference properties
+    (one to one relationships) and navigation properties (one to many relationships).
+    Make sure to:
+</p>
+<ul>
+    <li>
+        Establish the relationship in both directions.
+    </li>
+    <li>
+        Determine if you want the reference and navigation properties to be nullable
+        (optional).
+    </li>
+    <li>
+        Use the entity's constructor to instantiate the collection navigation properties
+        to prevent a NullRefernceException.
+    </li>
+    <li>
+        Employ <dfn>ICollection&lt;EntityName&gt;</dfn> collection type for the
+        relationships and instantiate them with a type List&lt;EntityName&gt;.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/03-edm-folder-tree-structure.png"
+         alt="Folder structure of the Entity Domain Model." />
+</div>
+<p>
+    Genre type and its entity relationships:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/04-genre-relationships.png"
+         alt="Genre class with entity relationship properties." />
+</div>
+<p>
+    Movie type and its entity relationships:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/05-movie-relationships.png"
+         alt="Movie class with entity relationship properties." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The min and max values for the DateTime of the Range attribute for the
+    ReleaseDate property <span class="mark"><strong>must adhere to the</strong></span>
+    <a href="https://en.wikipedia.org/wiki/ISO_8601">
+        ISO-8601
+    </a> <span class="mark"><strong>standard</strong></span> that covers the worldwide
+    exchange and communication of date and time related data. Otherwise, when the
+    culture settings of the operating system where the application is running differ
+    from the settings of the operating system of the client (or end user), a
+    System.FormatException is thrown during data validation because serialization and
+    deserialization operations will not work as expected. 
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/01-date-time-type.png"
+         alt="DateTime type and Range attribute." />
+</div>
+<p>
+    Alternately, you could create a custom validation attribute to specify a validation
+    rule that avoids hard coding with a string format the DateTime.Value for the min
+    and max ranges. For more info, you can refer to <a href="10-ef-soft-delete-audit">
+        Custom Model Validation
+    </a> section of the Soft Delete & Audit lecture, <a href="https://stackoverflow.com/questions/1406046/data-annotation-ranges-of-dates">
+        Data Annotation Ranges of Dates
+    </a>,
+    <a href="https://learn.microsoft.com/en-us/dotnet/api/system.datetime?view=net-7.0#parsing-datetime-values-from-strings">
+        Parsing DateTime values from strings
+    </a>, 
+    <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/globalization">
+        Globalization
+    </a>, and
+    <a href="https://stackoverflow.com/questions/9760237/what-does-cultureinfo-invariantculture-mean#:~:text=InvariantCulture%20property%20is%20used%20if,The%20default%20value%20is%20CultureInfo.">
+        What does CultureInfo.InvariantCulture mean?
+    </a>
+</p>
+<p>
+    Person type and its entity relationships:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/06-person-relationships.png"
+         alt="Person class with entity relationship properties." />
+</div>
+<p>
+    You can specify entity configurations with <dfn>data annotations</dfn> as
+    attributes on the root entities or you can override the
+    <dfn>DbContext.OnModelCreating(ModelBuilder)</dfn> method from the derived context
+    class of the Application/Server-Api/DataStore. The ModelBuilder fluent API
+    configurations take precedence, allow configuring the database schema from the data
+    persistence layer without modifying the root entities (separatioin of concerns), and
+    provide more configuration options.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> Collection navigation properties
+    with inverse navigation properties will most likely produce a
+    <span class="mark"><strong>circular reference</strong></span> during serialization
+    of an Http response. For example, the Person type has a collection navigation
+    property of type Movie. The type Movie in turn, has an inverse navigation property
+    with a collection of type Person.
+</p>
+<p>
+    By default, when the web API code serializes the Http response to JSON, a seriliazed
+    collection of Person objects would include a collection of every related Movie. Each
+    Movie in that collection would contain a collection of Person objects (actors), which
+    would again contain a collection of Movie objects. This type of infinite loop is called
+    a <span class="mark"><strong>circular reference</strong></span> and cannot be
+    serialized. Instead, it produces a <dfn>System.Text.Json.JsonException</dfn> because
+    "a possible object cycle is detected".
+</p>
+<p>
+    Although this is not an issue yet (because we are not explicitly including any related
+    data in our queries), you should know that given the case, you can use the
+    <code>JsonSerializerOptions.ReferenceHandler</code> property to configure how object
+    references are handled when reading and writing JSON. You can refer to the topic on
+    Loading Related Data in lesson <a href="03-create-complex-data">Create Complex Data</a>
+    of the <dfn>Consuming the Api</dfn> module where it is explained and applied to our
+    application.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the
+    Application/Server/appsettings.json/appsettings.Development.json file and establish
+    the database connection string.
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/07-appsettings-folder-tree.png"
+         alt="Folder tree for the Application/Server/appsettings.json file." />
+</div>
+<p>
+    If you are not using a hosted Blazor WebAssembly template, you must add a new web
+    project of type "ASP.Net Core Web App". If you are working on the template, use
+    the AppliationName/Server project.
+</p>
+<p>
+    Install the following NuGet packages to the Application/Server-Api (web app project)
+    to support EF Core:
+</p>
+<ul>
+    <li>Microsoft.EntityFrameworkCore</li>
+    <li>Microsoft.EntityFrameworkCore.Design</li>
+</ul>
+<p>
+    Go to the Application/Server-Api <dfn>appsettings.Development.json</dfn> file and
+    declare the connection string to the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/08-connection-string.png"
+         alt="appsettings.json file with connection string." />
+</div>
+<p>
+    The connection string in the image above is incomplete because of space constraints.
+    The complete 'string value' in the json key-value pair is:
+</p>
+<p>
+    <code>
+        "Data Source=(localdb)\\ProjectModels;database=MoviesDB;
+        Integrated Security=True;Connect Timeout=30;Encrypt=False;
+        TrustServerCertificate=False;ApplicationIntent=ReadWrite;
+        MultiSubnetFailover=False"
+    </code>
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/">
+        Entity Framework Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/modeling/code-first/data-annotations">
+        Code First Data Annotations
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/">
+        Creating and configuring a model
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/relationships?tabs=fluent-api%2Cfluent-api-simple-key%2Csimple-key">
+        Relationships
+    </a>,
+    <a href="https://youtu.be/6145Q1juVHI">
+        Coding Tutorials: Modesl vs. Entities
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/first-web-api?view=aspnetcore-6.0&tabs=visual-studio#prevent-over-posting">
+        Prevent over-posting
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/saving/validation#ivalidatableobject">
+        IValidatableObject interface
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.validationattribute?view=net-6.0">
+        ValidationAttribute Class
+    </a>,
+    <a href="https://www.udemy.com/share/104giU3@iE4JRsjRlNHgIMZgrRCbvyrtNGUHW81MdCUuKdX_V-IJIgjMnvXiBPCpZZORAvpK/">
+        Udemy: Complete Web API in .Net 5 episodes 29, 33, 34, 41, and 42.
+    </a>,
+    <a href="https://stackoverflow.com/questions/55492214/the-annotation-for-nullable-reference-types-should-only-be-used-in-code-within-a">
+        The annotation for nullable reference types
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/nullable-references#nullable-contexts">
+        Nullable contexts
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-2012/ms233817(v=vs.110)">
+        Local Data Overview (localdb)
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the Application/Server-Api and
+    create a folder named DataStore. This is where the model for the database context
+    will reside including its schema and the entity configurations.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> While creating this lesson, it
+    seemed appropriate to name the folder <em>DataStore.EF</em> because it employs
+    Entity Framework Core as the Database Management System (DBMS). However, the name
+    produces a conflict with an <dfn>EF.Property&lt;TProperty&gt;(Object, String)</dfn>
+    method that will be required further down the road to implement a "soft delete"
+    mechanism. Do <strong>not</strong> name the folder with an ".EF" suffix.
+</p>
+<p>
+    Install the following NuGet packages to support EF Core:
+</p>
+<ul>
+    <li>Microsoft.EntityFrameworkCore</li>
+    <li>Microsoft.EntityFrameworkCore.SqlServer</li>
+    <li>Microsoft.EntityFrameworkCore.Tools</li>
+</ul>
+<p>
+    Add a database context; i.e., a class that derives from the DbContext class and name
+    it "AppDbContext". The database context class is the main class that coordinates EF
+    functionality for a data model. An instance of the DbContext class represents a
+    session with the database and can be used to query and save instances of your
+    entities.
+</p>
+<p>
+    Use AppDbContext constructor to pass the <dfn>DbContextOptions&lt;derivedDbContext&gt;</dfn>
+    options to its base class (DbContext) and declare a property of type
+    DbSet&lt;EntityName&gt; for each data entity type that you want included in your
+    database model. These properties represent in-memory objects mapped to a database
+    table. This is the structure of the database model.
+</p>
+<p>
+    Override the <dfn>DbContext.OnModelCreating(ModelBuilder)</dfn> method to apply
+    the custom entity configurations that we will create shortly:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/09-dbContext.png"
+         alt="AppDbContext class derived from DbContext." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        When <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0#customize-the-model">
+            overriding
+        </a> the <code>OnModelCreating</code> method, the
+        <code>base.OnModelCreating</code> should be <strong>called first</strong>
+        and the overriding configuration should be called next because EF Core
+        generally has a last-one-wins policy for configuration.
+    </p>
+</div>
+<p>
+    The database context model (DbContext class and its child AppDbContext) must be
+    registered as a service in the dependency injection container of the
+    Application/Server-Api/Program class. This way, the container will provide
+    the service (an instance of the DbContext) to the IUnitOfWork that will be
+    responsible for coordinating the work of the repositories with a single instance
+    of the database context.
+</p>
+<p>
+    Go to the ConfigureServices() method of the Application/Server/Program.cs file
+    and use it to configure the database service provider (options.UseSqlServer()):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/10-dbContext-service.png"
+         alt="DbContext service registration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Scaffold the database context model
+    we just created.
+</p>
+<p>
+    Go to the <dfn>Package Manager Console,</dfn> confirm that the project selected
+    in the "Default Project" dropdown is the project where the database context model
+    resides (e.g., BlazorMovies.Server) and execute the following commands:
+</p>
+<ol>
+    <li>
+        <code>Add-Migration Initial</code> and check the code in the 'migration file'
+        to make sure that everything will be created as expected.
+    </li>
+    <li>
+        <code>Update-Database</code> to create the database adhering to the specifications
+        defined in the "Initial" migration we just created.
+    </li>
+</ol>
+<p>
+    Folder tree of the database context model with the AppDbContext class and a folder
+    where each additional migration is stored with a chronological time stamp in its name:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/11-initial-migration-folder-tree.png"
+         alt="Folder tree of the database context model." />
+</div>
+<p>
+    The Package Manager Console informs a success state on building the migration;
+    i.e., building the code with the operations that will be executed on the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/12-initial-migration-code.png"
+         alt="Initial migration code and success build result." />
+</div>
+<p>
+    Create the database with the Update-Database command.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> If you are not performing a clean start
+    with the database; i.e., <span class="mark">
+        <strong>
+            if you are working with an existing database
+        </strong>
+    </span>, you need to execute the following steps. The database schema (tables, rows,
+    etc) model must be <strong>identical</strong> or you might eventually run into issues:
+</p>
+<p>
+    If you are using Entity Framework 6 or earlier versions:
+</p>
+<ol>
+    <li>
+        Use the <dfn>Remove-Migration</dfn> to remove the Initial migration we just
+        created.
+    </li>
+    <li>
+        Create the Initial migration using the following command:
+    </li>
+    <li>
+        <dfn>Add-Migration Initial -IgnoreChanges -Force</dfn>
+    </li>
+</ol>
+<p>
+    If you are using Entity Framework Core or later, at the time of this lesson
+    there is no support for performing an Initial migration with an existing
+    database. However, you can trick the system by:
+</p>
+<ol>
+    <li>
+        Go to the Initial migration and comment out the contents of the Up() method.
+    </li>
+    <li>
+        Run the migration; i.e., execute the Update-Database in the Package Manager
+        Console.
+    </li>
+    <li>
+        Go back to the Initial migration and uncomment the contents of the Up() method.
+    </li>
+    <li>
+        Run the migration one more time to make sure everything works as expected; i.e.,
+        execute the Update-Database command one more time.
+    </li>
+</ol>
+<p>
+    Use SQL Server Object Explorer to verify that the tables were created as
+    expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/13-sql-server-explorer.png"
+         alt="Sql Server Object Explorer with recently created database." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create a folder to group the
+    configuration settings for each data entity registered in the database context
+    model. These settings define the shape of your entities, the relationships between
+    them, and how they map to the database. Configuration is done overriding the
+    OnModelCreating(ModelBuilder) method on your derived context; i.e., on the project
+    that hosts the DbContext class. In our application, this would be the
+    Application/Server-Api project.
+</p>
+<p>
+    Create one EntityNameConfiguration class for each root entity exposed as a
+    DbSet&lt;TEntity&gt; property in the DbContext model. EntityConfiguration
+    classes implement <dfn>IEntityTypeConfiguration&lt;TEntity&gt;</dfn> interface
+    that binds them to the corresponding root entity type of the EDM.
+</p>
+<p>
+    GenresConfiguration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/14-genres-configuration.png"
+         alt="Configuration class for the Genre entity." />
+</div>
+<p>
+    MoviesConfiguration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/15-movies-configuration.png"
+         alt="Configuration class for the Movie entity." />
+</div>
+<p>
+    PeopleConfiguration:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/16-people-configuration.png"
+         alt="Configuration class for the Person entity." />
+</div>
+<h4>Data Seeding</h4>
+<p>
+    Use the <dfn>ModelBuilder.HasData()</dfn> method to add <dfn>seed</dfn> data to
+    the data entities:
+</p>
+<p>
+    Genres data seeding:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/17-genres-data-seed.png"
+         alt="Data seeding for Genre entity." />
+</div>
+<p>
+    Movies data seeding:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/18-movies-data-seed.png"
+         alt="Data seeding for Movie entity." />
+</div>
+<p>
+    People data seeding:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/19-people-data-seed.png"
+         alt="Data seeding for Person entity." />
+</div>
+
+<p>
+    Add a new migration with a meaningful name such as <code>Add-Migration SeedData</code>
+    and review the migration file. If everything is as expected, update the database
+    with an <code>Update-Database</code> command.
+</p>
+<p>
+    Check the newly inserted data using the SQL Server Object Explorer to view the
+    data on the actual tables.
+</p>
+<h4>Collations</h4>
+<p>
+    A fundamental concept in text processing is the <dfn>collation</dfn>, which is a set
+    of rules determining how text values are ordered and compared for equaility; i.e.,
+    a collation specifies the bit patterns that represent each character in a dataset.
+    All text operations in a database use a collation, whether implicitly or explicitly,
+    to determine how the operation compares and orders strings.
+</p>
+<p>
+    The options associated with a collation are case sensitivity, accent sensitivity,
+    <em>kana</em> sensitivity (distinguished between two types of Japaneses kana
+    characters), width sensitivity, and variation selector sensitivity. Sql Server 2019
+    introduces an additional option for UTF-8 encoding. You can specify these options
+    by appending them to the collation name.
+</p>
+<p>
+    The default server-level collation in SQL server is <em>SQL_Latin1_General_CP1_CI_AS</em>
+    which is a case-insensitive, accent-sensitive collation. This means that Linq-Sql
+    (Linq to Sql) by default is not case sensitive and this takes particular relevance
+    when working with passwords and trying to compare them.
+</p>
+<p>
+    To execute case sensitive queries with Linq, you can change the <dfn>collation</dfn>
+    configuration of the database, the column (property), or the query itself, to one
+    that supports CaseSensitive (CS) and/or AccentSensitive (AS) options. For example:
+</p>
+<p>
+    SQL_Latin1_General_CP1_CS_AS
+</p>
+<p>
+    Suggested collection with UTF-8 support: Latin1_General_100_CS_AS_SC_UTF8
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Six:</span> If required, define a collation at the
+    database level. In our appliation, we will leave defining a collation only at the
+    query level when needed.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/miscellaneous/collations-and-case-sensitivity">
+        Collations and Case Sensitivity
+    </a>
+</p>
+
+<p>
+    For more info visit
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/modeling/code-first/conventions/built-in">
+        Code First Conventions
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/first-web-api?view=aspnetcore-6.0&tabs=visual-studio">
+        Tutorial: Create a web API with ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/modeling/code-first/migrations/existing-database">
+        Code First Migrations with an existing database (EF 6 and earlier)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/learn/modules/persist-data-ef-core/3-migrations">
+        Exercise - Migrations
+    </a>,
+    <a href="https://github.com/dotnet/ef6/issues/1435">
+        Add-Migration has no 'Ignore Changes' parameter (EF Core)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.modelbuilder?view=efcore-5.0">
+        Model Builder class
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/saving/validation#ivalidatableobject">
+        IValitableObject (custom validation - preferred over ValidationAttribute class)
+    </a>
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/saving/validation">
+        Data Validation (EF 6)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.validationattribute?view=net-6.0">
+        ValidationAttribute class (custom validation)
+    </a>
+</p>

@@ -1,0 +1,375 @@
+﻿@page "/05-pwa-sync-component"
+
+<PageTitle>PWAs - Synchronization Component</PageTitle>
+
+<h2>Progressive Web Apps - Synchronization Component</h2>
+<p>
+    As we explained in last lesson, when the end user attempts to perform a POST, PUT, or
+    DELETE operations while the application is offline, an HttpRequestException is thrown
+    that in turn includes an inner exception of type JSException. The idea is that instead
+    of simply informing the end user that a connection could not be established, we can:
+</p>
+
+<ul>
+    <li>
+        <p>
+            Store the parameters that contain the data required to build the Http request
+            (e.g., data entity object or DTO, controller name, and route template).
+        </p>
+        <p>
+            These parameters can be stored in an IndexedDB which is a low-level API
+            for <strong>client-side storage</strong> but more on that later.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use a custom PwaSync component responsible for:
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Using the previously stored IndexedDB records to build the Http requests
+                    and process them when an available connection to the web server is
+                    reestablished.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Keeping track of the number of pending operations that need to be
+                    synchronized or updated with the web server and display them to
+                    the user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Removing, from the IndexedDB, any records that have been transformed
+                    into Http requests that were successfully processed.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    The first part was accomplished in <a href="pwa-mutator-requests-I">last lesson</a>.
+    In this lecture, we will create the PwaSync component which is a fundamental piece
+    of the online mode flow to synchronize pending operations with the web server:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-online-flow.svg"
+         alt="Diagram of the online flow." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Shared directory to create the PwaSync Razor component.
+    Split the Razor markup from CSharp logic into different partial classes.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create the CSharp code logic for the PwaSync component as enlisted below:
+</p>
+<ol>
+    <li>
+        <p>
+            Should attempt to perform a synchronization with the web server during
+            initialization of the component.
+        </p>
+    </li>
+    <li>
+        <p>
+            Synchronization process consists of:
+        </p>
+        <ol>
+            <li>
+                <p>
+                    Use JSInterop to <code>GetRecordsOfPendingOperations</code> from
+                    the IndexedDB.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Use JSInterop to <code>GetNumberOfPendingSynchronizations</code>
+                    from the IndexedDB.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Use a "_isSynchronizing" flag to inform the user that a synchronization
+                    process is taking place.
+                </p>
+                <p>
+                    Call a <code>StateHasChanged()</code> method to force the component
+                    to re-render and reflect the sync flag.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Use a foreach block to traverse each of the collections in the
+                    <code>LocalDbRecordsDto</code> created in last lesson on <a href="04-pwa-mutator-requests-one">
+                        Mutator Requests
+                    </a> (e.g., objectsToCreate, objectsToUpdate, and objectsToDelete) and
+                    employ an ApiConnector <em>resource method</em> (e.g., InvokePostAsync,
+                    InvokePutAsync, InvokeDeleteAsync) to build the Http request and process
+                    it.
+                </p>
+                <p>
+                    If Http request is successful, use JSInterop to <code>
+                        DeleteLocalDbRecord
+                    </code> from the corresponding <em>object store</em> of the IndexedDB;
+                    e.g., objectsToCreate, objectsToUpdate, or objectsToDelete.
+                </p>
+                <p>
+                    If Http request is unsuccessful, evaluate if the exception
+                    has inner exception of type JSException. If so, it means that
+                    there is no connection to the server. Simply throw back the exception to
+                    the stack to break the iteration block and allow the higher level
+                    exception handler to deal with it.
+                </p>
+                <p>
+                    If the exception does not have an inner exception of type JSException,
+                    handle it by informing the user of the unexpected error with the
+                    exception message and use JsInterop to <code>
+                        DeleteLocalDbRecord
+                    </code> from the corresponding object store (e.g., objectsToCreate,
+                    objectsToUpdate, or objectsToDelete) because the record data that
+                    represents the operation is likely corrupted, incomplete, or faulted
+                    in some way.
+                </p>
+            </li>
+        </ol>
+    </li>
+    <li>
+        <p>
+            Have a higher level global exception mechanism to inform the user when
+            the synchronization process is unsuccessful.
+        </p>
+        <p>
+            Include a <code>finally</code> block to ensure that the component:
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Updates the "_isSynchronizing" flag to inform the user that a synchronization
+                    process has completed.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Uses JSInterop to <code>GetNumberOfPendingSynchronizations</code>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Calls a <code>StateHasChanged()</code> method to force the component
+                    to re-render and update the values of the _isSynchronizing flag and
+                    the _numberOfPendingSynchronization variable.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/01-pwa-sync-code-one.png"
+         alt="PwaSync component code file part one." />
+    <img src="Images/43-sync-component/02-pwa-sync-code-two.png"
+         alt="PwaSync component code file part two." />
+    <img src="Images/43-sync-component/03-pwa-sync-code-three.png"
+         alt="PwaSync component code file part three." />
+    <img src="Images/43-sync-component/04-pwa-sync-code-four.png"
+         alt="PwaSync component code file part four." />
+    <img src="Images/43-sync-component/05-pwa-sync-code-five.png"
+         alt="PwaSync component code file part five." />
+    <img src="Images/43-sync-component/06-pwa-sync-code-six.png"
+         alt="PwaSync component code file part six." />
+    <img src="Images/43-sync-component/07-pwa-sync-code-seven.png"
+         alt="PwaSync component code file part seven." />
+    <img src="Images/43-sync-component/08-pwa-sync-code-eight.png"
+         alt="PwaSync component code file part eight." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Define the markup logic for the PwaSync component with the following characteristics:
+</p>
+<ul>
+    <li>
+        <p>
+            Depending on the synchronization state it should alternate between:
+        </p>
+        <ul>
+            <li>
+                <p>
+                    A bell icon with a rounded pill badge that indicates the number
+                    of operations that need to be synchronized with the web server.
+                </p>
+            </li>
+            <li>
+                <p>
+                    A "Synchronizing... " flag the informs the user that a synchronization
+                    process is taking place.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Use <a href="02-components-part-three">JavaScript Isolation</a> for the style
+            sheet of the PwaSync component.
+        </p>
+    </li>
+    <li>
+        <p>
+            Have a white horizontal line above the component. The plan is to use the
+            <a href="03-routing">Main Layout</a> component to make tha PwaSync component
+            visible throughout the application when there are pending synchronization
+            operations with the web server and/or when a synchronization process is taking
+            place.
+        </p>
+    </li>
+</ul>
+<p>
+    In the end you should have something like this for the "Synchronizing flag":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/10-pwa-sync-flag.png"
+         alt="NavMenu with 'Synchronizing...' flag." />
+</div>
+<p>
+    Icon bell with number of pending synchronization operations:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/09-pwa-icon-bell-with-number.png"
+         alt="NavMenu with PwaSync bell icon with number of pending synchronizations." />
+</div>
+<p>
+    Markup file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/11-pwa-sync-markup-file.png"
+         alt="PwaSync markup file." />
+</div>
+<p>
+    CSS isolation file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/12-pwa-sync-css-file.png"
+         alt="PwaSync CSS file." />
+</div>
+<p>
+    Recall from the section of Layout Components in the lesson on <a href="02-components-part-two">
+        Layouts
+    </a>, that a Blazor layout is a Razor component that shares markup (HTML) with
+    components that reference it. We can use the <em>MainLayout</em> component, which
+    is the default layout for the application, to render the PwaSync component on
+    each routable component that use the application's default layout.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the MainLayout component and create an instance of the PwaSync component
+    next to the NavMenu component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/15-main-layout-component.png"
+         alt="MainLayout component with PwaSync instance." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Test the PwaSync component to confirm that:
+</p>
+<ul>
+    <li>
+        <p>
+            Its bell icon informs the user of the number of operations that need to
+            be synchronized with the web server.
+        </p>
+    </li>
+    <li>
+        <p>
+            The bell icon is not present when there are no pending operations.
+        </p>
+    </li>
+    <li>
+        <p>
+            The "Synchronizing... " flag is displayed when a synchronization process is
+            being executed.
+        </p>
+    </li>
+    <li>
+        <p>
+            Synchronization operations are processed successfully and the IndexedDB record
+            used is removed from the corresponding object store.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    "Clean" and "Rebuild" the Application/Client project and run the application to a server
+    that supports Https and access the app in a browser at its secure Http address. PWA
+    service workers do not execute in regular Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab. Install any <em>
+        worker
+        in waiting
+    </em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), navigate to the IndexGenres routable component, and create a
+    new Genre object in offline mode.
+</p>
+<p>
+    You should get a SweetAlert dialog box indicating that:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/13-operations-stored-message.png"
+         alt="Operation stored message." />
+</div>
+<p>
+    In fact, if you go to the storage section of <em>Application</em> tab in the web browser's
+    dev tools, you can confirm that the IndexedDB record was created in the createOperations
+    object store:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/43-sync-component/14-create-operations-object-store.png"
+         alt="createOperations object store with new record." />
+</div>
+<p>
+    However, the PwaSync bell icon is not displayed in the navigation menu section even though
+    there is a new pending operation to be synchronized with the web server. But why is that?
+    Simple, the PwaSync component updates the number of pending operations during initialization
+    of the component and/or during a synchronization process but that's it.
+</p>
+<p>
+    The Application/Client GenreCreate routable component does not inform the PwaSync 
+    component that a new record has been stored in its corresponding object store of our
+    custom IndexedDB. Therefore, the PwaSync bell icon is not updated.
+</p>
+<p>
+    We need to create a mechanism that informs the PwaSync component when a new record 
+    is stored into our custom IndexedDB; i.e., we need a way to establish permanent 
+    communication between components. We can use CSharp events to notify the PwaSync
+    component when a new record is stored.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 150. Implementando el Componente Sincronizador of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@7fRBtnPBNZT8syKiJqijFFWGJkNtOoIyCvSYcQ7VlpRyjMMph1LxGT70Tm-EYVR2/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+</ul>

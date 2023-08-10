@@ -1,0 +1,946 @@
+﻿@page "/04-azure-dns"
+<PageTitle>Azure DNS</PageTitle>
+
+<h2>Deployment - Azure DNS</h2>
+<p>
+    It is crucial that you have a basic knowledge of how the Domain Name System (DNS)
+    works to understand the what, where, why, and how should we use the Azure DNS service
+    and why do we have to configure it before setting up a custom domain for the <a href="03-azure-cdn">
+        Azure CDN endpoint
+    </a> created in last lecture.
+</p>
+<p>
+    As we exaplained in the <a href="01-deployment-fundamentals">Deployment Fundamentals</a>
+    lecture, when a user types a URL in the web browser, a connection is established with
+    an IP address thanks to the Domain Name System (DNS) and its <dfn>name resolution</dfn>
+    function.
+</p>
+<p>
+    Here, the domain's <strong>name</strong> (e.g., www.rafaelsanchez.ws) is resolved into
+    the required number sequence (IP address). For the system to function, the name servers
+    must have <dfn>zone files</dfn>. In turn, these simple text files contain multiple DNS
+    records that enable the DNS in the first place.
+</p>
+<p>
+    We also explained that a DNS zone is used to host the DNS records for a particular
+    domain and each DNS record for your domain is then created inside this DNS zone:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/04-zone-records.png"
+         alt="DNS Zone Records." />
+</div>
+<h4>DNS Zone Record Types</h4>
+<p>
+    The DNS record type is an abbreviation for the type of data stored in the subsequent
+    data field; e.g., "A" (address), "MX" (mail exchange), "CNAME" (Canonical Name), etc.
+</p>
+
+<dl>
+    <dt>"A" records</dt>
+    <dd>
+        An "A" record maps a domain, such as "contoso.com", "www.contoso.com", or a
+        <dfn>wildcard domain</dfn> such as "<strong>*</strong>.contoso.com", to an IP address.
+    </dd>
+    <dd>
+        The main benefit of an A record over a CNAME record is that you can have one
+        entry that uses a wildcard, such as "*.contoso.com" to handle requests for
+        multiple sub-domains such as .mail.contoso.com, login.contoso.com, or
+        www.contoso.com
+    </dd>
+    <dt>NS records</dt>
+    <dd>
+        The NS (Name Server) record set at the zone apex (or root) gets created automatically
+        with each DNS zone and gets deleted automatically when the zone gets deleted. It cannot
+        be deleted separately.
+    </dd>
+    <dd>
+        An NS record indicates which DNS server is <dfn>authoritative</dfn> for that domain;
+        i.e., which server contains the actual DNS records. They tell the DNS resolvers which
+        servers to contact when looking for DNS records for a particular domain name.
+    </dd>
+    <dd>
+        When a client queries for an IP address, it can find the IP address of their intended
+        destination from an NS record via a DNS lookup. A name server (or DNS server)
+        contains all of the DNS zone files and records for a domain.
+    </dd>
+    <dd>
+        <p>An example of an NS record:</p>
+        <figure class="figure d-flex flex-column justify-content-center">
+            <img src="Images/26-deployment/21-ns-record.png"
+                 style="max-width: 470px;"
+                 alt="NS record example." />
+            <figcaption class="figure-caption text-center">
+                <a href="https://www.cloudflare.com/learning/dns/dns-records/dns-ns-record/">
+                    Cloudflare
+                </a>
+            </figcaption>
+        </figure>
+    </dd>
+    <dt>SOA records</dt>
+    <dd>
+        A Start of Authority (SOA) record set gets created automatically at the apex of each
+        domain zone and gets deleted automatically when the zone gets deleted.
+    </dd>
+    <dd>
+        SOA records cannot be created or deleted separately because they provide information
+        on a number of issues such as zone name (domain name e.g., rafaelsanchez.ws), network
+        class, record type, master name, email address of the responsible administrator, serial
+        number of its file version, how long the server should wait between refreshes, etc.
+    </dd>
+    <dd>
+        The DNS standards do <strong>not</strong> permit multiple records with the same
+        <strong>name</strong> for this type; therefore, this record type <strong>
+            can only contain a single record for each name.
+        </strong>
+    </dd>
+    <dd>
+        <figure class="figure d-flex flex-column justify-content-center">
+            <img src="Images/26-deployment/18-soa-record-ex.png"
+                 style="max-width: 450px;"
+                 alt="SOA record example." />
+            <figcaption class="figure-caption text-center">
+                <a href="https://www.cloudflare.com/learning/dns/dns-records/dns-soa-record/">
+                    Cloudflare
+                </a>
+            </figcaption>
+        </figure>
+    </dd>
+    <dt>CNAME records</dt>
+    <dd>
+        Canonical Name Record is used to create an alias from one domain <strong>name</strong>
+        to another domain <strong>name</strong>; i.e., it maps a specific domain name,
+        such as rafaelsanchez.ws or www.rafaelsanchez.ws, to a canonical domain name.
+    </dd>
+    <dd>
+        A common example is the <strong><code>www</code></strong> subdomain which is
+        provided as an alias to the root domain <strong>name</strong> (a.k.a. apex or
+        naked domain); e.g., users accessing "www.example.com" are referred to the root
+        domain (or DNS zone apex) "example.com".
+    </dd>
+    <dd>
+        In the Azure DNS environment, it is common to use CNAME records to an Azure
+        hosted application. A CNAME entry (e.g., www.rafaelsanchez.ws) will resolve to
+        the IP address of your "myapp.azureservice.net" service.
+    </dd>
+    <dd>
+        The DNS standards do <strong>not</strong> permit multiple records with the same
+        <strong>name</strong> for this type; therefore, this record type <strong>
+            can only contain a single record for each name.
+        </strong>
+    </dd>
+    <dd>
+        For example, you cannot create a CNAME record set with the relative name
+        'www' and an A record with the relative name 'www' in the same zone.
+    </dd>
+</dl>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Since the zone apex (example.com) will always contain the NS and SOA record
+        sets during the creation of the zone, you <strong>cannot</strong> create a
+        CNAME record set at the zone apex.
+    </p>
+</div>
+<p>
+    In other words, with the DNS zone file currently hosted by the domain registrar, we
+    will encounter a conflict resolution if we define a zone record (CNAME) for the
+    root domain (rafaelsanchez.ws) to point to the Azure CDN endpoint created in
+    <a href="03-azure-cdn">last lesson</a> because the root domain already has a SOA
+    record.
+</p>
+<p>
+    You can define a record set with a name (or alias) <code>www.rafaelsanchez.ws</code>,
+    a type <code>CNAME</code>, and a record that maps to a canonical domain name
+    <code>rs-landing-azureedge.net</code>.
+</p>
+<p>
+    You <strong>cannot</strong> define a record set with the apex domain name (or alias)
+    <code>
+        rafaelsanchez.ws
+    </code>, a type <code>CNAME</code>, and a record that maps to a canonical domain name
+    <code>rs-landing-azureedge.net</code> because <code>rafaelsanchez.ws</code> already has
+    a SOA record with the same name and DNS standards do <strong>not</strong> permit multiple
+    records with the same name for CNAME and/or SOA record types:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/19-cname-error.png"
+         alt="CNAME record error." />
+</div>
+<p>
+    This is obviously a problem because ideally, we want both domain <strong>name</strong>
+    records <code>rafaelsanchez.ws</code>, and <code>www.rafaelsanchez.ws</code> to point
+    to the Azure CDN endpoint (or record) that serves our static website:
+    <code>rs-landing.azureedge.net</code>, not just <code>www.rafelsanchez.ws</code>
+</p>
+<p>
+    We can circumvent this problem with the assistance of an Azure DNS alias record set
+    to refer to an Azure resource, such as an Azure CDN endpoint. <strong>
+        For this reason, we need to create an Azure DNS service to host our DNS records as
+        opposed to hosting them with the domain registrar.
+    </strong>
+</p>
+<dl>
+    <dt>MX records</dt>
+    <dd>
+        MX stands for "mail exchange" or "mail exchanger". As you know, the Domain Name
+        Server (DNS) translates names into IP addresses so that newtwork communications
+        can occur. When someone sends an email, the sending mail server looks up the MX
+        record in the Domain Name Server (DNS).
+    </dd>
+    <dd>
+        If you were to use the Windows Terminal to run a manual DNS lookup of the MX
+        records for "rafaelsanchez.ws", it would look something like this:
+    </dd>
+    <dd>
+        <div class="image-lesson mb-3" style="overflow: scroll hidden">
+            <img src="Images/26-deployment/22-mx-rafaelsanchez.png"
+                 style="max-width: 110%"
+                 alt="NS lookup of MX record for rafaelsanchez.ws" />
+        </div>
+    </dd>
+    <dd>
+        The "MX preference" or "Priority", the "mail exchanger" or "destination",
+        and the IP address of the "mail exchanger" would be consistent with the
+        "Zone Records for rafaelsanchez.ws" that we displayed in the image at the
+        beginning of this lesson.
+    </dd>
+    <dd>
+        To better understand the "MX preference", let's perform an NS lookup of the
+        MX record for yahoo.com:
+    </dd>
+    <dd>
+        <div class="image-lesson mb-3" style="overflow: scroll hidden">
+            <img src="Images/26-deployment/23-mx-mozilla.png"
+                 style="max-width: 110%"
+                 alt="NS lookup of MX record for mozilla.com" />
+        </div>
+    </dd>
+    <dd>
+        There are multiple MX records, two with a different preference value and two
+        with the same preference value. The lowest value in preference is the MX record
+        with the highest priority. A sending mail server will first try to send an email
+        with the mail exchanger that has the lowest preference value (highest priority).
+    </dd>
+    <dd>
+        The purpose of multiple MX records is to either:
+    </dd>
+    <dd>
+        <ul>
+            <li>
+                Provide some load balancing by using multiple MX records with the <strong>
+                    same preference
+                </strong> set.
+            </li>
+            <li>
+                Provide a backup MX record that can be used if the primary one is unavailable.
+            </li>
+        </ul>
+    </dd>
+</dl>
+<p>
+    Unlike many of the common webhosting services, <span class="mark">
+        <strong>
+            Azure DNS does not provide by default an email service.
+        </strong>
+    </span> Since we intend to use Azure DNS to host the DNS for our domain and
+    its DNS records, we have mainly two options:
+</p>
+<ul>
+    <li>
+        Set up your own Email Server (SMTP Server) in Azure; e.g., <a href="https://youtu.be/hOuhODAPayA">
+            hMailServer
+        </a>. However, this option is a bit more complex, expensive, and requires
+        periodic maintenance.
+    </li>
+    <li>
+        Use a third party email hosting service such as <a href="https://www.zoho.com/">
+            Zoho Mail
+        </a> and/or <a href="https://proton.me/mail">
+            Proton Mail
+        </a> which provides an excellent service focused on securing email to protect the
+        user's privacy.
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is reccommended to configure the third party email hosting service and make
+        sure it is working as expected before moving your DNS domain (and its DNS records)
+        to Azure DNS. This way we have less variables to trouble shoot.
+    </p>
+</div>
+<h4>Third-party Email Hosting Service</h4>
+<p>
+    An email hosting service is a service that runs email servers an provides email
+    service for individuals and businesses. It allows users to send and receive
+    emails using their custom domain based email accounts. The email hosting service provides
+    secure access to the saved data.
+</p>
+<p>
+    In this lesson, we will use <a href="https://www.zoho.com/mail/?ireft=ohome&signup=true">
+        Zoho Mail
+    </a> to host and handle emails for the domain name in a secure, encrypted, privacy-guranteed,
+    and ad-free email service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an account with Zoho Mail, verify ownership of the domain, and configure email
+    delivery by updating the MX, SPF, and DKIM records for Zoho's email exhange server.
+    Optinally, you can also set up an MX record for DMARC. You can follow the Zoho <a href="https://www.zoho.com/mail/help/adminconsole/configure-email-delivery.html#alink2">
+        documentation
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create an account with <a href="https://www.zoho.com/mail/?zmc=zoho-fa&ireft=ohome">
+        Zoho Mail
+    </a>to host the email accounts and prove ownership of the domain.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Configure the MX records for your domain.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the <a href="https://mailadmin.zoho.com/cpanel/home.do#dashboard">
+        Zoho Email Administration Control Panel
+    </a> to obtain the MX record values that will be added to your current domain
+    hosting service.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Go to the control panel for your domain hosting service and add the MX records.
+    Don't forget to remove the current MX record(s) for the email exchange server(s).
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Use a low value for the Time To Live (TTL)
+    field to induce a rapid refresh; e.g., 180 (seconds).
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Once you finish configuring the MX records on your existing web hosting service, go
+    back to the Zoho Email Administration Control Panel to use the "Verify" tool. You should
+    receive a confirmation like the following image:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/24-zoho-mx-confirmation.png"
+         alt="Confirmation screen from Zoho for MX records." />
+</div>
+<p>
+    Alternately, you can use the Windows terminal to perform an <code>nslookup</code>
+    for the MX records of your domain as we demonstrated earlier:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/26-deployment/25-zoho-mx-confirm-terminal.png"
+         style="max-width: 105%"
+         alt="nslookup of MX records using Windows terminal." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4:</span>
+    Use the Zoho <a href="https://mail.zoho.com/zm/#mail">
+        Webmail
+    </a> app to send an email using the recently configured email account.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.5:</span>
+    Configure any email client of your choice to access Zoho Mail. For example,
+    you can <a href="https://www.zoho.com/mail/help/pop-access.html">
+        configure
+    </a> Microsoft Outlook desktop with a POP protocol or maybe even your
+    appe iPhone. You can find the POP3 and IMAP server host values navigating to
+    "settings" and "mail accounts" of your Zoho
+    <a href="https://mail.zoho.com/zm/#settings/mailaccounts">
+        Inbox
+    </a>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> At the time of this lesson, the
+    Zoho documentation (or help) <strong>did not have the correct host values.</strong>
+    Make sure you get them from the "mail accounts" tab in your Mail inbox "settings".
+</p>
+<p>
+    At this point, the email account is fully functional but we are not done
+    yet. We still have to configure the Sender Policy Framework (SPF), the
+    DomainKeys Identified Mail (DKIM), and optionally, the Domain-based Message
+    Authentication, Reporting & Conformance (DMARC).
+</p>
+<p>
+    Nevertheless, keep in mind that we are just making sure that the email hosting
+    service works as expected. We have yet to move our domain DNS hosting to Azure
+    DNS. Then, we can fully configure the external email hosting provider.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.cpanel.net/cpanel/domains/zone-editor/#cname">
+            CPanel Zone Editor
+        </a>
+    </li>
+    <li>
+        <a href="http://centosquestions.com/cpanel-already-has-a-soa-record-you-may-not-mix-cname-records/">
+            Cpanel already has a SOA record. You may not mix CNAME records.
+        </a>
+    </li>
+    <li>
+        <a href="https://serverfault.com/questions/613829/why-cant-a-cname-record-be-used-at-the-apex-aka-root-of-a-domain">
+            Why can't a CNAME record be used at the apex (aka root) of a domain?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#record-sets">
+            Overview of DNS zones and records
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cloud-services/cloud-services-custom-domain-name-portal">
+            Configuring a custom domain name for an Azure cloud service (classic)
+        </a>
+    </li>
+    <li>
+        <a href="https://practical365.com/mx-record/">
+            Email Fundamentals: What is an MX Record, and How Do They Work?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity#recommended-method-of-sending-email">
+            Recommended method of sending email
+        </a>
+    </li>
+    <li>
+        <a href="https://www.zoho.com/mail/help/">
+            Zoho Mail help
+        </a>
+    </li>
+    <li>
+        <a href="https://www.zoho.com/mail/help/adminconsole/email-hosting-setup.html">
+            Email hosting setup in Zoho
+        </a>
+    </li>
+    <li>
+        <a href="https://www.zoho.com/mail/help/pop-access.html">
+            Zoho Mail - POP configuration details
+        </a>
+    </li>
+</ul>
+<h3>Azure DNS</h3>
+<p>
+    Azure DNS is a hosting service for DNS domains that provides name resolution by using
+    Microsoft Azure infrastructure. By hosting the domains in Azure, you can manage your
+    DNS records by using the same credentials, APIs, tools, and billing as your other
+    Azure services.
+</p>
+<p>
+    DNS <a href="https://azure.microsoft.com/pricing/details/dns/">pricing</a> is based on
+    the number of DNS zones hosted in Azure and on the number of DNS queries received. Azure
+    DNS not only supports internet-facing DNS domains, it also supports
+    <a href="https://learn.microsoft.com/en-us/azure/dns/private-dns-overview">
+        private DNS domains
+    </a> to use your own custom domain names in your private virtual networks rather than
+    the Azure-provided names.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Azure DNS supports alias record sets. You can use an alias record set to refer to an
+        Azure resource such as an Azure public IP address, an Azure Traffic Manager profile,
+        or an Azure Content Delivery Network (CDN) endpoint.
+    </p>
+</div>
+<p>
+    If the IP address of the underlying resource changes, the alias record set seamlessly
+    updates itself during DNS resolution. The alias record set points to the service
+    instance and the service instance is associated with an IP address. <span class="mark">
+        <strong>
+            You can also point your apex or naked domain to a Traffic Manager profile or CDN
+            endpoint using an alias record.
+        </strong>
+    </span>
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-overview">
+            What is Azure DNS?
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/pricing/details/dns/">
+            Azure DNS pricing
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/private-dns-overview">
+            Use Azure DNS for private domains.
+        </a>
+    </li>
+</ul>
+<h3>Delegation of DNS zones with Azure DNS</h3>
+<p>
+    As we noted earlier, Azure DNS is a hosted DNS management and name resolution
+    service. You can use it to create public DNS names for other applications and
+    services that are deployed in Azure. Creating a name for an Azure service in
+    your custom domain is simple, you just add a record of the correct type for
+    your service:
+</p>
+<ul>
+    <li>
+        For dynamically allocated IP addresses, you can create a DNS CNAME record
+        that maps to the DNS name that Azure created for your service. As you know,
+        DNS standards prevent you from using a CNAME record for the zone apex but
+        you can use an alias record instead.
+    </li>
+    <li>
+        For statically allocated IP addresses, you can create a DNS "A" record by
+        using any name. This includes a naked domain name at the zone apex.
+    </li>
+</ul>
+<p>
+    In order for DNS queries for a domain to reach Azure DNS, the domain has to be
+    delegated to Azure DNS from the parent domain. Keep in mind that Azure DNS is
+    not the domain registrar.
+</p>
+<p>
+    The Domain Name System (DNS) is a hierarchy of domains. The hierarchy starts from
+    the 'root' domain, whose name is simply '<strong><code>.</code></strong>'. Below
+    this come top-level domains such as 'com', 'net', 'org', 'uk', etc.
+</p>
+<p>
+    Below these top-level domains are second-level domains such as 'org.uk' or
+    'org.mx'. The domains in the DNS hierarchy are hosted using separate DNS zones.
+    These zones are globally distributed and hosted by DNS name servers around the
+    world.
+</p>
+<dl>
+    <dt>DNS zone</dt>
+    <dd>
+        A domain is a unique name in the Domain Name System (DNS); e.g., 'contoso.com'.
+        A DNS zone is used to host the DNS records for a particular domain. For example,
+        the domain 'contoso.com' may contain several DNS records such as 'mail.contoso.com'
+        (for a mail server) and 'www.contoso.com' (for a website).
+    </dd>
+    <dt>Domain registrar</dt>
+    <dd>
+        A domain registrar is a company who can provide internet domain names. They
+        verify if the internet domain you want to use is available and allow you to
+        purchase it. Once the domain name is registered, you are the legal owner for
+        the domain name. <strong>
+            You need access to the current domain registrar to delegate to Azure DNS.
+        </strong>
+    </dd>
+</dl>
+<h4>Resolution and Delegation</h4>
+<p>
+    There are two types of DNS servers:
+</p>
+<ul>
+    <li>
+        An <strong><dfn>authoritative</dfn></strong> DNS server <strong>hosts DNS zones.</strong>
+        It answers DNS queries for records in <stron>those zones only.</stron>
+    </li>
+    <li>
+        A <strong><dfn>recursive</dfn></strong> DNS server does <strong>
+            not host DNS zones.
+        </strong> It answers all DNS queries by calling authoriative DNS servers to gather
+        the data it needs.
+    </li>
+</ul>
+<p>
+    Azure DNS provides an authoritative DNS service. It does not provide a recursive
+    service. Cloud services and VMs in Azure are automatically configured to use a
+    recursive DNS service that is provided separately as part of Azure's infrastructure.
+</p>
+<p>
+    DNS clients in PCs or mobile devices typically call a recursive DNS server to do
+    any DNS queries the client applications need.
+</p>
+<p>
+    When a recursive DNS server receives a query for a DNS record such as 'www.contoso.com',
+    it first needs to find the name server hosting the zone for the 'contoso.com' domain. To
+    find the name server, it starts at the root name servers, and from there finds the name
+    servers hosting the 'com' zone.
+</p>
+<p>
+    It then queries the 'com' name servers to find the name servers hosting the
+    'contoso.com' zone. Finally, it is able to query these name servers for 'www.contoso.com'.
+    This procedure is called <strong>resolving the DNS name</strong>. Strictly speaking,
+    DNS resolution includes more steps such as following CNAMEs but that is not important
+    to understand how DNS delegation works.
+</p>
+<p>
+    How does a parent zone 'point' to the name servers for a child zone? It does this
+    using a special type of DNS record called an <strong><code>NS</code></strong> (name
+    server) record. For example, the root zone (".") contains NS records for 'com' and
+    shows the name servers for the 'com' zone. In turn, the 'com' zone contains NS records
+    for 'contoso.com' which shows the name servers for the 'contoso.com' zone.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Setting up the NS records for a child zone in a parent zone is called
+        <strong><dfn>delegating the domain.</dfn></strong>
+    </p>
+</div>
+<p>
+    Suppose you buy the domain "contoso.com" from a domain name registrar and then create
+    a zone with the name "contoso.com" in Azure DNS. Since you are the owner of the
+    domain, your registrar offers the option to configure the name server (NS) records
+    for your domain.
+</p>
+<p>
+    In this scenario, the registrar stores the NS records in the ".com" parent zone and
+    internet users around the world are then directed to your domain in your Azure DNS
+    zone when they try to resolve DNS records in "contoso.com".
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Azure DNS zone, retrieve its list of name servers, delegate the domain, and
+    verify that the delegation is working.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    In this lesson, "rafaelsanchez.ws" is used as an example domain name. Replace
+    "rafaelsanchez.ws" with your own domain name.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the Azure documentation to <a href="https://learn.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns#create-a-dns-zone">
+        Create a DNS zone
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/20-rafaelsanchez-azure-zone.png"
+         alt="Azure DNS zone for rafaelsanchez.ws" />
+</div>
+<p>
+    An <dfn>apex</dfn> record is a DNS record at the root (or apex) of a DNS zone. For
+    example, in the DNS zone "rafaelsanchez.ws", an apex record also has the fully
+    qualified name "rafaelsanchez.ws" (this is sometimes called a <dfn>naked</dfn>
+    domain). <a href="https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#record-names">
+        By convention
+    </a>, <strong>
+        the relative name <code>@@</code> is used to represent apex records.
+    </strong>
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If the new zone that you are creating is a child zone (e.g., parent zone =
+        "rafaelsanchez.ws" child zone = "child.rafaelsanchez.ws"), then please
+        refer to <a href="https://learn.microsoft.com/en-us/azure/dns/tutorial-public-dns-zones-child">
+            Create a child DNS zone tutorial
+        </a>.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Retrieve the name servers to delegate your domain's DNS zone to Azure DNS. In our
+    example, the DNS zone "rafaelsanchez.ws" has been assigned name servers:
+</p>
+<ul>
+    <li>ns1-36.azure.dns.com. </li>
+    <li>ns2-36.azure.dns.net. </li>
+    <li>ns3-36.azure.dns.org. </li>
+    <li>ns4-36.azure.dns.info. </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> <a href="https://learn.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns#delegate-the-domain">
+    </a>Domain delegation <strong>does not</strong> require a name server to use the
+    same top-level domain as your domain. For example, "rafaelsanchez.ws" domain can
+    be delegated with the name servers provided by Azure eventhough their top-level
+    domains do not match.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Delegate the domain. Once the DNS zone gets created and you have the name servers,
+    you need to update the parent domain with the Azure DNS name servers.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Use the Windows terminal to perform a name server lookup of the NS records for
+    the domain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/28-ns-lookup-before.png"
+         alt="NS records for rafaelsanchez.ws domain." />
+</div>
+<p>
+    Or even better, perform a name server lookup of the SOA records for the domain
+    to find out the refresh value:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/29-ns-lookup-soa-before.png"
+         alt="SOA records for rafaelsanchez.ws domain." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Go to your domain name registrar to change the name server records for a domain. Use
+    all four name servers provided by Azure DNS.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Most domain registrars expect the trailing
+    period at the end of the address. The trailing period indicates the end of a
+    <a href="01-deployment-fundamentals">
+        fully qualified domain name
+    </a>(FQDN).
+</p>
+<p>
+    However, this is not the case with CheapDomain where the <code>rafaelsanchez.ws</code>
+    domain is registered. If the name server addresses for Azure include the trailing
+    dot, cheap domain's interface returns an error indicating that the host name has
+    an invalid Top Level Domain (TLD):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/26-edit-name-servers-error.png"
+         alt="Error with Top Level Domain if it contains the trailing period." />
+</div>
+<p>
+    This issue can be solved easily by removing the trailing period:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/27-edit-name-servers.png"
+         alt="Modification of name server records with the domain registrar." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Wait for an hour or so and use the Windows terminal to verify the delegation; i.e.,
+    to perform a name server lookup of the NS records for the domain. The name servers
+    should point to the Azure DNS name servers:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/31-domain-ns-azure.png"
+         alt="Domain name servers updated with Azure DNS host." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure email delivery in Azure DNS by adding the DNS records for Zoho's email
+    exchange server. Make sure to include the MX, SPF, and DKIM records. Optionally,
+    you can include the DMARC records. You can follow the Zoho <a href="https://www.zoho.com/mail/help/adminconsole/configure-email-delivery.html?zredirect=f&zsrc=langdropdown&lb=es-xl">
+        documentation
+    </a>.
+</p>
+<p>
+    Recall that we previously configured the Zoho account and proved ownership of the
+    domain. We can therefore go straight to configure the Zoho email exchange servers
+    in Azure DNS.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Azure DNS zone for rafaelsanchez.ws and add an MX "record set" with
+    the emaill hosting servers.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Use the <a href="https://mailadmin.zoho.com/cpanel/home.do#domains/rafaelsanchez.ws/emailConfig/mx">
+        Zoho Mail Admin Console
+    </a> to obtain the MX records for Zoho's email hosting servers that will be added
+    to Azure DNS.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Go to the Azure DNS zone for the domain and select "+ Record Set" to add the MX
+    records. We are working at the zone apex; therefore, the domain name can be represented
+    with an <strong><code>@@</code></strong> symbol:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/30-zoho-email-servers-azure.png"
+         alt="Azure DNS with Zoho MX records for email configuration." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3</span>
+    Go back to the Zoho Email Administration Control Panel to use the "Verify" tool.
+    You should receive a confirmation like the following image:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/24-zoho-mx-confirmation.png"
+         alt="Zoho confirmation." />
+</div>
+<dl>
+    <dt>Sender Policy Framework (SPF)</dt>
+    <dd>
+        SPF is an authentication mechanism that helps in identifying the IP addresses
+        permitted to send emails using the domain name. You can add a new TXT record
+        in your DNS manager (e.g., Azure DNS).
+    </dd>
+</dl>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Azure DNS zone for rafaelsanchez.ws and add an MX "record set"
+    with the Sender Policy Framework (SPF) for Zoho mail.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the email configuration tab in the Domains section of the <a href="https://mailadmin.zoho.com/cpanel/home.do#domains/rafaelsanchez.ws/emailConfig/spf">
+        Zoho Mail - Admin Console
+    </a> to get the value for the SPF record.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Go to the Azure DNS zone for your domain (e.g., rafaelsanchez.ws) an select "+ Record set"
+    to add the TXT record for Zoho's SPF:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/32-zoho-spf-azure.png"
+         alt="MX record with Zoho SPF value." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Go back to the Zoho Mail - Admin Console to use the "Verify" tool that confirms if
+    the MX records have propagated as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/33-zoho-spf-confirmation.png"
+         alt="MX record with Zoho SPF value." />
+</div>
+<dl>
+    <dt>DomainKeys Identified Mail (DKKIM)</dt>
+    <dd>
+        DKIM is an emal validation system that uses encryption to validate if an email has
+        been sent from authorized servers configured by the administrator of the domain. You
+        can add a new TXT record in your DNS manager (e.g., Azure DNS).
+    </dd>
+</dl>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Azure DNS zone for rafaelsanchez.ws and add an MX "record set"
+    with the DomainKeys Identified Mail (DKIM) for Zoho mail.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Go to the email configuration tab in the Domains section of the <a href="https://mailadmin.zoho.com/cpanel/home.do#domains/rafaelsanchez.ws/emailConfig/spf">
+        Zoho Mail - Admin Console
+    </a> to get the value for the DKIM record.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Go to the Azure DNS zone for your domain (e.g., rafaelsanchez.ws) an select "+ Record set"
+    to add the TXT record for Zoho's SPF:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/34-azure-dkim-record-set.png"
+         alt="MX record with Zoho DKIM value." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    As you can see in the image above, unlike the other DNS records, adding the DKIM record to
+    Azure DNS does require a "Name" instead of leaving the "Name" field blank.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/35-azure-dkim-record-set.png"
+         alt="Azure DNS with DKIM record." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Go back to the Zoho Mail - Admin Console to use the "Verify" tool that confirms if
+    the MX records have propagated as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/36-zoho-dkim-validation.png"
+         alt="MX record with Zoho DKIM value confirmed." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Verify that you can send and receive emails with the email account created in Zoho mail.
+</p>
+<p>
+    At this point we:
+</p>
+<ul>
+    <li>
+        Created an Azure storage account to <a href="02-static-website">
+            host a static website
+        </a> which is the entry point of our portfolio.
+    </li>
+    <li>
+        Integrated an <a href="03-azure-cdn">Azure CDN</a> with the storage account that 
+        hosts the static website to support HTTPS with custom domains. 
+    </li>
+    <li>
+        Established an Azure CDN profile with an endpoint to serve content from the
+        storage account that hosts the static website.
+    </li>
+    <li>
+        Created a third party email hosting service.
+    </li>
+    <li>
+        Established an Azure DNS zone for our domain and configured the third-party
+        email service.
+    </li>
+</ul>
+<p>
+    It is now time to set up a custom domain name for the Azure CDN.
+</p>
+<p>
+    On a final note for this lecture, keep in mind that 
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If the new zone that you are creating is a child zone (e.g., parent zone =
+        "rafaelsanchez.ws" child zone = "child.rafaelsanchez.ws"), then please
+        refer to <a href="https://learn.microsoft.com/en-us/azure/dns/tutorial-public-dns-zones-child">
+            Create a child DNS zone tutorial
+        </a>.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-for-azure-services">
+            How Azure DNS works with other Azure services
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-domain-delegation">
+            Delegation of DNS zones with Azure DNS
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-delegate-domain-azure-dns#delegate-the-domain">
+            Tutorial: Host your domain in Azure DNS
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/HxvrgbvBh4g">
+            All about Domain Names
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-getstarted-portal">
+            Quickstart: Create an Azure DNS zone and record using the Azure portal.
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-getstarted-portal">
+            Quickstart: Create an Azure DNS zone and record using the Azure portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/tutorial-public-dns-zones-child">
+            Create a child DNS zone tutorial
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/tutorial-public-dns-zones-child">
+            Tutorial: Create a child DNS zone
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/delegate-subdomain?source=recommendations">
+            Delegate an Azure DNS subdomain
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/dAsC1XHmNC4">
+            How to configure Public DNS Zone for Hosting your Domain in Azure
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/RqWRumxW0ws">
+            Delegating Subdomain from Name Service Provider to Azure DNS Zone
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-faq">
+            Azure DNS FAQ
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/private-dns-overview">
+            What is Azure Private DNS
+        </a>
+    </li>
+</ul>

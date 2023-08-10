@@ -1,0 +1,1344 @@
+﻿@page "/03-routing"
+@inject IRepository _movieRepository
+<PageTitle>Blazor Routing</PageTitle>
+
+<h2>Blazor Routing</h2>
+<p>
+    Before going any further, be aware that you should be familiar with terms such
+    as web root folder, <em>Router</em> component, root component (App.razor),
+    etc. For a quick refresh, refer to the lesson on
+    <a href="02-components-part-two">Layouts</a>. What's more, we strongly suggest
+    you have a look to Chris Sainty's <a href="https://chrissainty.com/introduction-to-routing-in-blazor/">
+        Introduction to Routing in Blazor</a>
+</p>
+<h3>ASP.Net Routing (client-side routing)</h3>
+<p>
+    ASP.Net routing enables you to use URLs that do not have to map to specific files
+    in a website. Because <span class="mark">
+        <strong>
+            the URL does not have to map to a file, you can use URLs in a Web application
+            that are descriptive of the user's action
+        </strong>
+    </span> and therefore more easily understood by users.
+</p>
+<p>
+    In an ASP.Net application with a more traditional approach on routing, an incoming
+    request for a URL typically maps to a physical file on disk such as an .aspx file.
+    For example, a request for http://server/application/Products.aspx?id=4 maps to a
+    file that is named Products.aspx that contains code and markup for rendering a response
+    to the browser. The webpage uses the <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        query string
+    </a> value of id=4 to determine which product (or content) to display, but the value
+    is likely to have little meaning to the user.
+</p>
+<p>
+    <strong>
+        In ASP.Net routing, you define URL <em>patterns</em> that contain <em>placeholders</em>
+        for values that are used when handling URL requests.
+    </strong> At run-time, the pieces of the URL that follow the application name are
+    parsed into discrete values, based on a URL pattern that you have defined.
+</p>
+<p>
+    In other words, <span class="mark">
+        <strong>
+            Blazor routing is a technique for inspecting the browser's URL and
+            matching it up to a page (or component) to render.
+        </strong>
+    </span> It allows you to match based on patterns of text so that, for example, both
+    URLs in the image shown below will map to the same component (MovieDetails component)
+    and pass in an <code>Id</code> for context:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/01-urls-same-component.png" alt="Different URLs point to same component." />
+</div>
+<br />
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        When a Blazor app navigates to a new URL within the same app, it does not
+        actually navigate in the traditional www sense; i.e., <strong>
+            no request is sent to the server
+        </strong> requesting the content for the new page. Instead, <strong>
+            Blazor rewrites the browser's URL and then renders the relevant content.
+        </strong>
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> When a navigation is made to a new
+    URL that resolves to the same type of component as the current page, the component
+    will not be disposed before navigation and the <em>OnInitialized()</em> lifecycle
+    method will <strong>not</strong> be executed. The navigation is simply seen as a
+    change to the component's parameters. Any additional configuration should be
+    executed with the OnParametersSetAsync() lifecycle method; i.e., <strong>
+        when navigating to the same component but with a different optional parameter
+        value, you should use the OnParametersSetAsync() <a href="02-components-part-two">
+            lifecycle
+        </a> method to refresh the UI.
+    </strong>
+</p>
+<h5>Defining Routes</h5>
+<p>
+    For URLs to resolve correctly, a Blazor app <strong>
+        must include a <code>&lt;base&gt;</code> tag
+    </strong> in its www.root/index.html
+    file (Blazor WebAssembly) or <em>Pages/_Layout.cshtml</em> file (Blazor Server)
+    with the app base path specified in the <em>href</em> attribute:
+</p>
+<div class="image-lesson">
+    <img src="Images/05-routing/02-base-tag.png" alt="Base tag in the wwwroot index file." />
+</div>
+<br />
+<p>
+    As you know, to define a route, you simply add an <strong><code>@@page</code></strong>
+    Blazor directive at the top of any component:
+</p>
+<div class="image-lesson">
+    <img src="Images/05-routing/03-at-page-directive.png" alt="At page directive example." />
+</div>
+<br />
+<p>
+    If you open the generated source code for this view (Index component); i.e.,
+    the .razor file transpiled into a .Net class (.cs file), in
+    <em>obj\Debug\net5.0\Razor\Pages\Index\razor.g.cs</em>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/04-transpiled-index-class-folder-tree.png" alt="Folder tree for the transpiled Index.razor file." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> In applications running on .Net 6 and
+    later, you must edit the <dfn>project file</dfn> (.csproj). We will go through a
+    brief introduction to the project file later but for now, add the following property
+    group to the project file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/43-emit-compiler-files-csproj.png"
+         alt="Editing project file to emit compiler files." />
+</div>
+<p>
+    For more info visit <a href="https://stackoverflow.com/questions/70958616/how-to-see-c-sharp-code-compiled-from-razor-component-with-vs2022-in-project-tar">
+        How to see C# code compiled from Razor component with VS2022 in project targeting .Net 6?
+    </a> and
+    <a href="https://andrewlock.net/creating-a-source-generator-part-6-saving-source-generator-output-in-source-control/">
+        Saving source generator output in source control
+    </a>
+</p>
+<p>
+    You will see the <code>@@page</code> directive compiled to the following code:
+</p>
+<div class="image-lesson">
+    <img src="Images/05-routing/05-transpiled-index-class.png" alt="Transpiled Index class." />
+</div>
+<br />
+<p>
+    Each <code>@@page</code> directive generates a <em>RouteAttribute</em> on the
+    component's class. During start-up, Blazor scans for classes decorated with a
+    <em>RouteAttribute</em> and builds its route definitions accordingly. The
+    <em>Router</em> component scans all classes within the specified assembly. For
+    each <em>RouteAttribute</em> it finds, it parses the <strong>URL template string</strong>
+    and adds a relationship from the URL to the component into its internal route
+    table.
+</p>
+<p>
+    This means that a single component may be decorated with zeroe, one, or multiple
+    <em>RouteAttribute</em> attributes (@@page declarations). A component with no
+    (or zeroe) <em>RouteAttribute</em> attributes cannot be reached via URL. Conversely,
+    a component with multiple attributes can be reached via any of the URL templates
+    it specifies.
+</p>
+<h5>Route Parameters</h5>
+<p>
+    So far, we have seen how to link a static URL to a Blazor component. Static URLs
+    are only useful for static content; if we want the same component to render
+    different views based on information in the URL (such as a Movie.Id) then we
+    need to use route parameters.
+</p>
+<p>
+    The <strong>URL patterns</strong> that you define are known as
+    <strong>routes</strong>. In a <em>route,</em> you specify <em>placeholders</em>
+    that are mapped to values that are parsed from the URL request. The placeholders
+    are referred to as <strong>route parameters</strong> and they are <strong>
+        defined by enclosing them inside curly braces;
+    </strong> e.g., (<strong><code>{Id}</code></strong>). The forward slash character
+    (<strong><code>/</code></strong>) is interpreted as a <strong>delimiter</strong>
+    when the URL is parsed. Information in the route definition that is not a
+    delimiter and that is not inside curly braces is treated as a constant value.
+</p>
+<p>
+    You can define more than one <em>route parameter</em> (or placeholder) between
+    delimiters (/) but they must be separated by a constant value. For example,
+    {language}-{country}/{action} is a valid route pattern. However,
+    {language}{country}/{action} is not a valid route pattern because there is
+    no constant or delimiter between <em>route parameters</em> (or placeholders).
+    Therefore, routing cannot determine where to separate the value for the language
+    placeholder from the value for the country placeholder.
+</p>
+<p>
+    As you know, a component can receive parameters by defining a full property and
+    decorating it with a <code>[Parameter]</code> attribute.
+    <a href="02-components-part-one">Component parameters</a> <strong>can come</strong>
+    not only from the parent component but <strong>also through the browser's URL</strong>.
+    These parameters are referred to as <strong>route parameters</strong>.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <em>Router</em> component uses <em>route parameters</em> (URL parameters)
+        to allocate them as values of the <dfn>component parameters</dfn> with the
+        <strong>same</strong> name. Route parameter names are <strong>case insensitive.</strong>
+    </p>
+</div>
+<p>
+    Capturing the value of a <em>route parameter</em> is as simple as adding a
+    property decorated with the <code>[Parameter]</code> attribute and <strong>
+        naming
+        it with the same name of the <em>route parameter</em>
+    </strong>.
+</p>
+<p>
+    You can refer to the lesson on "Routing to controller actions" in section <a href="08-api-controllers">
+        Api Controllers
+    </a> for a brief introduction to server-side routing.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a <em>MovieDetails</em>
+    component that renders the details of a Movie item such as its poster image,
+    its full title, and its release date. It should include a route parameter
+    of type string that represents the MovieTitle property of a given Movie item.
+    The user should be re-directed to the MovieDetails component when clicking an
+    "Edit" &lt;a&gt; element shown in the MoviesCatalog component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the MovieDetails component
+    with a route that includes a route parameter that represents a MovieTitle. Then,
+    define a MovieTitle string property with the same name assigned to the route
+    parameter and decorated with a <code>[Parameter]</code> attribute. Inject the
+    IRepository service and use the Route Parameter to retrieve a Movie item that
+    matches with the MovieTitle parameter.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/06-movie-details-component.png" alt="MovieDetails component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the anchor (&lt;a&gt;) element
+    with the "Edit" context in the RenderMovie component and define an &lt;href&gt;
+    attribute. Pass the route to the MovieDetails component including its route
+    parameter.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> It is this route parameter the one that
+    determines which Movie object should be requested from the MovieDetails component
+    to render its members:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/07-render-movie-component.png" alt="RenderMovie component with a route to MovideDetails." />
+</div>
+<br />
+
+<h5>Route Constraints</h5>
+<p>
+    Besides specifying URL templates that include parameters (route parameters),
+    it is also possible to ensure Blazor will only match a URL to a component if
+    the value of the parameter meets certain criteria. A route constraint enforces
+    type matching on a route segment to a component.
+</p>
+<p>
+    To <strong>define a constraint for a route parameter</strong>, include a
+    suffix with a colon and the constraint type. E.g.,
+    <strong><code>{Id:int}</code></strong>. The <em>Router</em> component will
+    only match the component's URL if it contains a valid integer value in the
+    correct position.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> A route parameter of type string
+    must <strong>not</strong> include a type constraint.
+</p>
+<p>
+    Take our BlazorMovies application. At some point, we will use a database to
+    retrieve data. For this reason, each entity must have a unique key.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Suppose you want to have the
+    Movie.Id and the Movie.Title in the URL of the MovieDetails component. Make
+    any necessary adjustments to provide an additional (<strong>optional</strong>)
+    route parameter with these specifications and test that it works correctly.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the MovieDetails component and
+    add an additional (<strong>optional</strong>) <strong>route</strong> with two
+    <strong>route parameters</strong>. One route parameter that represents the Movie.Id
+    property value and one route parameter that represents the Movie.Title property
+    value. Make sure you provide a <strong>route parameter constraint</strong> of type
+    Int32 for the MovieId <strong>segment</strong>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/08-optional-route.png" alt="MovieDetails component with optional route." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the anchor (&lt;a&gt;) element
+    with the "Edit" context in the RenderMovie component and modify its &lt;href&gt;
+    attribute value. Pass the route to the MovieDetails component that includes the
+    Movie.Id property value and the Movie.Title property value of the Movie item that
+    should be rendered. Make sure they are in the exact same order of the route parameters
+    of the optional route defined for the MovieDetails component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/09-render-movie-multiple-route-parameters.png" alt="RenderMovie component with href attribute with multiple route parameters." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Create an instance of the
+    MoviesCatalog component, click on any of the "Edit" anchors and verify that
+    the URL displayed in the MovieDetails component corresponds to the Movie.Id
+    and the Movie.Title of the Movie item you clicked:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/10-url-multiple-route-parameters.png" alt="URL with multiple route parameters." />
+</div>
+<br />
+
+<p>
+    At this point, if you hover the mouse pointer over the &lt;a&gt; element
+    with the "Edit" context in the MoviesCatalog component, the browser displays the
+    URL that it points to:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/11-browser-url-display.png" alt="URL displayed by the browser when hovering anchor element." />
+</div>
+<br />
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        When a Blazor app navigates to a new URL within the same app, it does not
+        actually navigate in the traditional www sense; i.e.,
+        <span class="mark">
+            <strong>
+                no request is sent to the server requesting the content
+            </strong>
+        </span> for the new page. Instead, Blazor <strong>
+            rewrites the browser's URL
+        </strong> and then renders the relevant content.
+    </p>
+</div>
+<p>
+    What does this mean exactly? Take the MovieDetails component we just created and
+    comment out the code responsible for communicating with the MovieRepository
+    to retrieve the Movie item; i.e., eliminate the data content request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/44-movie-details-no-data-content.png"
+         alt="MovieDetails component no data content request." />
+</div>
+<p>
+    What do you think would happen if we go to the RenderMovie component and modify
+    the "href" attribute value of the &lt;Edit&gt; element? Its <dfn>route</dfn> will
+    still point to the MovieDetails component but this time we pass hard coded
+    <dfn>route parameter</dfn> values that are obviously incorrect. For example a Movie.Id
+    value of 200 and a Movie.Title property value of "some-weird-title":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/45-render-movie-no-sense-parameter-values.png"
+         alt="RendeMovie component with no sense parameter values." />
+</div>
+<p>
+    What should we expect to happen if we go to the Index.razor routable component,
+    create an instance of the MoviesCatalog component, supply it with a collection
+    of Movie items to render and finally click on any of the "Edit" button elements?
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/46-index-routable-component.png"
+         alt="Index routable component consumes a MoviesCatalog component." />
+</div>
+<p>
+    Will the application Router be able to do its work? Let's try it by clicking on
+    any of the Edit button elements to raise its @@onclick event:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/05-routing/47-movie-details-no-content.png"
+         alt="MovieDetails component with weird route and no data content." />
+</div>
+<p>
+    As you can see, the router component was able to do its job because it was able
+    to find a routable component that matched the <dfn>route segment:</dfn> "moviedetails"
+    so the user is redirected to the MovieDetails component, Blazor rewrites the browser's
+    URL and renders the relevant content. Also, the hard coded route parameter values
+    comply with the route constraints. The Id value of 200 is an integer, the MovieTitle
+    is a string, and they are passed in the same order specified by the route template.
+</p>
+<p>
+    In our example, there is no content because we commented out the code responsible
+    for making the content request in the MovieDetails component. Otherwise, we would
+    get an exception because the <dfn>route parameter values</dfn> are obviously incorrect
+    and we would not find any content with those property values; i.e., no Movie item
+    with a Movie.Id property value of 200 or Movie.Title of "some-weird-title".
+</p>
+<p>
+    As we mentioned earlier, <strong>
+        when a Blazor app navigates to a new URL within the same app,
+    </strong> it does not actually navigate in the traditional sense; i.e., <strong>
+        no request is sent to the server requesting the content for the new page.
+    </strong> Instead, Blazor rewrites the browser's URL and then renders the relevant
+    content. Because the URL does not have to map to a file, you can use URLs in a web
+    application that are descriptive of the user's action and therefore more easily
+    understood by users.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> When a navigation is made to a new URL
+    that resolves to the same type of component as the current page, the component
+    will <strong>not</strong> be disposed before navigation and the OnInitialized()
+    lifecycle method will not be executed. The navigation is simply seen as a change
+    to the component's parameters. Any additional configuration should be executed
+    with the <code>OnParametersSetAsync()</code> lifecycle method; e.g., to permit
+    app navigation to the same component with a different optional parameter value.
+</p>
+<p>
+    Don't forget to:
+</p>
+<ul>
+    <li>
+        Uncomment the code resonsible for requesting the data content in the
+        MovieDetails component.
+    </li>
+    <li>
+        Bring back the "href" attribute value of the RenderMovie component to a valid
+        URL route including its route parameters; e.g.,
+        <code>href="moviedetails/@@Movie?.Id/@@Movie?.Title"</code>
+    </li>
+    <li>
+        Eliminate the MoviesCatalog instance created in the Index.razor routable
+        component.
+    </li>
+</ul>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-6.0#query-strings">
+        ASP.Net Core Blazor routing and navigation
+    </a> and
+    <a href="https://blazor-university.com/routing/">
+        Routing
+    </a>
+</p>
+<h3>Navigating in a Blazor Application</h3>
+<p>
+    There are two ways you can navigate your Blazor application:
+</p>
+<ul>
+    <li>Navigation via HTML.</li>
+    <li>Navigaton via code.</li>
+</ul>
+
+<h5>Navigation via HTML</h5>
+<p>
+    The simplest way to link a route within a Blazor component is to use an HTML
+    hyperlink; e.g., &lt;a href="/Counter"&gt;Counter Component&lt;/a&gt;.
+</p>
+<p>
+    Hyperlinks in a Blazor component are intercepted automatically. <strong>
+        When a user clicks a hyperlink, the browser will not send a request to the
+        server. Instead, Blazor will update the URL in the browser and render
+        whichever page (routable component) is associated with the new address (URL).
+    </strong>
+</p>
+
+<h5>Using the <span style="font-size:1.5rem;"><strong><code>&lt;NavLink&gt;</code></strong></span> component</h5>
+<p>
+    Blazor also includes a component for rendering hyperlinks with additional support
+    for changing the HTML element's CSS class when its route matches the browser's URL
+    and for determining how to compare the browser's URL with the <em>href</em>
+    attribute. A <em>&lt;NavLink&gt;</em> component behaves like an &lt;a&gt;
+    element, except that it toggles an <em>"active"</em> CSS class based on whether
+    its <em>href</em> matches the current URL.
+</p>
+<p>
+    These two features are available as <code>&lt;NavLink&gt;</code>'s parameters:
+</p>
+<ul>
+    <li>The <strong><em>ActiveClass</em></strong> parameter.</li>
+    <li>The <strong><em>Match</em></strong> parameter.</li>
+</ul>
+
+<p>
+    <span class="badge bg-info">Notice:</span> Use the <code>&lt;NavLink&gt;</code> component
+    <strong>only for navigation of menu items</strong>. Do <strong>not use it</strong> for
+    regular links that are part of the content of a web page.
+</p>
+
+<p>
+    The <strong>ActiveClass</strong> parameter specifies which CSS class to apply to the
+    rendered &lt;a&gt; element when the URL of the browser matches the route of its
+    <em>href</em> attribute. If not specified, Blazor will apply <strong>by default</strong>
+    a CSS class named <strong>active</strong>.
+</p>
+<p>
+    The <em>active</em> CSS class helps a user understand which page is the active page
+    among the navigation links displayed. Optionally, you can assign a CSS class name
+    to <code>NavLink.ActiveClass</code> to apply a custom CSS class to the rendered link
+    when the current route matches its <em>href</em> attribute value. Take for example
+    the /Shared/NavMenu.razor component in a default Blazor application; it employs
+    markup that includes the <em>NavLink</em> component:
+</p>
+<div class="image-lesson">
+    <img src="Images/05-routing/12-navlink.png" alt="NavMenu component consumes the NavLink component." />
+</div>
+<br />
+
+<p>
+    It also employs <a href="02-components-part-two">CSS Isolation</a> with a CSS <em>selector</em>
+    that targets the <code>&lt;NavLink&gt;</code>'s default CSS class: <em>"active"</em> to
+    provide different styling for the <code>&lt;NavLink&gt;</code> element that matches the
+    browser's URL:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/13-css-nav-menu.png" alt="CSS selector targets NavLing's active class." />
+</div>
+<br />
+
+<p>
+    Recall from lesson <a href="02-components-part-two">CSS Isolation - Child Component Support</a>,
+    that the <strong><code>&lt;NavLink&gt;</code></strong> component decorates its
+    <strong>child</strong> content with an HTML hyperlink <code>&lt;a&gt;</code>. All attributes
+    such as <em>class</em>, <em>href</em>, etc are rendered directly to the <code>&lt;a&gt;</code>
+    element via <a href="02-components-part-one">Attribute splatting.</a> For this reason, <strong>
+        you must employ a <code>::deep</code> combinator
+    </strong> for every CSS selector that intends to target any class attribute of a
+    <code>&lt;NavLink&gt;</code> element. Otherwise, the styling will not be applied to its
+    child element (<code>&lt;a&gt;</code>).
+</p>
+<p>
+    Watch &lt;NavLink&gt;'s <em>ActiveClass</em> parameter in action:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/14-index-css-active.png" alt="Index nav-item with CSS active class." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/05-routing/15-blazor-css-active.png" alt="Blazor-01 nav-item with CSS active class." />
+</div>
+<br />
+
+<p>
+    <em>&lt;NavLink&gt;</em>'s <strong>Match</strong> parameter has a built-in enum
+    with two <code>NavLinkMatch</code> options:
+</p>
+<ul>
+    <li>
+        <code>NavLinkMatch.All</code>: The <code>&lt;NavLink&gt;</code> is active
+        when it matches the <strong>entire</strong> current URL. If its <em>&lt;href&gt;</em>
+        attribute value does not completely match the browser's URL, it will not
+        be considered <em>active</em>.
+
+    </li>
+    <li>
+        <code>NavLinkMatch.Prefix</code>: It is the <strong>default</strong> option.
+        The <code>&lt;NavLink&gt;</code> is active when it matches any prefix of
+        the current URL. It will be considered a match whenever the URL starts with
+        the base segment of the URL. E.g., http://localhost:44363/counter/,
+        http://localhost:44363/counter/1, or http://localhost:44363/counter/whatever
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-primary">Task:</span> We have come to a point where we need
+    to provide some navigation structure to our Blazor application. Mainly, we should
+    separate the navigation menu items that belong to the Blazor lessons from the
+    navigation menu items to navigate the actual application that we are building with
+    each lesson:
+</p>
+<ul>
+    <li>
+        To differentiate your application's routable components from the Blazor
+        lessons, from now on, <strong>
+            every routable component related to the application must include a
+            base route.
+        </strong>E.g., <code>@@page "/movies/create"</code>,
+        <code>@@page "/person/edit"</code>,
+        <code>@@page "/genres/something..."</code>
+    </li>
+    <li>
+        Go to the <em>BlazorMovies.Client/Pages/</em> folder and add three folders
+        named "Genres", "Movies", and "People".
+    </li>
+    <li>
+        Create a routable component named <em>FlixVisualizer</em> that resides in
+        the <em>BlazorMovies.Client/Pages/Movies</em> folder. This will be the
+        landing page of your Movies application. Don't forget to include its base
+        route segment; e.g., "/movies/flix-manager"
+    </li>
+    <li>
+        Create a routable component named <em>MovieCreate</em> that resides in the
+        <em>BlazorMovies.Client/Pages/Movies</em> folder. This component will host
+        a Form to create a new Movie item. Don't forget to include its base
+        route segment; e.g., "/movies/create".
+    </li>
+    <li>
+        Create a routable component named <em>MovieBulletin</em> that resides in the
+        <em>BlazorMovies.Client/Pages/Movies</em> folder. This component will render
+        every Movie detail available for a given Movie item. Don't forget to include
+        its base route segment and to implement a route parameter for a Movie.Id
+        property value with a constraint of type Int32 and a route parameter for the
+        Movie.Title property value.
+    </li>
+    <li>
+        Modify the "Edit" anchor (&lt;a&gt;) element of the <em>RenderMovie</em>
+        component to navigate to the <em>MovieBulletin</em> component as opposed to
+        navigating to the <em>MovieDetails</em> component.
+    </li>
+    <li>
+        Create a routable component named <em>PeopleCreate</em> that resides in the
+        <em>BlazorMovies.Client/Pages/People</em> folder. This component will host
+        a Form to create a person item such as an actor, a director, etc. Don't
+        forget to include its base route segment; e.g., "/people/create".
+    </li>
+    <li>
+        Create a routable component named <em>GenreCreate</em> that resides in the
+        <em>BlazorMovies.Client/Pages/Genres</em> folder. This component will host
+        a Form to create a genre item. Don't forget to include its base route segment;
+        e.g., "/genres/create".
+    </li>
+    <li>
+        Go to the <em>BlazorMovies.Client/Shared/NavMenu.razor</em> component to
+        include a navigation menu item at its very top that takes the user to the
+        <em>FlixVisualizer</em> component.
+    </li>
+    <li>
+        Add the rest of the application's routable components as sub-menu links of the
+        "Flix Visualizer" nav menu item. Finally, implement the necessary code logic
+        to show/hide the sub-menu links when the Flix Visualizer nav menu item
+        is clicked and to hide the sub-menu links when any of the Blazor lesson
+        links are clicked.
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The <strong>base route</strong>, which is
+    the first segment of the route, on each component <strong>
+        corresponds to the name of the folder where the routable component resides
+    </strong>. E.g., component folder: Genres, component name: GenreCreate, component
+    route: "/genres/create".
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the application components.
+    When finished, the folder tree should look something like this:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/16-folder-tree-app-components.png" alt="Folder tree with new application components." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Modify the NavMenu component to
+    include the Flix Visualizer nav menu item on top and to show/hide sub-menu
+    items. The NavMenu code logic should be similar to the code shown in the image
+    below. Keep in mind that some nav-items were omitted for simplicity:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/17-nav-menu-with-submenus-markup.png" alt="Nav menu with submenu items." />
+</div>
+<div class="image-lesson">
+    <img src="Images/05-routing/18-nav-menu-with-submenus-backend.png" alt="Nav menu with submenu items." />
+</div>
+<br />
+
+<h5>Navigation via Code</h5>
+<p>
+    Besides navigating a Blazor application via HTML (using hypertext links), sometimes
+    you might want or need to use code (CSharp code) to direct the user to a different
+    page. As mentioned in lesson
+    <a href="02-components-part-two">Dependency Injection (Services)</a>, the Blazor
+    framework templates include 3 default services that don't need to be configured:
+</p>
+
+<ol>
+    <li>HttpClient</li>
+    <li>IJSRuntime</li>
+    <li><strong>NavigationManager</strong></li>
+</ol>
+
+<p>
+    The <strong><code>NavigationManager</code></strong> service provides an event and
+    methods to manage URIs and navigation in CSharp code. Just like any other service,
+    you can inject the <em>NavigationManager</em> into a Blazor component using an
+    <code>@@inject</code> Blazor directive in a .razor file or the <code>[Inject]</code>
+    attribute in a .cs file. The <em>NavigationManager</em> service has two members
+    that are of particular interest:
+</p>
+<ul>
+    <li>
+        The <strong><code>NavigationManager.NavigateTo()</code></strong> method enables
+        CSharp code to control the browser's URL. If its <em>forceload</em> formal input
+        parameter is set to <em>true</em>, client-side routing is bypassed and the browser
+        is forced to load the new page from the server, whether or not the URI is normally
+        handled by the client-side router. Navigations made via <code>NavigateTo()</code>
+        method will cause the <em>LocationChanged</em> event to be raised, passing the
+        new URL and <em>false</em> for <em>IsNavigationIntercepted</em>.
+    </li>
+    <li>
+        The <strong><code>NavigationManager.LocationChanged</code></strong> event is
+        raised when the navigation location has changed.
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Go to the root component (App.razor) and
+    modify its <em>NotFound</em> RenderFragment parameter responsible for rendering UI
+    content to the user when the route is not valid. Include a &lt;button&gt; element
+    below the current content. The &lt;button&gt; should employ the <em>NavigationManager</em>
+    service to direct the user to the Home (or Index) page. It should also write to the
+    web browser's console the invalid URI passed by the user. This URI could be logged
+    into a file for later use.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the root component and declare
+    the code logic:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/19-root-component.png" alt="NotFound component with button element." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Type an invalid secondary segment to
+    the browser's URL to test the NotFound component. Make sure the invalid URI is
+    registered into the browser's console.
+</p>
+
+<p>
+    For more info and example exercises visit Blazor University:
+    <a href="https://blazor-university.com/routing/navigating-our-app-via-html/">
+        Navigating our app via HTML
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-5.0">
+        ASP.Net Core Blazor routing
+    </a>,
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0">
+        ASP.NET Core Blazor routing and navigation (.Net 7)
+    </a>, and
+    <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        Working with Query Strings in Blazor
+    </a> by Chris Sainty.
+</p>
+
+<h3>Understanding the <em>Project</em> file</h3>
+<p>
+    Microsoft Build Engine (MSBuild) project files lie at the heart of the build and
+    deployment process. When you create and build solutions in Visual Studio, VS uses
+    MSBuild to build each project in your solution. <strong>
+        Every VS project includes an MSBuild project file
+    </strong> with a file extension that reflects the type of the project. For example,
+    a CSharp project (.csproj), a Visual Basic.Net project (.vbproj), or a database
+    project (.dbproj).
+</p>
+<p>
+    <strong>
+        To build a project, MSBuild must process the project file associated with
+        the project.
+    </strong> The project file is an XML document that contains all the information
+    and instructions that MSBuild needs to build your project, such as the content
+    to include, the platform requirements, versioning information, web server or
+    database server settings, and the tasks that must be performed. In other words,
+    MSBuild uses project files to instruct the build engine what to build and how to
+    build it. As a developer, you can edit or even create your own MSBuild project
+    files to impose fine grained control over how your projects are built and
+    deployed.
+</p>
+
+<h5>Anatomy of a Project File</h5>
+<p>
+    Some of the more common <strong>elements</strong> that you will encounter when you
+    review, edit or create a project file are:
+</p>
+<ul>
+    <li>
+        <strong><em>Properties</em></strong>: Allow you to manage variables for the build
+        process.
+    </li>
+    <li>
+        <strong><em>Items</em></strong>: Identify the inputs to the build process;
+        e.g., code files, NuGet packages, Razor Class Libraries.
+    </li>
+    <li>
+        <strong><em>Targets</em></strong> and <strong><em>tasks</em></strong>: provide
+        execution instructions to MSBuild, using <em>properties</em> and <em>items</em>
+        defined elsewhere in the project file.
+    </li>
+</ul>
+<p>
+    Take the BlazorMovies/Client WebAssembly project file of your BlazorMovies
+    application:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/20-csproj-file.png" alt="The project file for BlazorMovies/Client project." />
+</div>
+<br />
+
+<p>
+    The <strong><code>&lt;Project&gt;</code></strong> element is the
+    <strong>root element of every project file</strong>. It can include <em>attributes</em>
+    to specify the entry points for the build process. A Blazor WebAssembly project targets
+    <em>Microsoft.Net.Sdk.BlazorWebAssembly</em> instead of <em>Microsoft.Net.Sdk.Web</em>
+    sdk (Blazor server apps), because it runs on the browser on a WebAsembly-based .Net
+    runtime. You cannot install .Net into a web browser like you can on a server or developer
+    machine. Consequently, the project references the Blazor framework using individual
+    package references.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/21-project-element.png" alt="The project element." />
+</div>
+<br />
+
+<p>
+    A <em>project</em> file typically needs to provide different pieces of information in
+    order to successfully build and deploy your projects. These pieces of information can
+    include server names, connection strings, credentials, build configurations, source and
+    destination file paths, and any other information you want to include to support
+    customization. This kind of customization is implemented using <em>properties</em>.
+</p>
+<p>
+    In a <em>project</em> file, <strong>
+        <em>properties</em> must be defined within a <code>&lt;PropertyGroup&gt;</code>
+        element.
+    </strong> MSBuild properties consist of key-value pairs. Within the
+    <em>&lt;PropertyGroup&gt;</em> element, the element name defines the property key and
+    the content of the element defines the property value:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/22-property-group.png" alt="Property group element with a property." />
+</div>
+<br />
+
+<p>
+    An important role of the <em>project</em> file is to define the inputs to the build
+    process. Typically, these inputs are files (code files), configuration files, command
+    files, and any other files that you need to process or copy as part of the build
+    process. In the MSBuild <em>project</em> schema, these <strong>
+        inputs are represented by <em>Item</em> elements.
+    </strong> In a <em>project</em> file, <strong>
+        <em>Items</em> must be defined within an <strong><code>&lt;ItemGroup&gt;</code></strong>
+        element. Just like <em>property</em> elements, you can name an <em>Item</em> element
+        however you like.
+    </strong> Nevertheless, you must specify an <strong><em>Include</em></strong> attribute
+    to identify the file or wildcard that the item represents:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/23-item-group.png" alt="Item group elements." />
+</div>
+<br />
+
+<p>
+    Although they are supported, individual assembly references are less common in .Net
+    projects. Most project dependencies are handled as NuGet package references. You
+    only need to reference top-level package dependencies in .Net projects. Transitive
+    dependencies are included automatically. As shown in the image above, <strong>
+        package references are added to the <em>project</em> file using the
+        <code>&lt;PackageReference&gt;</code> element.
+    </strong> A Blazor WebAssembly application downloads by default every single package
+    (.dll file) for use in the user's browser.
+</p>
+<p>
+    <em>ItemGroup</em> elements also support <strong><em>Condition</em></strong> attributes
+    which let you tailor the inputs to the build process according to conditions like the
+    project configuration, platform or version.
+</p>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/web-forms/overview/deployment/web-deployment-in-the-enterprise/understanding-the-project-file">
+        Understanding the project file,
+    </a> and <a href="https://docs.microsoft.com/en-us/dotnet/architecture/blazor-for-web-forms-developers/project-structure>Project">
+        Project structure for Blazor apps
+    </a>
+</p>
+
+<h3>Razor Class Libraries</h3>
+<p>
+    Components can be shared in a Razor class library (RCL) across projects. In other words,
+    component libraries enable you to package components and pages into a single reusable
+    project, along with any supporting files such as CSS styling files, JS, and images. To
+    be able to reuse a Blazor component in multiple projects, you can create a RCL project.
+    This project can then be referenced by any other project to consume the Blazor component.
+    You can even package an RCL project as a NuGet package.
+</p>
+<p>
+    Just as components are regular .Net types (classes), components provided by a RCL are normal
+    .Net assemblies (.dll).
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In Blazor, you can access JavaScript (JS) and/or CSS files in a component from a
+        different assembly using the special keyword <strong><code>_content</code></strong>.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 115. Accessing CSS and JavaScript files in RCLs of Udemy course
+        <a href="https://www.udemy.com/share/102l0i3@is-yI4iqH8mRcR2df_3ELyWL96x_81UdiZWR-HqqeY4RJxxS_FDh34fD7CKTkB7N/">
+            Programming in Blazor - ASP.Net Core 5
+        </a> by Felipe Gavilán
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/class-libraries?view=aspnetcore-7.0&tabs=visual-studio">
+            Consume ASP.Net Core Razor components from a Razor class library (RCL)
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/razor-pages/ui-class?view=aspnetcore-7.0&tabs=visual-studio">
+            Create reusable UI using the Razor class library project in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/hybrid/class-libraries?view=aspnetcore-7.0">
+            Share assets across web and native clients using a Razor class library (RCL)
+        </a>
+    </li>
+</ul>
+<h4>Navigating to Additional Assemblies</h4>
+<p>
+    As applications get bigger and more sophisticated, they will contain more projects.
+    You can use the <strong><code>AdditionalAssemblies</code></strong> parameter of the
+    <a href="02-components-part-two">Router</a> component to specify additional assemblies
+    that it should consider when searching for routable components.
+</p>
+<p>
+    Additional assemblies are scanned in addition to the assembly specified by default
+    in its <code>AppAssembly</code> parameter:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/35-app-assembly-parameter.png" alt="AppAssembly parameter of the Router component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task:</span> Create an additional RCL named "Weather",
+    include a <em>TestComponent</em> routable component and register the RCL's project
+    with the app's Router component so that it considers its <strong>assembly</strong> (.dll
+    file) when searching for routable components. Perform an in-line registration and
+    make sure it works by testing it with an &lt;a&gt; element.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the RCL project named "Weather". Do
+    <strong>not</strong> check "Support pages and views" checkbox. This option is required
+    only if you need support for traditional "Razor pages" and "Views" in addition to components
+    (Blazor components). Once created, remove all its content (example files) except its
+    _Imports.razor file and its Dependencies folder. Then create the TestComponent and don't
+    forget to add the necessary project references:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/32-rcl-test-component.png" alt="Folder tree for Weather project." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the app's root component (App.razor file)
+    and use the <code>AdditionalAssemblies</code> parameter to specify the additional
+    <strong>assembly</strong> for the Router component to consider when searching for routable
+    components.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/33-additional-assembly.png" alt="Additinal assembly registered." />
+</div>
+<br />
+
+<p>
+    The <em>typeof</em> element is a member of the <em>Type</em> class used to represent
+    any type declarations such as classes, interfaces, enums, type parameters, etc. In our
+    example, the TestComponent is a CSharp class. The <em>Assembly</em> property is used to
+    get the System.Reflection.Assembly in which the type is declared.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> You are registering the <strong>assembly</strong>
+    not the routable component. The routable component's class is used with reflection to
+    extract the Assembly that it belongs to. This means that you need a <em>using</em>
+    directive for the Weather namespace and for the <em>System.Reflection</em> namespace.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define an anchor (&lt;a&gt;) element with
+    an <em>href</em> attribute value of the route of the TestComponent and confirm that it
+    works as expected: <a href="test-component">Test Component</a>.
+</p>
+<p>
+    The route configuration to an additional assembly is working fine but it is very likely
+    that you will have more than one RCL. It is a good practice to define a private array
+    field to contain the additional assemblies (not routable components) and pass it to the
+    <em>AdditionalAssemblies</em> parameter of the Router component.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Detach the in-line declaration of the
+    collection of additional assemblies using a private field and pass it as an argument
+    to the <em>AdditionalAssemblies</em> parameter of the Router component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/34-additional-assemblies-field.png" alt="Additional assemblies field." />
+</div>
+<br />
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/class-libraries?view=aspnetcore-5.0&tabs=visual-studio">
+        Consume ASP .Net Core Razor components from Razor class libraries
+    </a>,
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/razor-pages/ui-class?view=aspnetcore-5.0&tabs=visual-studio#consume-content-from-a-referenced-rcl-2">
+        Consume content from a referenced RCL
+    </a>,
+    <a href="https://blazor-university.com/component-libraries/">
+        Blazor University - Component libraries
+    </a>,
+    <a href="https://www.udemy.com/share/102l0i3@Nw55gI0yZbxtc5AGRV27w_puOMlUNaTFJhJ_Emc3yCU06F3KZaUgpWno4e3AsJOy/">
+        Section 9: Sharing Code and Razor Class Libraries
+    </a> of the Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan,
+    and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-5.0">
+        ASP.Net Core Blazor routing
+    </a>
+</p>
+
+<h3>Lazy Loading Assemblies</h3>
+<p>
+    The Blazor platform provides support for <em>lazy loading</em> assemblies (.dll files)
+    to improve startup performance in Blazor WebAssembly applications. It allows you to
+    delay the download of resources that are not required. <strong>
+        With <em>lazy loading</em>, you download a specific set of assemblies when navigating
+        to a particular component's route path.
+    </strong>
+</p>
+<p>
+    This means that the specified assemblies will be loaded in the browser only when they
+    are required. As you know, we are using a Blazor WebAssembly application which
+    downloads .dll files into the user's browser. The loaded assemblies are cached and
+    reused for future navigation. <strong>
+        Assembly <em>lazy loading</em> does not benefit Blazor server apps
+    </strong> because Blazor server app assemblies are not downloaded to the client.
+</p>
+<p>
+    The process for lazy loading assemblies consists of two mandatory and one optional
+    step:
+</p>
+<ol>
+    <li>
+        Configure the <em>project</em> file with the assemblies you want to
+        <em>lazy load</em>; i.e., with the assemblies you want to block from loading at
+        startup using a <strong><code>&lt;BlazorWebAssemblyLazyLoad&gt;</code></strong>
+        item.
+    </li>
+    <li>
+        Configure the <a href="02-components-part-two">Router</a> component to lazy load the
+        assemblies when required. Use the
+        <strong><code>Microsoft.AspNetCore.Components.WebAssembly.Services.LazyAssemblyLoader</code></strong>
+        service and its <strong><code>LazyAssemblyLoader.LoadAssembliesAsync()</code></strong>
+        method to load assemblies into the runtime as needed.
+    </li>
+    <li>
+        Optionally, configure the <em>Router</em> component to inform the user that a page
+        transition is occurring while the assemblies are loaded.
+    </li>
+</ol>
+<p>
+    Let's take the <em>FetchData</em> routable component, that comes built-in if you create a
+    Blazor application using .Net's template, as an example. The FetchData page obtains its
+    data from a local file (BlazorMovies/Server/Controllers/WeatherForecastController.cs) and
+    renders the data on the browser:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/29-weather-controller.png" alt="Weather forecast controller class." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/05-routing/30-fetch-data-component.png" alt="FetchData component." />
+</div>
+<br />
+
+<p>
+    A component like this is typically fed data from a server and in a real world project,
+    has multiple child components such as paging, sorting, filtering, edit, update, etc.
+    These are a lot of resources to download; specially if the user never navigates to the
+    FetchData page. In the interest of application startup performance, we should implement
+    <em>lazy loading</em> the FetchData Component.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Split your application's FetchData component
+    from the main project (BlazorMovies/Client) into a different project (.dll) named Weather
+    and implement lazy loading the Weather project until the user navigates to the FetchData
+    routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> If you haven't done so in a previous exercise,
+    create a Razor Class Library (RCL) project named Weather. Do <strong>not</strong> check
+    "Support pages and views" checkbox. This option is required only if you need support for
+    traditional "Razor pages" and "Views" in addition to components (Blazor components). Once
+    created, remove all its content (example files) except its <em>_Imports.razor</em> file and
+    its Dependencies folder. Then move the <em>FetchData</em> routable component file from the
+    main project to the <em>Weather</em> project:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/24-weather-rcl-folder-tree.png" alt="Razor class library folder tree." />
+</div>
+<br />
+
+<p>
+    Add the necessary <em>using</em> directives for the <em>HttpClient</em> in the
+    _Imports.razor file. Both namespaces are required. You also need to add references between
+    the app's projects:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/25-using-directives.png" alt="Imports file using directives." />
+</div>
+<br />
+
+<p>
+    Your first instinct might be to register the FetchData component in the collection of
+    additional assemblies as a parameter of the Router component that resides in the app's
+    root folder. However, this is <strong>not</strong> necessary because you might recall
+    that the <em>AddtionalAssemblies</em> parameter registers assemblies <strong>not</strong>
+    routable components; i.e., the Weather assembly (.dll file) where the FetchData component
+    (.razor file) resides was registered in the last exercise:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/34-additional-assemblies-field.png" alt="Additional assemblies registered." />
+</div>
+<br />
+
+<p>
+    Since the Weather assembly is already registered with the <em>Router</em> component as an
+    additional assembly, the <em>Router</em> will consider it when searching the assemblies for
+    routes and updating its route collection.
+</p>
+
+<p>
+    At this point, we have our two projects. However, we need to configure lazy loading
+    the FetchData component that now resides in the Weather project (RCL) because it
+    loads as soon as the application starts:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/26-project-file-project-reference.png" alt="Project file with Weather.csproj input item." />
+</div>
+<br />
+
+<p>
+    We can confirm this by starting the application and inspecting its cache. Go to
+    the web browser and navigate to the Home page of your BlazorMovies application,
+    open the developer tools, go to the "Application" tab, refer to the
+    "blazor-resources" item in the "Cache Storage", and refresh the page. You will
+    see every Blazor .dll that is loaded into the browser during startup:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/27-weather-dll-cached.png" alt="Weather .dll file cached at startup." />
+</div>
+<br />
+
+<p>
+    Or you can go to the "Network" tab, and select "blazor.boot.json" file. The "Preview"
+    option shows a list of cached boot resources (assembly resources) where you will find
+    the Weather.dll and the "lazyAssembly" property value set to null:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/28-blazor-boot-json-resources.png" alt="Network tab with blazor.boot.json resources." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Implement <em>lazy loading</em> the
+    Weather project assembly. As mentioned earlier, the first step is to <strong>
+        configure the <em>project</em> file
+    </strong> with the assemblies you want to lazy load.
+</p>
+<p>
+    You can <strong>
+        mark assemblies for lazy loading in the <em>project</em> file (.csproj) of the
+        app's main project
+    </strong> using the <strong><code>&lt;BlazorWebAssemblyLazyLoad&gt;</code></strong> item.
+    Recall that <em>Items</em> must be defined within an <code>&lt;ItemGroup&gt;</code>. Define
+    the assembly name with the .dll extension:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/36-project-file-lazy-load.png" alt="BlazorWebAssemblyLazyLoad item in project file." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-info">Notice:</span> The <strong>.dll</strong> file extension is
+    <strong>required.</strong> Include one <code>&lt;BlazorWebAssemblyLazyLoad&gt;</code>
+    item for each assembly you want to prevent from loading at startup.
+</p>
+<p>
+    After these modifications, the Blazor framework prevents the assembly from loading at app
+    launch. What do you think will happen if you restart your application?
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/37-weather-dll-not-found-exception.png" alt="Weather.dll file not found exception." />
+</div>
+<br />
+
+<p>
+    The application throws a <em>System.IO.FileNotFoundException</em> because the assembly
+    'Weather' could not be loaded. The 'Weather' assembly is registered in the
+    <em>AdditionalAssemblies</em> parameter of the <em>Router</em> component to be considered
+    when searching the assemblies for routes and updating its route collection.
+</p>
+<p>
+    We need to configure the Router component to lazy load the 'Weather' assembly when the
+    user navigates to any of its routable components. Let's omit declaring the
+    <em>AdditionalAssemblies</em> attribute parameter in the <em>Router</em> component and
+    comment out the _additionalAssemblies field for now:
+</p>
+<div class="image-lesson">
+    <img src="Images/05-routing/38-router-component-no-additional-assemblies.png" alt="No additional assemblies parameter." />
+</div>
+<br />
+
+<p>
+    With the file not found exception out of the way, you can confirm that the Weather
+    assembly is not loading during application startup. Go to the web browser and navigate
+    to the Home page of your BlazorMovies application, open the developer tools, go to the
+    "Application" tab, refer to the "blazor-resources" item in the "Cache Storage", and
+    refresh the page. Use the search bar to search for the 'Weather' assembly:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/39-cache-no-weather-assembly.png" alt="No Weather assembly in the app's cache." />
+</div>
+<br />
+
+<p>
+    You can also go to the "Network" tab, and select "blazor.bott.json" file. The "Preview"
+    option shows a list of cached boot resources (assembly resources). There you can confirm
+    that the Weather.dll file is not loaded. In fact, this time it is passed to the
+    "lazyAssembly" property for lazy loading:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/40-lazy-load-weather.png" alt="Weather .dll file registered for lazy loading." />
+</div>
+<br />
+
+<p>
+    So we have confirmed that the 'Weather' assembly is not loading at startup; therefore, we
+    need to configure the <em>Router</em> component to lazy load the assembly when the user
+    navigates to any of its routable components (e.g., FetchData or TestComponent).
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> <strong>Configure the Router component</strong>
+    to lazy load the 'Weather' assembly when required (when navigating to any of its routable
+    components).
+</p>
+<p>
+    <strong>The Blazor framework automatically registers a</strong>
+    <a href="02-components-part-two"><em>singleton</em></a> <strong>
+        service for lazy loading assemblies
+    </strong>in client-side Blazor WebAssembly apps. The
+    <strong><code>Microsoft.AspNetCore.Components.WebAssembly.Services.LazyAssemblyLoader</code></strong>
+    service has the <strong><code>LazyAssemblyLoader.LoadAssembliesAsync()</code></strong>
+    method that uses <em>JS interop</em> to fetch assemblies via a network call and loads
+    the assemblies into the runtime executing on WebAssembly in the browser.
+</p>
+<p>
+    As you know, the Router component designates the assemblies that Blazor should search for
+    routable components and is also responsible for rendering the component for the route
+    where the user navigates. The Router component has a bound event handler delegate; i.e.,
+    it has an <a href="02-components-part-one">EventCallback</a> <strong>
+        parameter "OnNavigateAsync" that raises the event before navigating to a new page.
+    </strong>
+</p>
+
+<p>
+    Go to the app's root component (App.razor file) to configure the <em>Router</em>
+    component. Import the required <em>using</em> directives and <em>inject</em> the
+    <strong><code>LazyAssemblyLoader</code></strong> service responsible for loading
+    the assemblies. Then, in the <em>Router</em> component, declare its
+    <strong><code>OnNavigateAsync</code></strong> event callback parameter and assign
+    it a handler named <code>OnNavigateAsync</code>. Don't forget to declare the
+    <strong><code>AdditionalAssemblies</code></strong> Router parameter and pass a
+    "_lazyLoadedAssemblies" variable that we will create in the next step:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/41-lazy-loading-router-config.png" alt="Lazy loading Router configuration." />
+</div>
+<br />
+
+<p>
+    The <code>OnNavigateAsync</code> event callback of the Router component needs an
+    <code>OnNavigateAsync</code> event handler (method) which will be responsible for loading
+    the correct assemblies for endpoints that a user requests. By convention, the event handler
+    should be named <strong><code>OnNavigateAsync</code></strong> and should include a formal
+    input parameter of type <code>NavigationContext</code> which captures the currently required
+    route.
+</p>
+<p>
+    Create a collection of type List&lt;Assembly&gt; named "_lazyLoadedAssemblies" and the
+    <code>OnNavigateAsync</code> handler. Inside the method, use the <code>NavigationContext</code>
+    parameter to check the currently required route and the
+    <strong><code>LazyAssemblyLoader.LoadAssembliesAsync()</code></strong> method to load the
+    corresponding .dll files (e.g., Weather.dll) if there is a match between the registered
+    component routes and the currently required endpoint:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/05-routing/42-on-navigate-async-handler.png" alt="OnNavigateAsync event handler." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Restart the application and inspect its
+    cache as shown earlier. You should not be able to find the 'Weather.dll'. Define two
+    anchor (&lt;a&gt;) elements with an <em>"href"</em> attribute value that corresponds to
+    the route of the FetchData and TestComponent routable components, go to the "Network"
+    tab of the developer tools and clear its content. Navigate to either one of the routes
+    and you should see the Weather.dll appearing as a result.
+</p>
+<p>
+    <a href="fetchdata">Fetch Data</a><br />
+    <a href="test-component">Test Component</a>
+</p>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/webassembly-lazy-load-assemblies?view=aspnetcore-5.0">
+        Lazy load assemblies in ASP .Net Core Blazor Web Assembly,
+    </a>
+    <a href="https://code-maze.com/lazy-loading-in-blazor-webassembly/">
+        Lazy Loading in Blazor WebAssembly,
+    </a>
+    <a href="https://www.syncfusion.com/blogs/post/lazy-loading-syncfusion-blazor-assemblies-in-a-blazor-webassembly-application.aspx">
+        Lazy Loading Syncfusion Blazor assemblies in a Blazor WebAssembly Application,
+    </a> and
+    <a href="https://numerics.mathdotnet.com/">Math.Net Numerics</a>
+</p>
+
+@code {
+
+    private List<Movie> _movies = new List<Movie>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _movies = await Task.FromResult(_movieRepository.GetMovies());
+    }
+
+}

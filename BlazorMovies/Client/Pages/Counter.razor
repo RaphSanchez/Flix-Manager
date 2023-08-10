@@ -1,0 +1,59 @@
+﻿@page "/counter"
+<PageTitle>Counter Component</PageTitle>
+
+
+<!-- Uses the cascading value provided by its MainLayout ancestor
+    component through the StylingValues property decorated with a
+    [CascadingParameter] attribute -->
+<h1 style="color: @StylingValues.Color; font-size: @StylingValues.FontSize">
+    Counter Heading
+</h1>
+
+<div class="form-control mb-3">
+    <label class="fs-5">Styling Options:</label>
+    <div class="d-flex">
+        <select @bind="@StylingValues.FontSize"
+                class="form-select-sm border border-primary rounded w-auto me-3"
+                aria-label="Select Font Size">
+            <option selected>Select font-size</option>
+            <option value=".75rem">Small</option>
+            <option value="1.5rem">Regular</option>
+            <option value="3rem">Large</option>
+        </select>
+        <select @bind="@StylingValues.Color"
+                class="form-select-sm border border-primary rounded w-auto"
+                aria-label="Select Font Color">
+            <option selected>Select font-color</option>
+            <option value="blue">Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+        </select>
+    </div>
+</div>
+
+<div>
+    <DataBindCounter />
+</div>
+
+@code {
+
+    /// <summary>
+    /// Denotes the StylingValues property as a cascading component
+    /// parameter. Its value is supplied by the closest ancestor
+    /// CascadingValue component that supplies values with a
+    /// compatible type and name.
+    /// </summary>
+    [CascadingParameter]
+    public StylingValues StylingValues { get; set; }
+
+    /// <summary>
+    /// Denotes the FontSize property as a cascading component
+    /// parameter. Its value is supplied by the closest ancestor
+    /// CascadingValue component that supplies values with a
+    /// compatible type and name. Since there are more than one
+    /// string values, each CascadingValue is assigned a unique
+    /// name used to retrieve its value here.
+    /// </summary>
+    //[CascadingParameter(Name = "FontSize")] public  string FontSize { get; set; }
+}
+

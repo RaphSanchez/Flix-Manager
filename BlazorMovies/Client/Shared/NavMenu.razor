@@ -1,0 +1,581 @@
+﻿@*<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">BlazorMovies</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>*@
+<div class="top-row navbar navbar-dark">
+    <a class="navbar-brand" href="">Flix Manager</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<!-- Your custom: style="width" prevents side bar from wrapping its text. -->
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu" style="width: max-content;">
+    <ul class="nav flex-column">
+        <li class="nav-item px-0">
+            <NavLink class="nav-link" href="movies/flix-manager/"
+                     @onclick="ToggleFlixSubmenu">
+                <span class="oi oi-aperture" aria-hidden="true"></span>
+                Flix Manager
+            </NavLink>
+
+            @if (_showFlixMenu)
+            {
+                <ul class="nav flex-column">
+
+                    <!-- No restriction whatsoever to access the component. -->
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="movies/search">
+                            <span class="oi oi-caret-right"
+                                  aria-hidden="true"></span>
+                            Search Movie
+                        </NavLink>
+                    </li>
+
+                    <!-- Restricts access to only authenticated Users.      -->
+                    <!-- Specific api resources are claims-based protected. -->
+                    <AuthorizeView>
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="genres">
+                                <span class="oi oi-caret-right"
+                                      aria-hidden="true"></span>
+                                Genres
+                            </NavLink>
+                        </li>
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="people">
+                                <span class="oi oi-caret-right"
+                                      aria-hidden="true"></span>
+                                People
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+
+                    <!-- Restricts access to only authenticated users that  -->
+                    <!-- possess the required custom authorization claim.   -->
+                    <AuthorizeView Policy="@AuthZPolicies.ApiReadUser">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="users">
+                                <span class="oi oi-caret-right"
+                                      aria-hidden="true"></span>
+                                Users
+                            </NavLink>
+                        </li>
+                    </AuthorizeView>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="HideSubmenus">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span>
+                Home
+            </NavLink>
+        </li>
+        <li class="nav-item px-0" @onclick="HideSubmenus">
+            <NavLink class="nav-link" href="01-blazor">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                01.Blazor Introduction
+            </NavLink>
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleComponentsSubmenu">
+            <NavLink class="nav-link" href="02-components-part-one">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                02.Components
+            </NavLink>
+            @if (_showComponentsMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-components-part-two">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Part-II
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-components-part-three">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Part-III
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-components-part-four">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Part-IV
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="HideSubmenus">
+            <NavLink class="nav-link" href="03-routing">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                03.Routing
+            </NavLink>
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleFormsSubmenu">
+            <NavLink class="nav-link" href="04-forms-part-one">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                04.Forms
+            </NavLink>
+            @if (_showFormsMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-forms-part-two">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Part-II
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleApiSubmenu">
+            <NavLink class="nav-link" href="05-api">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                05.Server-Api
+            </NavLink>
+            @if (_showApiMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-api-db-support">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            DbSupport
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-api-repository">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Repositories & UoW
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="08-api-controllers">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Api Controllers
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="09-api-connector-service">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Api Service
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="10-ef-soft-delete-audit">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Soft Delete & Audit
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleConsumingApiSubmenu">
+            <NavLink class="nav-link" href="01-consuming-api">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                06.Consuming the Api
+            </NavLink>
+            @if (_showConsumingApiMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-data-storage-options">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Data Storage
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-create-complex-data">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Create Data
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-load-complex-data">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Load Data
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-filters">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Filters
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-update-complex-data">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Update Data
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-delete-data">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Delete Data
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="08-pagination">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Pagination
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleSecuritySubmenu">
+            <NavLink class="nav-link" href="01-security-fundamentals">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                07.Security
+            </NavLink>
+            @if (_showSecurityMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-security-building-blocks">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Building Blocks
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-security-id-server">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Identity Server
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-security-config-client">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Config Client
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-security-protect-client">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Secure Client
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-security-protect-api">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Secure API
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-policy-based-authz">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Policy-based AuthZ
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="08-account-confirmation">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Account Confirmation
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="09-mfa">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Two-factor AuthN
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="10-external-id-providers">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            External ID Providers
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleIdentityUserSubmenu">
+            <NavLink class="nav-link" href="01-extend-identity-user">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                08.User Management
+            </NavLink>
+            @if (_showUserManagementMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-application-user-api">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            ApplicationUser Api
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-user-manager">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            User Manager
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-secure-user-manager">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Secure User Manager
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleMiscellaneousSubmenu">
+            <NavLink class="nav-link">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                09.Miscellaneous
+            </NavLink>
+            @if (_showMiscellaneousMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="01-movie-score">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Movie Score System
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-sweet-alert">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Sweet Alert
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-exception-handling">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Exception Handling
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-migrate-dot-net-seven">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Migrate to .Net 7
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-internationalization">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Internationalization
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-html-metadata">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            HTML Metadata
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-db-reset">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            DB Backup & Reset
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleDeploymentSubmenu">
+            <NavLink class="nav-link" href="01-deployment-fundamentals">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                10.Deployment
+            </NavLink>
+            @if (_showDeploymentMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-static-website">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Static Website
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-azure-cdn">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Azure CDN
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-azure-dns">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Azure DNS
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-custom-domain-cdn">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Custom Domain CDN
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-https-cdn">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Https CDN
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-dynamic-website">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Dynamic Website
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="08-id-server-cert">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            IdServer Cert
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="09-custom-domain-web-app">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Custom Domain App
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="10-https-web-app">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Https Web App
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="11-url-rewriting">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            URL Rewriting
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="ToggleRobustifyingApiSubmenu">
+            <NavLink class="nav-link">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                11.Robustifying the API
+            </NavLink>
+            @if (_showRobustifyingApiMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="01-api-documentation">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            API Documentation
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-api-rate-limiting">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            API Rate Limiting
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-api-caching">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            API Caching
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="TogglePwaSubmenu">
+            <NavLink class="nav-link" href="01-pwa-fundamentals">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                12.PWAs
+            </NavLink>
+            @if (_showPwaMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-pwa-creation">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Creating a PWA
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-pwa-accessor-requests">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Accessor Requests
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-pwa-mutator-requests">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Mutator Requests
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-pwa-sync-component">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Sync Component
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="06-pwa-custom-events">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Custom Events
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="07-exception-handlers">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Exception Handlers
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="08-pwa-offline-support">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Offline Support
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="TogglePushNotificationsSubmenu">
+            <NavLink class="nav-link" href="01-push-notifications-intro">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                13.Push Notifications
+            </NavLink>
+            @if (_showPushNotificationsMenu)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="02-push-api">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Preparing the API
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="03-push-js-interop">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Push JSInterop
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="04-push-component">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Push Component
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="05-push-service">
+                            <span class="oi oi-caret-right" aria-hidden="true"></span>
+                            Push Service
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </li>
+        <li class="nav-item px-0" @onclick="HideSubmenus">
+            <NavLink class="nav-link" href="privacy-policy">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                14.Privacy Policy
+            </NavLink>
+        </li>
+        <li class="nav-item px-0" @onclick="HideSubmenus">
+            <NavLink class="nav-link" href="terms-of-service">
+                <span class="oi oi-target" aria-hidden="true"></span>
+                15.Terms of Service
+            </NavLink>
+        </li>
+    </ul>
+</div>
+
+@code
+{
+    /* https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorizeview-component */
+}

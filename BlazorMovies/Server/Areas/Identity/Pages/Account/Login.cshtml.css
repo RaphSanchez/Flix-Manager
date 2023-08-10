@@ -1,0 +1,31 @@
+﻿
+.fb-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background-color: #1877F2;
+    border-radius: 3px;
+    font-weight: bolder;
+    font-size: .87rem;
+    color: #ffffff;
+    margin: 0;
+    padding: 0px;
+    border: 1px solid #1877f2;
+    height: 40px;
+    width: 188px;
+    box-sizing: border-box;
+}
+
+
+.g-button {
+    background-color: inherit;
+    border-color: black;
+    border-radius: 3px;
+    margin: 0;
+    padding: 0px;
+    border: none;
+    height: 40px;
+    width: 188px;
+    box-sizing: border-box;
+}
+

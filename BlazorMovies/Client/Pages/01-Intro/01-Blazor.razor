@@ -1,0 +1,345 @@
+﻿@page "/01-blazor"
+<PageTitle>Blazor Fundamentals</PageTitle>
+<h2>Blazor</h2>
+<br />
+<h4>Blazor Architecture</h4>
+<p>
+    Blazor is a client-side web UI framework similar in nature to JavaScript front-end
+    frameworks like Angular, React, or Vue. It handles user interactions and renders
+    the necessary UI updates. Blazor is not based on a request-reply model. User
+    interactions are handled as events that are not in the context of any particular HTTP
+    request.
+</p>
+<p>
+    Blazor apps consist of one or more components. Blazor components are files (.razor
+    files) that are transpiled into .Net classes that represent a reusable piece of
+    UI. Each component maintains its own state and specifies its own rendering logic,
+    which can include rendering other components. After a component handles an event,
+    Blazor renders the component and keeps track of what changed in the rendered output.
+</p>
+<p>
+    Components don't render directly to the DOM (Document Object Model). They instead
+    render to an in-memory representation of the DOM called the
+    <strong><code>RenderTree</code></strong> so that Blazor can track the changes. It
+    compares the newly rendered output with the previous output to calculate a UI
+    difference that it then applies efficiently to the DOM.
+</p>
+<p>
+    Components can also manually indicate that they should be rendered if their state
+    changes outside of a normal UI event. Blazor uses a <code>SynchronizationContext</code>
+    to enforce a single logical thread of execution. A component's lifecycle methods and
+    any event callbacks that are raised by Blazor are executed on this
+    <em>SynchronizationContext</em>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Routable components usually set their
+    relative URLs to the component's class name in <dfn>kebab</dfn>-case. For example,
+    a <code>FileUpload</code> component includes routing configuration to reach the
+    rendered component at the relative URL <code>/file-upload</code>.
+</p>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/?view=aspnetcore-5.0">
+        Introduction to ASP.Net Core Blazor
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/?view=aspnetcore-6.0#razor-components">
+        Razor components
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-6.0">
+        ASP.Net Core Blazor hosting models
+    </a>
+</p>
+<h4>WebAssembly Structure</h4>
+<ol>
+    <li>Client Project: Goes to the client's browser (front-end).</li>
+    <li>
+        Server Project: ASP.Net core application (wrapper) runs in a web server and it is not
+        available for the client (back-end).
+    </li>
+    <li>
+        Shared Project: C# code shared between Client and Server Projects (E.g.,
+        Entities, DTOs, etc).
+    </li>
+</ol>
+
+<h4>Razor Syntax</h4>
+<p>
+    Razor is a light-weight markup templating language based on HTML and CSharp.
+    With Razor, you can seamlessly transition between markup and CSharp code to
+    define your component rendering logic. In other words, Razor is a markup syntax
+    for embedding server-based code (CSharp code) into webpages. Its syntax allows
+    you to write CSharp and HTML code combined in the same file using the <code>@@</code>
+    (at-symbol) to transition from HTML to CSharp.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/views/razor?view=aspnetcore-5.0">
+        Razor syntax reference
+    </a>
+</p>
+
+<h4>Implicit Razor Expressions</h4>
+<p>Implicit Razor expressions do not employ parenthesis to inform the compiler where do they end:</p>
+
+<div class="image-lesson">
+    <img src="Images/01-razor/01-implicit-expressions.png"
+         alt="Code demonstrates implicit expressions." />
+</div>
+<!-- implicit Razor expression: does not tell the compiler where does it end                -->
+<p>Hello, @Name.ToUpper()</p>
+<p>Hello, @CustomToUpper(Name)</p>
+
+<!-- explicit Razor expression: uses parenthesis to tell the compiler start & end           -->
+<h4>Explicit Razor Expressions</h4>
+<p>
+    Explicit Razor expressions use parenthesis to inform the compiler start and end. Explicit
+    expressions allow you to declare in-line anonymous functions:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/01-razor/02-explicit-expressions.png"
+         alt="Code demonstrates explicit expressions with in-line anonymous functions." />
+</div>
+
+<p>Let's add 2 + 2 = @(2 + 2)</p>
+
+<p>Use the Browser's Console to view buttons' Click_event in action:</p>
+
+<!-- The @@onclick event handler expects a delegate (method) value to bind  -->
+<!-- to.-->
+<button @onclick="@WriteInLog">Delegate Method</button>
+
+<!-- Explicit expressions allow you to declare in-line anonymous functions. -->
+<button @onclick="@((mouse) => Console.WriteLine("Button Clicked!"))">
+    Anonymous Function
+</button>
+<br />
+<br />
+
+<p>
+    <span class="badge bg-info">NOTE:</span> <strong>
+        Neither implicit nor explicit Blazor expressions end up with a semicolon (;).
+    </strong>
+</p>
+
+<h4>External classes</h4>
+<p>External classes can be made accessible locally or throughout the Client project by:</p>
+<dl>
+    <dt>1. Locally</dt>
+    <dd>
+        Declaring an <code>@@using</code> directive inside the document accompanied
+        with the namespace where the external class resides; e.g., "<code>@@using</code>
+        BlazorMovies.Client.Helpers"
+    </dd>
+    <dt>2. Throughout the Application</dt>
+    <dd>
+        Registering an <code>@@using</code> directive inside the "Client._Imports" support
+        file accompanied with the namespace where the external class resides.
+    </dd>
+</dl>
+
+<div class="image-lesson">
+    <img src="Images/01-razor/04-external-classes.png"
+         alt="Code with an external class employed." />
+</div>
+
+<!-- #region Comments -->
+<!-- External class can be made globally accessible declaring its namespace:                -->
+<!-- BlazorMovies.Client.Helpers with a @@using directive in the _Imports.razor             -->
+<!-- support file.                                                                          -->
+<!-- External class can be made locally accessible declaring its namespace with a           -->
+<!-- @@using directive in the top left of the document where it will be consumed.           -->
+<!-- #endregion -->
+<p>Hello, @StringUtilities.CustomToLower(Name)</p>
+<p>
+    <span class="badge bg-info">Note:</span> External CSharp <strong>classes</strong>
+    registered in the Client._Imports.razor support <strong>file</strong>;
+    i.e., CSharp classes made available from anywhere in the Client project are
+    <strong>different</strong> from Blazor components (<strong>.razor files</strong>)
+    whose functionality can be made available throughout the Client project if created
+    inside the Client/Shared <strong>folder</strong> as explained in
+    <a href="/02-components-part-one">next lesson</a>.
+</p>
+
+<h4>Conditionals (implicit expressions)</h4>
+<p>
+    <span class="mark">
+        <strong>
+            You can use conditional blocks to prevent an exception while trying to load
+            external data during initialization of a component;
+        </strong>
+    </span> e.g., loading data from a database might take longer than it takes to render
+    this page. If data is not readily available, trying to access members of that data
+    could throw an exception.
+</p>
+<p>
+    The following code prevents the UI from throwing an exception when trying to load a 
+    collection of objects of type Movie during initialization of the component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/01-razor/06-conditional-block.png"
+         alt="Conditional block prevents an exception." />
+</div>
+<p>
+    Collection of Movie items rendered once the component parameters have been loaded:
+</p>
+<!-- Conditional in case the List<Movie> Movies takes longer to load from the DB           -->
+@if (Movies != null)
+{
+    <!-- foreach() Loop -->
+    <div>
+        <h3>Movies</h3>
+        <dl>
+            @foreach (Movie movie in Movies)
+            {
+                <dt>Title:</dt>
+                <dd>@((MarkupString)movie.Title)</dd>
+                <dt>Release Date:</dt>
+                <dd>@movie.ReleaseDate?.ToString("dd MMM yyyy")</dd>
+            }
+        </dl>
+    </div>
+
+    <h3>Movies - Colored Background</h3>
+    <p>Study the color configuration for each item below using a ternary operator:</p>
+    <div>
+
+        <div class="image-lesson">
+            <img src="Images/01-razor/05-conditional-blocks.png"
+             alt="Code using a ternary operator to configure background color on items." />
+        </div><br />
+        <!-- for() loop provides more control over the sequence than foreach() -->
+        @for (int i = 0; i < Movies.Count; i++)
+        {
+            <div style="background-color: @(i % 2 == 0 ? "rgb(240, 240, 240)" : "rgba(255, 255, 255, 0)")">
+                <!-- "MarkupString" struct casts strings into strings with HTML semantic meaning. -->
+                <!-- MarkupString is used to dynamically render HTML code in Razor files -->
+                <!-- WARNING! vulnerable to malicious code. https://github.com/mganss/HtmlSanitizer -->
+                <!-- https://blog.jonblankenship.com/2019/01/27/safely-rendering-markdown-in-blazor/ -->
+        <p>@(i + 1)) Title: @((MarkupString)Movies[i].Title)</p>
+
+                <!-- Semantic meaning with HTML tags. Renders Release Date with strong style (bold) -->
+        <p><strong>Release Date:</strong> @Movies[i].ReleaseDate?.ToString("dd MMM yyyy")</p>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="mt-4">
+        <p class="text-center"><strong>Loading Content...</strong></p>
+
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border"
+                 style="color: #1b6ec2; width: 3rem; height: 3rem;" role="status">
+            </div>
+        </div>
+    </div>
+}
+
+<h4>Rendering raw HTML with <em>MarkupString</em> struct</h4>
+<p>
+    Strings are normally rendered using the DOM (Document Object Model) text nodes, which
+    means that any markup they may contain is ignored and treated as literal text. To
+    render raw HTML, wrap the HTML content in a <em>MarkupString</em> value. The value is
+    parsed as HTML or SVG and inserted into the DOM. Study the example shown in the image
+    above to render the Title property of a Movie item with raw HTML.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> Rendering raw HTML constructed from any
+    untrusted source is a security risk and should <strong>always</strong> be avoided. For
+    more info refer to lesson <a href="04-forms">Markdown Component</a> where a custom
+    component is created to sanitize markdown and render it as HTML into the browser and
+    visit <a href="https://github.com/mganss/HtmlSanitizer">
+        Github mganss/HtmlSanitizer
+    </a>, and
+    <a href="https://www.syncfusion.com/faq/blazor/general/if-the-raw-html-includes-a-property-reference-i-e-counter-is-there-any-way-of-sending-counter-as-a-parameter">
+        Syncfusion: passing raw HTML as a parameter
+    </a>
+</p>
+
+<h4>Explicit delimited transition</h4>
+<p>
+    To define a subsection of a code block that should render HTML, surround the characters
+    for rendering with the Razor <strong>&lt;text&gt;</strong>*<strong>&lt;/text&gt;</strong>
+    start/end tags. Use this approach to render HTML that is not surrounded by an HTML tag.
+    Keep in mind that the <strong>&lt;text&gt; Blazor element cannot take attributes</strong>;
+    i.e., it cannot be styled.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/01-razor/03-markupstring-delimited-transition.png"
+         alt="Code with delimited transition and MarkupString struct to cast string literal." />
+</div>
+<br />
+
+<p>The code shown above, produces the following items:</p>
+@if (Movies != null)
+{
+    @foreach (Movie m in Movies)
+    {
+        <!-- MarkupString casts string literal to HTML markup for rendering Movie.Title     -->
+        <!-- with the semantic meaning intended from its source.                            -->
+        <!-- Explicit delimited transition with <text/> single tag.                         -->
+        <text>Movie Title: @((MarkupString)m.Title)</text>
+        <br />
+    }
+}
+else
+{
+    <text>Loading...</text>
+}
+<br />
+
+<p>
+    The "MarkupString" struct dynamically renders HTML code (or semantic meaning) into Razor
+    files.
+</p>
+
+<!-- #region Comment -->
+<!-- Razor component members are DEFINED inside one or more @@code blocks where component   -->
+<!-- state is specified and processed with CSharp; e.g., properties, fields, parameter      -->
+<!-- values passed by parent components, route parameters, methods for event handling, and  -->
+<!-- custom component logic.                                                                -->
+<!-- Razor component members are CONSUMED in rendering logic using CSharp implicit-explicit -->
+<!-- expressions that start with the @@symbol. -->
+<!-- #endregion -->
+@code
+{
+    private const string Name = "Rafael";
+
+    private string CustomToUpper(string value)
+    {
+        return value.ToUpper();
+    }
+
+    private void WriteInLog()
+    {
+        Console.WriteLine("Button Clicked!");
+    }
+
+    // External class can be made globally accessible declaring its namespace:
+    // BlazorMovies.Client.Helpers with a @@using directive in the _Imports.razor support
+    // file.
+    public List<Movie> Movies;
+
+    /// <summary>
+    /// Special lifecycle method that executes when the .razor component (file) loads.
+    /// If an incomplete Task is returned, the Task is awaited and then the  component
+    /// is rendered. Refer to section 02-ComponentsPartTwo. Razor Component Lifecycle
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        // simulates latency from the DB
+        await Task.Delay(2000);
+
+        Movies = new List<Movie>()
+{
+            /// HTML semantic meaning for Title property is cast with MarkupString property
+            /// where it is consumed (inside the for() loop of 'Movies-Colored Background'
+            /// https://www.syncfusion.com/faq/blazor/general/if-the-raw-html-includes-a-property-reference-i-e-counter-is-there-any-way-of-sending-counter-as-a-parameter
+            new Movie() {Title = "<strong>SpiderMan - Far From Home</strong>", ReleaseDate = new DateTime(2019, 7, 2)},
+            new Movie() {Title = "<em>Moana<em>", ReleaseDate = new DateTime(2016, 11, 23)},
+            new Movie() {Title = "Inception", ReleaseDate = new DateTime(2010, 7, 16)}
+        };
+    }
+}

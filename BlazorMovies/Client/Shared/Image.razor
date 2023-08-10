@@ -1,0 +1,23 @@
+﻿
+<div class="d-flex justify-content-center">
+    <div class="form-control w-75 mb-3">
+        <h5>Image Component</h5>
+
+        @if (!string.IsNullOrEmpty(ImageURL))
+        {
+            <RenderImage ImageURL="@ImageURL" />
+        }
+
+        else
+        {
+            <!-- Default Image -->
+            <RenderImage ImageURL=
+                         "Images/04-components/39-null-image.png" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ImageURL { get; set; }
+}
+

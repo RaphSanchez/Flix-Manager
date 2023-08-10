@@ -1,0 +1,466 @@
+﻿@page "/07-exception-handlers"
+
+<PageTitle>PWAs - Exception Handlers</PageTitle>
+
+<h2>Progressive Web Apps - Exception Handlers</h2>
+<h4>Exception Handlers for Mutator Http Requests</h4>
+<p>
+    In the <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson, we completed
+    the pieces involved in the online flow to synchronize operations with the web server.
+    The Dexie.js functions to utilize our custom IndexedDB were completed, the JSInterop
+    methods to invoke these functions from CSharp code were defined, and the implementation
+    of offline support to create a Genre object was confirmed to be working as expected.
+</p>
+<p>
+    Later in the <a href="05-pwa-sync-component">Synchronization Component</a> lesson,
+    we focused on creating the PwaSync component responsible for managing the synchronization
+    process with the web server.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/00-online-flow.svg"
+         alt="Diagram for online flow." />
+</div>
+<p>
+    So far, offline support has only been configured for a single mutator operation to
+    create a new Genre object but that's it. We still have to configure the offline support
+    for the rest of the mutator operations performed by our multiple routable components;
+    e.g., PeopleEdit or MovieCreate.
+</p>
+<p>
+    Nevertheless, before configuring offline support for the rest of the application,
+    you might have noticed that the code inside the <code>catch</code> block of the
+    exception handling mechanism established in the <a href="04-pwa-mutator-requests">Mutator Requests</a>
+    lesson will be repeated on each and every component that expects to have offline
+    support when it attempts to perform a mutator operation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/01-genre-create-publisher.png"
+         alt="GenreCreate component with publisher method." />
+</div>
+<p>
+    We can design an <em>ExceptionHandlers</em> class that encapsulates the code
+    logic of the <code>catch</code> block. Moreover, this class can also concentrate
+    in a single place the string messages that are provided to inform the user when such
+    operations have taken place.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Design an ExceptionHandlers class with methods that encapsulate the code logic
+    of the <code>catch</code> block that enables offline support for each mutator
+    operation. For example, one method for CREATE, one for UPDATE, and one for DELETE
+    operations. Include any related messages to inform the user as read-only
+    properties of type <code>string</code>.
+</p>
+<p>
+    Let's use an approach similar to the ISynchronizationState service implemented in
+    last lesson on <a href="06-pwa-custom-events">Custom Events</a>. In fact, the
+    methods of the ExceptionHandlers class will incorporate a call to the event publisher
+    method responsible for notifying any subscribers that an <em>
+        UpdateNumberOfPendingOperationsAsync
+    </em> event has been raised.
+</p>
+<p>
+    Since these methods will be consumed to provide offline support on every component
+    that can attempt to perform a mutator operation (CREATE, UPDATE, and DELETE), we
+    can inject the functionality of the ExceptionHandlers as a service in the dependency
+    injection container of the Application/Client project to make it available elsewhere
+    in the application.
+</p>
+<p>
+    What's more, we can use an interface as an abstract layer to easily replace
+    its implementation further down the road.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/Helpers directory to create an IExceptionHandlers
+    interface and its implementation class. Both in the same file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/02-i-exception-handlers-empty.png"
+         alt="IExceptionHandlers file with its implementation class." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the dependency injection container of the Application/Client to register
+    the IExceptionHandler as a <a href="02-components-part-two">service</a>
+    with a <a href="02-components-part-two">transient</a> lifetime:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/03-exception-handlers-register.png"
+         alt="Dependency injection of the IExceptionHandlers service." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the IExceptionHandlers interface and its implementation to define read-only
+    properties type string that can be used to inform the end user in a clear and meaningful
+    way.
+</p>
+<p>
+    IExceptionHandlers interface establishes a contract or protocol of the
+    read-only properties that represent messages for the user that any implementation
+    must include:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/04-iexception-handlers-messages.png"
+         alt="IExceptionHandlers interface defines read-only properties." />
+</div>
+<p>
+    ExceptionHandlers class implements the read-only properties that represent messages
+    for the user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/05-exception-handlers-messages.png"
+         alt="ExceptionHandlers implements read-only properties." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Define one method for each of the mutator operations (CREATE, UPDATE,
+    DELETE). Each method is responsible for encapsulating the following functionality:
+</p>
+<ol>
+    <li>
+        <p>
+            Use JSInterop to persist into our custom IndexedDB a record with the
+            data required to build the Http request to perform a mutator operation
+            during a synchronization process by the PwaSync component.
+        </p>
+    </li>
+    <li>
+        <p>
+            Call the event publisher method of the <em>UpdateNumberOfPendingOperationsAsync</em>
+            event of the Application/Client/Events ISynchronizationState to update the
+            total number of create, update, and delete operations stored in
+            our custom IndexedDB that need to be synchronized with the web server.
+        </p>
+        <p>
+            In other words, send an event notification which triggers an update of
+            the value for the number of pending operations displayed to the user
+            by the PwaSync component.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use JSInterop to inform the user that the operation was successfully
+            stored for synchronization once a connection to the network server is
+            established.
+        </p>
+    </li>
+</ol>
+<p>
+    IExceptionHandlers interface establishes a contract or protocol of the
+    methods that any implementation must include:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/06-iexception-handlers-methods.png"
+         alt="IExceptionHandlers interface with required methods." />
+</div>
+<p>
+    ExceptionHandlers class implements the required functionality to adhere to the
+    IExceptionHandlers protocol:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/07-exception-handlers-methods-one.png"
+         alt="ExceptionHandlers methods part one." />
+    <img src="Images/45-ex-handlers/08-exception-handlers-methods-two.png"
+         alt="ExceptionHandlers methods part two." />
+    <img src="Images/45-ex-handlers/09-exception-handlers-methods-three.png"
+         alt="ExceptionHandlers methods part three." />
+    <img src="Images/45-ex-handlers/10-exception-handlers-methods-four.png"
+         alt="ExceptionHandlers methods part four." />
+    <img src="Images/45-ex-handlers/11-exception-handlers-methods-five.png"
+         alt="ExceptionHandlers methods part five." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The formal input parameters of the methods are equivalent to the formal input
+    parameters of the Application/Client/Helpers IJSRuntimeExtensions methods created
+    in the <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson to
+    persist records into the object stores of our custom IndexedDB.
+</p>
+<p>
+    The data of these records is required by the Application/Client/ApiServices/ApiManager
+    ApiConnector to build Http requests as demonstrated in the the <a href="04-pwa-mutator-requests">
+        Mutator Requests
+    </a> lesson. The Http requests are built and processed when the <a href="05-pwa-sync-component">
+        PwaSync
+    </a> component attempts to synchronize the pending operations with the web server.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Refactor the <code>catch</code> block in the <em>CreateGenre</em> method of the
+    Application/Client/Pages/Genres GenreCreate routable component to consume the
+    Application/Client/Helpers/IExceptionHandlers HandleInnerJSExceptionCreateAsync() method.
+</p>
+<p>
+    Take a look to the <code>catch</code> block of the <em>CreateGenre</em> before doing
+    any modifications:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/01-genre-create-publisher.png"
+         alt="CreateGenre method." />
+</div>
+<p>
+    Refactor the <code>catch</code> block:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/12-genre-create-ex-handler-method-one.png"
+         alt="GenreCreate component with ExceptionHandlers method part one." />
+    <img src="Images/45-ex-handlers/13-genre-create-ex-handler-method-two.png"
+         alt="GenreCreate component with ExceptionHandlers method part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The ISynchronizationState service is no longer needed because it is replaced by the
+    IExceptionHandlers service which in turn requests an instance of the implementation
+    of the ISynchronizationState service.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Confirm that when the user attempts to create a Genre object while the application is
+    offline:
+</p>
+<ul>
+    <li>
+        A new record is persisted into the appropriate object store of our IndexedDB
+        with the data required to build the Http request to perform a create operation
+        during a synchronization process by the PwaSync component.
+    </li>
+    <li>
+        The event publisher method of the UpdateNumberOfPendingOperationsAsync event
+        is raised to notify any subscribers; e.g., the PwaSync component.
+    </li>
+    <li>
+        The bell icon of the PwaSync component is updated with the number of pending
+        synchronizations with the web server.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1:</span>
+    Clean and Rebuild the Application/Client project, run the application to a server
+    that supports Https and access the app in a browser at its secure Https address. PWA
+    <dfn>service workers</dfn> do not execute in regular Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab. Install any <em>
+        worker in waiting
+    </em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.3:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), navigate to the IndexGenres routable component, and create a
+    new Genre object in offline mode:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/21-no-connection-message.png"
+         alt="No connection and operation stored message." />
+</div>
+<p>
+    The bell icon of the PwaSync component should appear on the bottom of the NavMenu
+    component and should inform that there is one pending operation for synchronization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/12-updated-bell-icon.png"
+         alt="Bell icon updated." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.4:</span>
+    Bring the application back to online mode and click on the bell icon to initiate
+    a synchronization process. The "Synchronizing... " flag should be activated to
+    inform the user that the process is taking place:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/44-custom-events/13-synchronization-flag.png"
+         alt="Synchronization flag." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.5:</span>
+    Click the OK button element of the dialog box to allow the flow of the application
+    to continue and complete the synchronization process. Once completed, there will
+    be no more pending operations to synchronize with the server; therefore, there
+    should not be a bell icon nor a Synchronizing flag anymore.
+</p>
+<p>
+    The <em>ExceptionHandlers.HandleInnerJSExceptionCreateAsync</em> method is working
+    as planned. However, we are not done with the ExceptionHandlers service yet.
+</p>
+<h4>Exception Handlers for Accessor Http Requests</h4>
+<p>
+    Recall that in the <a href="03-pwa-accessor-requests">Accessor Requests</a> lesson,
+    we implemented a <em>dynamic-cache</em> to clone and store the successful <strong>
+        Http GET responses
+    </strong> that do <strong>not</strong> have any HTML content. If Http response is
+    unsuccessful, it attempts to serve (or fetch) the response from the data currently
+    stored in the <em>dynamic-cache</em>.
+</p>
+<p>
+    However, if the application is offline and the end user has not previously navigated
+    to request that Http GET resource, an HttpRequestException will be thrown with an
+    inner JSException because users must first access or request the Application/Server-Api
+    resource while online to allow the <dfn>service-worker</dfn> to intercept, clone,
+    store, and serve the HTTP response.
+</p>
+<p>
+    Take a look to the exception handler in the OnInitializedAsync lifecycle method of the
+    Application/Client/Pages/Genres IndexGenres component:
+</p>
+<div class="image-lesson mb-3">
+    <!-- TODO: INSERT IMAGE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+    <img src="Images/45-ex-handlers/14-on-initialized-index-genres.png"
+         alt="OnInitializedAsync lifecycle method." />
+</div>
+<p>
+    We can add a <em>CreateMessageForFailedGetRequest</em> method specially designed for
+    <strong>Http GET requests</strong> to evaluate the type of the exception and produce
+    the content of the message accordingly.
+</p>
+<p>
+    For example, if the exception produced is an HttpRequestException with an inner
+    JSException, it is very likely that the application is offline and the user should
+    be informed that he must be online the first time he attempts to consume this resource.
+</p>
+<p>
+    If the exception thrown is of any other type, we can simply pass the Exception.Message
+    property value to informe the user of the unexpected error.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Add a <em>CreateMessageForFailedGetRequest</em> method specially <strong>
+        designed for Http GET requests
+    </strong> to evaluate the type of the exception and produce the content
+    of the message to convey to the end user.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/Helpers IExceptionHandlers interface and add the
+    <em>CreateMessageForFailedGetRequest</em> method to establish a contract for
+    any class that intends to implement this interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/15-create-message-contract.png"
+         alt="IExceptionHandlers interface with CreateMessageForFailedGetRequest method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Client/Helpers/IExceptionHandlers ExceptionHandlers class
+    and add the <em>CreateMessageForFailedGetRequest</em> method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/16-create-message-method.png"
+         alt="ExceptionHandlers class implements CreateMessageForFailedGetRequest method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Refactor the <code>catch</code> block in the OnInitializedAsync lifecycle method of the
+    IndexGenres routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/17-index-genres-catch-block.png"
+         alt="Catch block with custom CreateMessageForFailedGetRequest." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Keep in mind that the IExceptionHandlers.CreateMessageForFailedRequest method must
+    <strong>only</strong> be employed to handle exceptions for <strong>Http GET requests</strong>.
+</p>
+<p>
+    Catching an HttpRequestException for Http POST, PUT, or DELETE requests is handled
+    differently. The request parameters are stored as a record in an object store of our
+    custom IndexedDB to synchronize at a later time when a connection to the web server is
+    reestablished.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Test the exception handling mechanism in the OnInitializedAsync lifecycle method
+    of the Application/Client/Pages/Genres IndexGenres routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    "Clean" and "Rebuild" the Application/Client project and run the application to a
+    server that supports Https and access the app in a browser at its secure Https
+    address. PWA <dfn>service workers</dfn> do not execute in regular HTTP protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Open the web browser's developer tools and verify that a <dfn>service worker</dfn>
+    is registered for the host on the <em>Application</em> tab. Install any
+    <em>worker in waiting</em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Login with an application user that has full admin credentials (e.g., admin@email.com,
+    password: Pass123$), go to offline mode and navigate to the IndexGenres routable
+    component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4:</span>
+    Go to the "Cache Storage" section in the "Application" tab of the web browser's
+    developer tools to erase the dynamic-cache record related to the Http request.
+    You can get its Http request URL from the Network tab:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/45-ex-handlers/18-dynamic-cache.png"
+         style="max-width: 110%;"
+         alt="Cache storage in Application tab." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.5:</span>
+    Navigate to any other routable component, go to offline mode, and go back to the
+    IndexGenres routable component.
+</p>
+<p>
+    You should see the following dialog box:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/45-ex-handlers/19-message-failed-get.png"
+         alt="Failed Http GET request message." />
+</div>
+<p>
+    This completes the exception handling mechanism that supports offline/online
+    related exceptions. We can now focus on refactoring the rest of the exception
+    handling mechanisms for GET, PUT, POST, and DELETE Http requests to support 
+    offline/online mode.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    <a href="07-dynamic-website">Publish and deploy</a> the application to Azure app 
+    service and confirm that everything is working as expected.
+</p>
+<div class="alert alert-warning mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You might encounter a problem when trying to publish and deploy the application
+        to the Azure App Service. After deployment, the application might not be able
+        to complete the initialization process in the web browser or the latest version
+        of the <dfn>service worker</dfn> might not be able to install.
+    </p>
+</div>
+<p>
+    Given the case, you can refer to <span class="badge bg-dark">Step Six</span>
+    of the last task at the end of the lesson on <a href="02-pwa-creation">Creating a PWA</a>.
+</p>

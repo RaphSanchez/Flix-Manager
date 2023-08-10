@@ -1,0 +1,64 @@
+﻿@using System.IO
+@inject IJSRuntime jsRuntime
+
+<!-- #region WARNING!!!                                     -->
+<!-- WARNING!! This component does not scan the uploaded    -->
+<!-- file(s) with an antivirus/anti malware software.       -->
+<!-- To actually upload the file (store data) refer to:     -->
+<!-- http://www.binaryintellect.net/articles/06473cc7-a391-409e-948d-3752ba3b4a6c.aspx -->
+<!-- #endregion -->
+
+<!-- file-select field -->
+<div class="row">
+    <div class="col">
+        <label for="form-file" class="form-label small mb-0">
+            @ImageFieldName
+        </label>
+        <!-- #region Force EditContext.Validate()                   -->
+        <!-- The consumer needs to force an EditContext.Validate()  -->
+        <!-- because the <InputFile> built-in component only        -->
+        <!-- performs form-validation as opposed to field-validation-->
+        <!-- Refer to the OnImageSelected() handler of the PersonForm-->
+        <!-- component.                                             -->
+        <!-- #endregion                                             -->
+        <InputFile accept=".jpg,.jpeg,.png" OnChange="@LoadFilesAsync"
+                   id="form-file" class="form-control mb-3" />
+
+        <!-- #region InputFile with custom text                             -->
+        <!-- Alternate option for styling an input element of type file with-->
+        <!-- custom text. It does not display the selected file path though.-->
+        @*<label class="btn btn-primary" for="load-file">Cargar Documento</label>
+            <InputFile accept=".jpg,.jpeg,.png" OnChange="@LoadFilesAsync"
+            style="display: none"
+            id="load-file"/>*@
+
+        <!-- #endregion                                                     -->
+    </div>
+</div>
+
+<!-- #region Comments                                           -->
+<!-- Embeds into the web browser the text representation of the -->
+<!-- uploaded file encoded to Base64. Executes every time the   -->
+<!-- user selects (or uploads) a new image file.                -->
+<!-- #endregion                                                 -->
+@if (!string.IsNullOrEmpty(_imageBase64))
+{
+    <div class="d-flex justify-content-center">
+        <img src="data:image/jpeg;base64, @_imageBase64"
+         class="img-thumbnail w-100" alt="Picture of the person (Base64)."
+         style="max-width: 400px" />
+    </div>
+}
+
+<!-- #region Comments                                           -->
+<!-- Renders the stored (existing) Person.Picture passed as an  -->
+<!-- argument from the Person Edit component.                   -->
+<!-- #endregion                                                 -->
+@if (!string.IsNullOrEmpty(_imageUrl))
+{
+    <div class="d-flex justify-content-center">
+        <img src="@_imageUrl"
+         class="img-thumbnail w-100" alt="Picture of the person (Url)."
+         style="max-width: 400px" />
+    </div>
+}

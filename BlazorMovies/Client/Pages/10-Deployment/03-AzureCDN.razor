@@ -1,0 +1,225 @@
+﻿@page "/03-azure-cdn"
+<PageTitle>Integrate Static Website with Azure CDN</PageTitle>
+
+<h2>Deployment - Integrate a Static Website with Azure CDN</h2>
+<p>
+    Azure Storage does not yet natively support HTTPS with custom domains. If the
+    storage account is configured to <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#mapping-a-custom-domain-to-a-static-website-url">
+        require secure transfer to ensure secure connections
+    </a> over HTTPS, you must use an HTTPS endpoint.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/12-storage-account-https.png"
+         alt="Storage Account secure transfer property." />
+</div>
+<p>
+    When you require secure transfer, any requests originating from an insecure
+    connection are rejected. By default, the "Secure transfer required" property
+    is enabled when you create a storage account.
+</p>
+<h4>Azure CDN</h4>
+<p>
+    You might recall from the <a href="02-components-part-four">
+        Blazor Components - Part Four
+    </a> lecture that a content delivery network or content distribution network is a
+    geographically distributed network of proxy servers and their data centers that
+    serve, with high availability and performance, a large portion of internet content
+    including web objects (text, graphics, and scripts), downloadable objects (media
+    files, software, documents), applications (e-commerce, portals), live streaming
+    media, on-demand streaming media, and social media sites.
+</p>
+<p>
+    Azure CDNs store cached content on edge servers in point-of-presence (POP) locations
+    that are close to end users to minize latency:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/26-deployment/13-cdn-diagram.png"
+         alt="CDN diagram." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-overview#how-it-works">
+            Azure CDN
+        </a>
+    </figcaption>
+</figure>
+<p>
+    Azure CDN offers the following features:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-dynamic-site-acceleration">
+            Dynamic site acceleration
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-caching-rules">
+            CDN caching rules
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl">
+            HTTPS custom domain support
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-azure-diagnostic-logs">
+            Azure diagnostics logs
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-improve-performance">
+            File compression
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-restrict-access-by-country-region">
+            Geo-filtering
+        </a>
+    </li>
+</ul>
+<p>
+    To use Azure CDN, you must own at least one Azure subscription and you need to create
+    a CDN profile which is a collection of CDN endpoints. Every CDN endpoint is a specific
+    configuration which users can customize with required content delivery behaviour and
+    access.
+</p>
+<p>
+    To organize your CDN endpoints by internet domain, web application, or some other
+    criteria, you can use multiple profiles. Since <a href="https://azure.microsoft.com/pricing/details/cdn/">
+        Azure CDN pricing
+    </a> is applied at the CDN profile level, you must create multiple CDN profiles if
+    you want to use a mix of pricing tiers.
+</p>
+<h4>Azure Front Door</h4>
+<p>
+    Azure Front Door is Microsoft's modern cloud Content Delivery Network (CDN)
+    that provides access between your users and your application's static and dynamic
+    web content accross the globe.
+</p>
+<p>
+    Azure Front Door delivers your content using the Microsoft's global edge network
+    with hundreds of global and local POPs distributed around the world. In general,
+    if your goal is to use Azure Front Door (AFD) as a content delivery network (CDN),
+    then Azure CDN makes more sense and it is <strong>considerably cheaper</strong>
+    than (AFD).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Azure profile and enpoint to enable Azure CDN for your static website created
+    in last lesson.
+</p>
+<p>
+    A profile is a collection of one or more CDN endpoints. After you have created a profile
+    and an endpoint, you can start delivering content to your customers.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the steps outlined in the Azure CDN documentation to <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-create-new-endpoint">
+        Create an Azure CDN profile
+    </a>. You can find supplementary info at <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/static-website-content-delivery-network">
+        Integrate a static website with Azure CDN
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/14-cdn-profile.png"
+         alt="Azure CDN profile." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    MSDN documentation from step one indicates to select a Pricing tier of "Standard Akamai"
+    but:
+</p>
+<ul>
+    <li>
+        That tier is <a href="https://learn.microsoft.com/en-us/azure/cdn/subscription-offerings#pay-as-you-go">
+            unavailable for Pay-as-you-go
+        </a> subscriptions. In other words, our subscription will change status after the first
+        payment has been received and only then could we create a new profile with a Standard Akamai
+        pricing tier for our Azure CDN.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-alias#point-zone-apex-to-azure-cdn-endpoints">
+            Pointing
+        </a> a zone apex (a.k.a. naked or root domain) to CDN endpoints for Azure CDN from
+        <strong>Akamai is</strong> currently <span class="mark"><strong>not supported</strong></span>.
+    </li>
+</ul>
+<p>
+    <strong>Select</strong> <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-features?WT.mc_id=Portal-Microsoft_Azure_Cdn">
+        Microsoft CDN (classic)
+    </a> <strong>pricing tier</strong>. If later on, you were to decide to change the pricing 
+    tier for the Azure CDN, you would have to create a new profile because changing pricing tier
+    is possible only for tier upgrades.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is advisable to create a <a href="https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/cost-mgt-alerts-monitor-usage-spending?WT.mc_id=Portal-Microsoft_Azure_CostManagement#budget-alerts">
+            budget alert
+        </a> to keep costs under control. Select the Cost Management
+        option that appears after the CDN profile is successfully created.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    After you have created a CDN profile, you can use it to <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-create-new-endpoint#create-a-new-cdn-endpoint">
+        create a new CDN endpoint
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/15-cdn-endpoint.png"
+         alt="CDN endpoint values." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    MSDN documentation on step two indicates to allocate an "Origin type: Storage" but we
+    need an "Origin type: Storage static website" because the Azure CDN will serve content
+    for a static website from an Azure storage account.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Verify that the CDN endpoint is configured correctly. Click on the endpoint to be
+    redirected to its main settings page where you can find the "Endpoint hostname". Use
+    a web browser to navigate to the CDN endpoint to display the contents of the index.html
+    file that we previously uploaded to the static website:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/16-cdn-endpoint-settings.png"
+         alt="CDN Endpoint settings." />
+</div>
+<p>
+    With the Azure CDN functioning properly, the next step is to add a custom domain to
+    your the Azure CDN endpoint.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#mapping-a-custom-domain-to-a-static-website-url">
+            Mapping a custom domain to a static website URL
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-overview">
+            What is a content delivery network on Azure?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-optimization-overview#general-web-delivery">
+            Optimize Azure CDN for the type of content delivery
+        </a> (to select best pricing option according to your needs)
+    </li>
+    <li>
+        <a href="https://techcommunity.microsoft.com/t5/azure-developer-community-blog/azure-on-the-cheap-azure-front-door-caching-vs-azure-cdn/ba-p/1372262">
+            Azure on the Cheap - Azure Front Door caching vs Azure CDN
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/static-website-content-delivery-network">
+            Integrate a static website with Azure CDN
+</a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/frontdoor/front-door-overview">
+            Azure Front Door
+        </a>
+    </li>
+</ul>

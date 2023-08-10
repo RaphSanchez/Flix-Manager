@@ -1,0 +1,1075 @@
+﻿@page "/02-components-part-four"
+@inject IRepository inMemoryRepository
+<PageTitle>Blazor Components - IV</PageTitle>
+<h2>Blazor Components - Part Four</h2>
+<br />
+
+<h3>Client Side code vs. Server Side code</h3>
+<p>
+    Application development is generally split into two specialties: the frontend (client-
+    side) and the backend (server-side). The frontend is the part of the application
+    that users see and interact with, such as the visual layout. The backend is the
+    part that the user does not see; this includes the server where the application's
+    files live and the database where the user data and business logic is persisted.
+</p>
+<p>
+    In web applications, there is the <dfn>client</dfn> and the <dfn>server</dfn>. The
+    <dfn>client</dfn> is a web browser (e.g., Microsoft Edge, Google Chrome, Mozilla
+    Firefox). The <dfn>server</dfn> is a web application server, typically at a remote
+    location, that will process web requests and send some kind of data to the 
+    <dfn>client.</dfn>
+    <strong>
+        Web applications can contain code that is processed on the <em>client's</em>
+        browser (client side code) or on the web <dfn>server</dfn> (server side code).
+    </strong>
+</p>
+<p>
+    In other words, in web development, <em>client-side</em> or <em>front-end</em>
+    refers to everything in a web application that is displayed or takes place on the
+    client (end user device). This includes what the user sees, such as text, images,
+    and the rest of the UI, along with any actions that an application performs within
+    the user's browser. Markup languages like HTML and CSS are interpreted by the browser
+    on the client side. To be precise, Client-side refers solely to the location where
+    processes run, while front-end refers to the kinds of processes that run client-side.
+</p>
+<p>
+    As you know, Blazor Web Assembly is a <dfn>single-page app (SPA) framework</dfn>
+    for building interactive client-side web apps. Running .Net code inside web browsers
+    is made possible by <dfn>WebAssembly</dfn>, an open web standard supported in web
+    browsers without plugins (natively). <strong>
+        WebAssembly code can access the full functionality of the browser via JavaScript,
+    </strong> called JavaScript Interoperability, also known as
+    <a href="02-components-part-three">JSInterop</a>. The Blazor WebAssembly
+    runtime uses <dfn>JSInterop</dfn> to handle DOM manipulation and browser API calls.
+</p>
+<p>
+    On the other hand, Blazor Server decouples component rendering logic from how UI
+    updates are applied. Blazor Server provides support for hosting Razor components
+    on the server in an ASP.Net Core app. UI updates are handled over a <dfn>SignalR</dfn>
+    connection and the runtime stays on the server.
+</p>
+<p>
+    As was demonstrated in last lesson on <a href="02-ComponentsPartThree">JSInterop,</a>
+    whether running .Net code inside the web browser (Blazor WebAssembly) or on the
+    server (Blazor Server), CSharp can call a JS function/API and JS code can call any
+    CSharp method. This means that Blazor components interoperate with JS and are capable
+    of using any third-party JavaScript library or API such as <em>Bootstrap</em>,
+    <em>Tailwind</em>, or <em>Bulma</em> (Bulma only uses CSS).
+</p>
+
+<h4>Content Delivery Network (CDN)</h4>
+<p>
+    A content delivery network or content distribution network, is a geographically
+    distributed network of proxy servers and their data centers. Their purpose is to
+    provide high availability and performance by distributing the service spatially
+    relative to end users. CDNs serve a large portion of internet content including
+    web objects (text, graphics, and scripts), downloadable objects (media files,
+    software, documents), applications (e-commerce, portals), live streaming media,
+    on-demand streaming media, and social media sites.
+</p>
+
+<h4>Minification of HTML, CSS, and JS files</h4>
+<p>
+    Minification is the process of minimizing code and markup in your web pages
+    and script files. It can significantly reduce load times and bandwith usage on
+    websites, and dramatically improve site speed and accessibility.
+</p>
+<p>
+    When creating HTML, CSS, and JS files, developers tend to use spacing, comments,
+    and well-named variables to make code and markup readable. Web servers and
+    browsers can parse file content without comments and well-structured code. The
+    minified file version provides the same functionality while reducing the
+    bandwith of network requests. Minification has become the standard practice for
+    page optimization. All major JS library developers (e.g., Bootstrap, JQuery, etc)
+    provide minified versions of their files for production deployments, usually
+    denoted with a <strong><code>min.js</code></strong> name extension.
+</p>
+
+<h3>Bootstrap & Blazor</h3>
+<p>
+    <a href="https://getbootstrap.com/">Bootstrap</a> is a free and open
+    source web development framework designed to ease the web development process of
+    responsive, mobile-first websites by providing a collection of syntax for template
+    designs so that developers don't have to worry about basic commands and functions.
+    It consists of HTML, CSS and JS-based scripts for various web design-related
+    functions and components such as navigation bars, grid systems, image carousels,
+    modals, and buttons.
+</p>
+
+<h4>Setting up Bootstrap in Blazor</h4>
+<p>
+    When a Blazor template is used to create a new project, it also includes its own
+    Bootstrap files that are not necessarily the most updated version:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/03-pre-defined-bootstrap-folder-tree.png" alt="Bootstrap folder tree with Blazor template." />
+</div>
+<br />
+
+<p>
+    To ensure you are using the latest version of Bootstrap, you should either
+    <strong>remove</strong> or <strong>replace</strong> them depending on the
+    approach you choose to follow to setup Bootstrap in your Blazor application.
+</p>
+
+<p>
+    Many of Bootstrap's components require the use of JavaScript to function.
+    Specifically, they require their own JS plugins and <a href="https://popper.js.org/">
+        Popper,
+    </a> a free open-source tooltip and popover position engine. When setting
+    up Bootstrap into your Blazor application, <strong>
+        to include Popper in your JS plugins,
+    </strong> use either <code>bootstrap.bundle.js</code> or <code>bootstrap.bundle.min.js</code>
+    files.
+</p>
+<p>
+    References to Bootstrap (e.g., CSS stylesheets or JS scripts) should be defined
+    inside the application's host page. There are three ways to setup Bootstrap plugins
+    in your Blazor application:
+</p>
+<ol>
+    <li>
+        <strong>Request</strong> a cached version of Bootstrap's CSS and JS using an
+        open source CDN such as <a href="https://www.jsdelivr.com/">
+            JSDelivr
+        </a>. It requires an internet connection every time the application is
+        initialized.
+    </li>
+    <li>
+        <strong>Copy-paste</strong> Bootstrap's ready-to-use <strong>precompiled</strong>
+        CSS and JS files into your project. Recommended, fast and easy way to install
+        Bootstrap in your application and does not require an internet connection every
+        time the app is initialized.
+    </li>
+    <li>
+        Use a <dfn>Package Manager</dfn> such as Visual Studio's Extension
+        <a href="https://marketplace.visualstudio.com/items?itemName=MadsKristensen.WebCompiler">
+            Web Compiler
+        </a> to <strong>compile</strong> Bootstrap's downloadable <strong>source</strong> files.
+        These should include Sass, JS, and documentation files.
+    </li>
+    <li>
+        To <strong>Download</strong> Bootstrap's files (compiled or source files) you can
+        use Bootstrap's download page or you can use a <dfn>Library Manager</dfn> such as
+        .Net's <em>LibMan</em> to find, fetch, and manage library files from an external
+        CDN such as
+        <a href="https://cdnjs.com/">
+            cdnjs.
+        </a> Right click the project where you want to download the files,
+        click "add", "client side library", provider "cdnjs", library "twitter-bootstrap@5.1.0",
+        "choose specific files". One cycle for Bootstrap's CSS files and one for JS files.
+    </li>
+</ol>
+<h5>1. Request a cached version of Bootstrap's CSS and JS</h5>
+<p>
+    This is the quickest and more simple way to set up Bootstrap in your application because
+    it allows you to skip downloading Bootstrap files. Instead, it uses
+    <a href="https://www.jsdelivr.com/">
+        JSDelivr,
+    </a> a free open source CDN to deliver a cached version of Bootstrap's compiled CSS
+    and JS to your project.
+</p>
+<p>
+    Go to Bootstrap's <a href="https://getbootstrap.com/docs/5.1/getting-started/introduction/">
+        Getting Started
+    </a> page to get the latest stylesheet <code>&lt;link&gt;</code> and copy-paste it
+    into the <code>&lt;head&gt;</code> tag before all other stylesheets to load Bootstrap's CSS
+    every time your Blazor application is started:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/04-link-head-tag.png" alt="Link tag inside the head tag of the host page." />
+</div>
+<br />
+
+<p>
+    As mentioned earlier, many of Bootstrap's components require the use of JS to
+    function. Go to Bootstrap's <a href="https://getbootstrap.com/docs/5.1/getting-started/introduction/">
+        Getting Started
+    </a> page to get the latest JS <code>&lt;script&gt;</code> with a URI that
+    points to the <a href="https://www.jsdelivr.com/">
+        JSDelivr
+    </a>CDN and copy-paste it before the <code>&lt;/body&gt;</code> end tag of the
+    host page:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/05-script-js-tag-cdn.png" alt="JS script tag targets CDN." />
+</div>
+<br />
+
+<p>
+    Note that the JS &lt;script&gt; tag references a <code>bootstrap.bundle.min.js</code>
+    file to include both JS and the Popper tooltip and popover position engine.
+</p>
+
+<h5>2. Copy-paste Bootstrap's pre-compiled CSS and JS files</h5>
+<p>
+    Go to Bootstrap's <a href="https://getbootstrap.com/docs/5.1/getting-started/download/">
+        Download
+    </a> page and download the ready-to-use <strong>compiled</strong> CSS
+    and JS files. These should include:
+</p>
+<ul>
+    <li>Compiled and minified CSS bundles</li>
+    <li>Compiled and minified JavaScript plugins</li>
+</ul>
+<p>
+    The downloaded files are the most basic form of Bootstrap. <strong>Bundled</strong>
+    JS files (<strong><code>bootstrap.bundle.js</code></strong> and
+    <strong><code>bootstrap.bundle.min.js</code></strong>) <strong>include</strong>
+    Popper which is <strong>required</strong> for tooltip and popover elements.
+</p>
+<p>
+    Remove or replace any previously registered Bootstrap files. If it doesn't already exist,
+    go to the <dfn>webroot</dfn> folder (wwwroot) and create a "bootstrap" folder inside the
+    "css" folder. Drag and drop the compiled CSS <em>bootstrap.css</em> and
+    <em>bootstrap.min.css</em> files:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/06-css-compiled.png" alt="Bootstrap CSS compiled files folder tree." />
+</div>
+<br />
+
+<p>
+    If it doesn't already exist, go to the <dfn>webroot</dfn> folder (wwwroot) and create a
+    "js" folder. Drag and drop the compiled JS <em>bootstrap.bundle.js</em> and
+    <em>bootstrap.bundle.min.js</em> files:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/07-js-compiled.png" alt="JS compiled files folder tree." />
+</div>
+<br />
+
+<p>
+    Go to the host page and include a <code>&lt;link&gt;</code> to Boostrap's CSS stylesheet
+    with an <code>href</code>  path attribute that targets the path of the file you want to use
+    for your styling (e.g., either .css or .min.css extension):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/08-css-link.png" alt="Link tag to Bootstrap's CSS stylesheet." />
+</div>
+<br />
+
+<p>
+    Define a JS <code>&lt;script&gt;</code> that point to Bootstrap's JS file. It should be
+    placed before the closing tag of the <code>&lt;/body&gt;</code> element markup but after
+    the <em>blazor.webassembly.js</em> script responsible for downloading the .Net runtime and
+    initializing it:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/09-js-script.png" alt="Bootstrap's JS script." />
+</div>
+<br />
+
+<p>
+    Bootstrap's plugins can be included all at once (as illustrated above) or individually
+    using Bootstrap's individual <code>js/dist/*.js</code> files that are included
+    with the previously downloaded compiled files. However, you should not include both;
+    i.e., don't include individual components and the <code>bootstrap.bundle.js</code> file.
+</p>
+
+<h5>3. Use a Package Manger to compile Bootstrap's CSS and JS source files</h5>
+<p>
+    Downloading and <strong>installing</strong> a package manager such as
+    <a href="https://marketplace.visualstudio.com/items?itemName=MadsKristensen.WebCompiler">
+        Web Compiler
+    </a> allows you to optionally perform some additional work on source files
+    before and after compiling them; i.e., it allows more customization. Go to Bootstrap's
+    <a href="https://getbootstrap.com/docs/5.1/getting-started/download/">
+        Download
+    </a> page and download the <strong>source</strong> files. These include
+    Saas, JS, and documentation files.
+</p>
+<p>
+    Replace or remove any previously registered Bootstrap files. If it doesn't already
+    exist, go to the <dfn>webroot</dfn> folder (wwwroot) and create a "bootstrap" folder
+    inside the "css" folder. Copy all the downloaded source files and folders inside the
+    "SCSS" folder and drop them into the bootstrap folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/10-bootstrap-SCSS.png" alt="Bootstrap SCSS folders and files." />
+</div>
+<br />
+
+<p>
+    There are many more files which are mostly each component's SCSS file but they are
+    not included in the image above to save some space. Once we have the SCSS files in
+    place, we need to compile them into CSS files. Use the mouse pointer to right click
+    on the <em>bootstrap.SCSS</em> file and select <em>WebCompiler</em>, <em>Compile file</em>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/11-compile-bootstrap-SCSS.png" alt="Web Compiler context menu." />
+</div>
+<br />
+<p>
+    The Web Compiler compiles the "SCSS" files and creates CSS files and a
+    <code>.min.css</code> file. It also adds a <code>compilerconfig.json</code> file at
+    the root of the project which is used to configure all compilation. The default values
+    for <code>compilerconfig.json</code> can be found in the <code>compilerconfig.json.defaults</code>
+    file in the same location:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/12-compiled-css-files.png" alt="Folder tree of compiled CSS files." />
+</div>
+<br />
+
+<p>
+    For an extended lesson on how to use the <em>compilerconfig.json</em> file you can
+    go to <a href="https://youtu.be/9b4hYVNCFK4">
+        YouTube: Bootstrap 5 & Blazor | Getting Started by Kishor Tiwari
+    </a>
+</p>
+<p>
+    Now that we have our CSS files ready, we need to bring in the JS files. If it
+    doesn't exist already, go to the <em>webroot</em> folder (wwwroot) and create a
+    "js" folder. Copy the downloaded <code>bootstrap.bundle.min.js</code> source file
+    from the "js" folder inside the "dist" folder and drop it into the recently
+    created "js" folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/13-js-files.png" alt="JS files folder tree." />
+</div>
+<br />
+
+<p>
+    Go to the host page and define a <code>&lt;link&gt;</code> to Bootstrap's CSS
+    stylesheet with an <code>href</code> path attribute that points to the path of
+    the file you want to use for your styling. Then include a JS <code>&lt;script&gt;</code>
+    that points to Bootstrap's JS file:
+</p>
+<p>
+    Note that the JS &lt;script&gt; tag references a bootstrap.bundle.min.js file to include
+    both JS and the Popper tooltip and popover position engine.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/14-host-page-config.png" alt="Boostrap configuration on the host page." />
+</div>
+<br />
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/client-side/libman/?view=aspnetcore-5.0">
+        Client-side library acquistion in ASP.Net Core with LibMan,
+    </a>
+    <a href="https://devblogs.microsoft.com/aspnet/library-manager-client-side-content-manager-for-web-apps/">
+        Library Manager: Client-side content manager for web apps,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/client-side/libman/libman-vs?view=aspnetcore-5.0">
+        Use LibMan with ASP.Net Core in Visual Studio,
+    </a>
+    <a href="https://channel9.msdn.com/Events/Build/2017/B8073#time=43m34s">
+        Modern front-end web development in Visual Studio 2017 (start at minute 43:00),
+    </a>
+    <a href="https://getbootstrap.com/docs/5.0/getting-started/introduction/">
+        Bootstrap,
+    </a> and
+    <a href="https://www.yogihosting.com/install-bootstrap-aspnet-core/">
+        How to Install Bootstrap Package in ASP.Net Core Application in Visual Studio with LibMan
+    </a>
+</p>
+
+<h3>Capturing References To Components</h3>
+<p>
+    In Blazor, it is possible to capture and manipulate a reference to a component.
+    Component references are used to invoke methods from the underlying components.
+</p>
+<p>
+    To capture a component reference:
+</p>
+<ul>
+    <li>
+        Add an <strong><code>@@ref</code></strong> directive attribute to the child
+        component; i.e., to the instance of the component you want to capture a reference
+        to.
+    </li>
+    <li>Define a field with the same type as the child component.</li>
+    <li>
+        The value of the <code>@@ref</code> attribute should exactly match the name of
+        the settable field with the same type as the reference component.
+    </li>
+</ul>
+<p>
+    When the parent component is rendered, the field is populated with the child
+    component instance. You can then call .Net methods on the instance, or otherwise
+    manipulate the component instance itself. To manipulate component references after
+    the component has finished rendering, use the <code>OnAfterRender()</code> or the
+    <code>OnAfterRenderAsync()</code> lifecycle methods. Keep in mind that manipulating
+    components using component references is not recommended because it prevents it
+    from being rendered automatically at the correct times.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Declare an instance of the MoviesList component
+    and make any necessary adjustments to ensure it works as expected. Then, capture a
+    reference to it.
+</p>
+
+<div class="mb-3">
+    <MoviesList Movies="Movies" @ref="moviesList" />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Define a settable field responsible for
+    storing your reference to the component. Its type must be the actual component's type:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/01-settable-field.png" alt="Settable field with reference component type." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Add an <code>@@ref</code> directive 
+    attribute to the child component; i.e., to the instance of the component you want to 
+    capture a reference to. The value of the <code>@@ref</code> attribute should exactly 
+    match the name of the settable field:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/02-ref-directive.png" alt="Ref directive attribute." />
+</div>
+<br />
+
+<p>
+    That's it. We have established a reference to the MoviesList component and now we have
+    access to its public interface; i.e., we can use that reference to have access to any
+    accessible (e.g. public) members (e.g., fields, properties, or methods) of the component.
+</p>
+
+<p>
+    For the purpose of our next exercise, you should know that a <strong><dfn>modal</dfn></strong>
+    window is a dialog box that pops up and interrupts an action that the user is
+    attempting to complete. There are countless reasons to employ a <em>modal</em>
+    such as getting the user's attention or getting input from users. <em>Modals</em>
+    are positioned over everything else in the document (or webpage).
+</p>
+<p>
+    Bootstrap has easily accessible and clear documentation on how to use its components.
+    Go to their <a href="https://getbootstrap.com/docs/5.0/getting-started/introduction/">
+        Docs
+    </a> webpage for example code on all their elements. From there you can simply
+    copy, paste, and optionally, customize the piece of UI.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Build a
+    <em>Confirmation.razor</em> component that employs a Bootstrap <em>modal</em>
+    component that requests a confirmation from the user for a given action. It should
+    have a "Confirm" and a "Cancel" button. Then use it to ask the user for a
+    confirmation before deleting a Movie item.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Check that you have the
+    latest available version of Bootstrap. Go to the <em>wwwroot</em> folder and double
+    click the <em>bootstrap.css</em> file. If you need to update the Booststrap files,
+    follow the procedure shown above in the <em>Bootstrap and Blazor</em> section.
+
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Since we want our
+    <em>Confirmation</em> component to be accessible (reusable), we should place it in
+    the Client/Shared folder. Go to the Bootstrap
+    <a href="https://getbootstrap.com/">documentation</a> page, search
+    for the <dfn>modal</dfn> component and use the example code to create a modal in our
+    <em>Confirmation</em> component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/15-confirmation-component-frontend.png" alt="Confirmation component front-end code." />
+</div>
+<div class="image-lesson">
+    <img src="Images/04-components/16-confirmation-component-backend.png" alt="Confirmation component back-end code." />
+</div>
+<br />
+<p>
+    <span class="badge bg-info">Note:</span> When no arguments are required, you could
+    omit the anonymous function and the <code>InvokeAsync(TValue)</code> method and
+    simply pass the event handler. However, <strong>it is recommended to always use
+        the InvokeAsync&lt;T&gt;() method
+    </strong>for thread safety.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Consume your
+    <em>Confirmation</em> component and satisfy its parameters. The optimal place to
+    consume the <em>Confirmation</em> component is from the <em>MoviesList</em>
+    component because it contains the code logic to delete a Movie item. The
+    <em>Confirmation</em> component should be invoked every time the user attempts to
+    delete a Movie item:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/17-consuming-confirmation-frontend.png" alt="Confirmation component instance." />
+</div>
+<div class="image-lesson">
+    <img src="Images/04-components/18-consuming-confirmation-backend.png" alt="Confirmation component instance backend." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Create an instance of the
+    <em>MoviesList</em> component and test that its functionality to confirm before deleting
+    a Movie item is working as expected:
+</p>
+
+<MoviesList Movies="Movies" />
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-in/aspnet/core/blazor/components/?view=aspnetcore-5.0#capture-references-to-components-1">
+        Capture references to components,
+    </a> and
+    <a href="https://docs.microsoft.com/en-us/dotnet/architecture/blazor-for-web-forms-developers/components#capture-element-references">
+        Capture component references
+    </a>
+</p>
+
+<h3>Cascading Values and Parameters</h3>
+<p>
+    <dfn>Cascading values</dfn> and <dfn>parameters</dfn> provide a convenient way to flow
+    data down a component hierarchy from an ancestor component to any number of descendent
+    components. Unlike <a href="02-components-part-one">Component Parameters</a>,
+    cascading values and parameters don't require a <code>[Parameter]</code> attribute
+    assignment for each descendent component where the data is consumed; i.e., you <strong>
+        specify a value for a <em>cascading parameter</em> only in one place.
+    </strong> Any child component, no matter how deeply nested, can access the value with a
+    property decorated with the <strong><code>[CascadingParameter]</code></strong> attribute.
+</p>
+<p>
+    An <strong>ancestor component</strong> can define a value and that value can be
+    accessed by any child component. The ancestor component provides a
+    <strong>cascading value</strong> using the Blazor framework's
+    <strong><code>CascadingValue</code></strong> pre-built component.
+    The <code>CascadingValue</code> component wraps a subtree of a component hierarchy and
+    <strong>supplies a single value to all of the components</strong> within its subtree.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Define a styling color
+    value that should be made available throughout the whole application. Make sure you
+    provide a default value. Then go to the <a href="counter">Counter</a>
+    component and use the cascading value to pass it as a styling attribute to its
+    &lt;h1&gt; header element.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Define a cascading value using
+    Blazor framework's <em>CascadingValue</em> pre-built component. Since we want it to be
+    accessible throughout the application and since it is a styling value, we can create an
+    instance of the <em>CascadingValue</em> component inside the <em>MainLayout</em> component
+    and use that instance to define our cascading value. The <em>MainLayout</em> layout
+    component will be the ancestor component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/19-cascading-value.png" alt="Cascading value in the ancestor component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the
+    <a href="Counter">Counter</a> component and access the cascading value using
+    a property decorated with the <code>[CascadingParameter]</code> attribute:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/20-cascading-parameter-use.png" alt="Consuming a CascadingValue value with a CascadingParameter parameter." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the
+    <a href="Counter">Counter</a> component, refresh the page and make sure its
+    &lt;h1&gt; element is red. Just to be sure, change the value of the _color field in the
+    <em>MainLayout</em> component and test the result.
+</p>
+
+<h5>Cascading Multiple Values</h5>
+<p>
+    To cascade <strong>multiple values</strong> of the <strong>same type</strong> within
+    the same subtree, provide a <strong>unique <code>Name</code> string</strong> to each
+    <em>CascadingValue</em> component. Then in a descendant component (consumer), the
+    cascaded parameters receive their cascaded values from the ancestor component by
+    <code>Name</code> passed as an argument to the <code>[CascadingParamter(Name)]</code>
+    attribute.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Define one more styling
+    value but this time for a <em>font-size</em> attribute. Make sure you provide the default
+    value.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Define a cascading value using
+    an addtional Blazor framework's <em>CascadingValue</em> pre-built component and provide
+    a unique <code>Name</code> to each <em>CascadingValue</em> component. Perform any
+    necessary modifications to the hierarchy structure to ensure that the child @@Body
+    property is positioned correctly:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/21-cascading-values.png" alt="Multiple CascadingValue components." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the
+    <a href="Counter">Counter</a> component and access the cascading values using
+    properties decorated with the <code>[CascadingParameter(Name)]</code> attribute:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/22-cascading-parameters-use.png" alt="Consuming multiple CascadingValue component values." />
+</div>
+<br />
+
+<p>
+    Note that the name of the properties that store the cascading value is irrelevant. Blazor
+    does not look for a property with the same name specified in the <code>CascadingValue</code>
+    element; i.e., you can give your property whatever name because it is actually the
+    <code>Name</code> argument on the <code>[CascadingParameter(Name)]</code> attribute
+    that identifies which cascading value should be injected.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the
+    <a href="Counter">Counter</a> component and make sure that both styling
+    values are being applied correctly.
+</p>
+
+<h5>Cascading Data Types</h5>
+<p>
+    Although cascading multiple values using multiple instances of the pre-built
+    <em>CascadingValue</em> component works fine, most of the time, it is
+    <strong>
+        recommended to flow data down a component hierarchy using and object
+        of any given type
+    </strong> (e.g., classes or structs). This way it is not necessary to define multiple
+    <em>CascadingValue</em> instances making your code cleaner and easier to read.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Create a class (e.g.
+    StylingValues) that will be responsible for handling any styling related
+    values (strings) and use the values created already to populate your class. Then
+    go to the <a href="Counter">Counter</a> component and access the
+    cascading object value to assign its members as styling attributes.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Recall that we have declared
+    an <code>@@using</code> Blazor directive inside the <em>Client/_Imports</em> file for
+    the Client/Helpers folder to make it accessible throughout the <em>Client</em> project.
+    This folder is a good place to locate our class. Define the "StylingValues" type
+    and populate it with the fields created earlier. Make sure that the members are full
+    properties and that they have a <em>public</em> access modifier:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/23-styling-values.png" alt="StylingValues class." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the ancestor component
+    and define a cascading value using Blazor framework's <em>CascadingValue</em>
+    pre-built component. Note that <strong>
+        you first have to instantiate the type that contains the members you want
+        access to
+    </strong> and then you can pass a reference to that instance using the <em>Value</em>
+    attribute of the <em>CascadingValue</em> pre-built component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/24-cascading-type.png" alt="Cascading a data type." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the
+    <a href="Counter">Counter</a> component and define a property decorated
+    with the <code>[CascadingParameter]</code> attribute and of the same type of the
+    cascading object value. Then use that property to access the public interface of
+    its underlying type:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/25-styling-type-value.png" alt="Object data type as CascadingParameter." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the
+    <a href="Counter">Counter</a> component and make sure that both
+    styling values are applied correctly.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Extend the styling functionality implemented
+    in the last exercise in a way that it provides 3 different options for each member
+    of the <em>StylingValues</em> class. You can use one <em>&lt;select&gt;</em> element
+    for each member. Wire up the <em>&lt;select&gt;</em> elements with the corresponding
+    styling properties. Once you ensure the dynamic styling is working, go to any other
+    component and access the cascading object value (StylingValues.cs) to assign styling
+    values using an instance of the cascading object value. Finally, go back to the
+    <em>Counter</em> component and select different options. Make sure that the appropiate
+    styling values are applied in both components.
+</p>
+<p>
+    <span class="badge bg-dark"> Step One:</span> Create two <em>&lt;select&gt;</em>
+    elements each with three different option values according to the styling member
+    they represent (e.g., red, green, .85rem, 1.5rem) and use an <code>@@bind</code>
+    Blazor directive to <a href="02-components-part-one">bind</a> each <em>&lt;select&gt;</em>
+    element to the <em>StylingValues</em> member they represent:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/26-select-elements-bound.png" alt="Select elements bound to CSharp properties." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-info">Notice:</span> At the time of this lesson, Blazor has a bug
+    and does not load the CSharp property value of the second &lt;select&gt; element
+    unless the <em>StylingValues</em> properties do not hold a default value. <strong>
+        If the properties have a default value, the second &lt;select&gt; element appears
+        empty or blank
+    </strong> until the user clicks the element to display its options.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Once you have made sure that the
+    <em>&lt;select&gt;</em> elements are working correctly, go to any other component
+    such as the <em>Index</em>, access the cascading object value (StylingValues.cs)
+    using a property decorated with the <code>[CascadingParameter]</code> attribute and
+    assign <em>font color</em> and <em>font size</em> attribute values to its &lt;h1&gt;
+    element using the cascading values:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/27-cascading-values.png" alt="Using cascading values to assign styling values." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the
+    <a href="Counter">Counter</a> component, select styling options and
+    verify that these options are applied to the &lt;h1&gt; elements of the <em>Counter</em>
+    component and to the <em>Index</em> component as well.
+</p>
+<p>
+    We have successfully passed down an object value through a component hierarchy from
+    an ancestor component (<em>MainLayout</em> component) to any number of descendent
+    components. The value for the cascading parameter was specified only in one place
+    (<em>Counter</em> component) and any child components can access the value with a
+    property decorated with the <code>[CascadingParameter]</code> attribute.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/cascading-values-and-parameters?view=aspnetcore-5.0">
+        ASP.Net Core Blazor cascading values and parameters
+    </a> and
+    <a href="https://blazor-university.com/components/cascading-values/cascading-values-by-name/">
+        Blazor University: Cascading Values by name
+    </a>
+</p>
+
+<h3>Timers and IDisposable</h3>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a <em>RockPaperScissors</em>
+    component with a top and a bottom section. The section on the top should iterate
+    over related images and render each one every 500ms or so. The bottom section
+    should contain the three images to be selected by the player. Finally, provide the
+    code logic to compare the image of the current iteration with the one the user
+    selects and inform the user whether its a tie, a loss, or a victory. Provide a
+    &lt;button&gt; element to re-start the game (image iteration). Make sure you use
+    a Timer.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a <em>RockPaperScissors</em>
+    component and a partial class (scoped class) that will contain the options to choose
+    from (e.g., Rock, Paper, Scissors) and the possible game outcomes (Victory, Loss,
+    Draw). Use an enum type for each:
+</p>
+
+<div class="image-lesson">
+    <img src="/Images/04-components/32-options-result.png" alt="Enums with possible game outcomes and available options." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Still in the scoped file (partial class),
+    create a model class that can represent every possible Hand with a method that
+    evaluates the system hand against the hand selected by the user. Its return type
+    should be GameResult enum type:
+</p>
+
+<div class="image-lesson">
+    <img src="/Images/04-components/33-hand-model.png" alt="Hand model." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> With the Hand model in place, we
+    can go to the RockPaperScissors component and create a collection of Hand items 
+    with any possible Hand options; e.g., Rock, Paper, Scissors:
+</p>
+
+<div class="image-lesson">
+    <img src="/Images/04-components/34-hand-options.png" alt="Collection of hand options." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    It is time to create the code logic responsible for iterating over each image of the
+    possible Hand options. We will use a <em>System.Timers.Timer</em> to raise its 
+    Timer.Elapsed event with a handler (OnTimerElapsed() method) that iterates over the 
+    collection List&lt;Hand&gt; using an int variable that represents the indexed position
+    on the collection of Hand items:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/35-timer-iteration-logic.png" alt="Timer and iteration logic." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Five:</span> Define an @@onclick event handler that
+    calls the previously defined GetGameResult(SystemHand) method to compare the Hand 
+    item selected by the user to the system hand (_systemHand) defined in the last step. 
+    The handler should stop the timer and store the GameResult in a string message that 
+    will later be rendered to the user:
+
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/36-evalute-player-selection.png" alt="Code logic to evaluate player selection." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Six</span> Wire up the back-end to the front end;
+    i.e., create two sections on the RockPaperScissors component. The section on the
+    top should display a single image in the center that iterates over each Hand object
+    option. The bottom section should display the three images to choose from, as
+    options for the player.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/37-front-end.png" alt="Blazor markup to display Hand options." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Seven</span> You might have noticed that there is a
+    "Play Again" &lt;button&gt; element. Define a handler for its onclick event. It should
+    re-start the timer and null out the string message (_gameResultMessage) variable used
+    to store the GameResult. The <strong>Timer object implements IDisposable</strong>, 
+    make sure you implement the <em>IDisposable</em> interface on the <em>Timer</em> to 
+    allow garbage collection when the component is no longer needed. Recall from last 
+    lesson <a href="02-components-part-three">
+        Invoke Instance CSharp Methods from JS
+    </a> that you can use an <strong><code>@@implements IDisposable</code></strong> Blazor
+    directive and define a <code>Dispose()</code> method.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/38-timer-dispose.png" alt="Implementing IDisposable on the timer." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Finally, declare an instance of the
+    RockPaperScissors component and test its behaviour:
+</p>
+
+<RockPaperScissors />
+
+<p>
+    <span class="badge bg-danger">Danger:</span> If a component implements both
+    <em>IAsyncDisposable</em> and <em>IDiposable</em> interfaces, one will fail
+    to execute. Instead, you should <strong>
+        implement IAsyncDisposable and call the Dispose() method inside
+    </strong> but don't try to implement both interfaces separately. Refer to
+    the end of <a href="02-components-part-three">JavaScript Isolation</a> where
+    you can find a Task designed to "demonstrate that the Blazor framework is
+    calling for unmanaged resource disposal when the component is removed from
+    the UI".
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> The <em><code>using</code></em>
+    statement does not work appropiately and the <em><code>try-finally</code></em>
+    block does dispose of the resources but it releases them immediately as opposed
+    to being disposed until the user navigates to a different routable component.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Create an image component which can
+    receive as a parameter the URL of an image. If the URL is null, it should display
+    a default image. Define a component exclusively responsible for styling the image
+    rendered.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create an <em>Image</em> component
+    and a <em>RenderImage</em> component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/40-image-component.png" alt="Image component." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/04-components/41-render-image.png" alt="RenderImage component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define an instance of the Image
+    component and test it:
+</p>
+
+<Image ImageURL="Images\04-components\42-woman-in-white.jpg" />
+
+<h3>UI Improvements</h3>
+<p>
+    You have completed the section on Blazor components. In the upcoming lessons,
+    we will continue to improve our <em>BlazorMovies</em> application. However, to
+    implement some of the new features, we would have to overwrite certain sections
+    of the code written so far. For example, at some point we will implement
+    <em>User Roles</em> and the <em>Admin</em> role will be the only one with
+    credentials to edit and/or delete a Movie item.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> To maintain readily available the code
+    from past lessons, we will no longer use the <em>MoviesList</em> nor the <em>SingleMovie</em>
+    components. Instead, you should create a new <strong><em>MoviesCatalog</em></strong>
+    component to replace the MoviesList component, and you should also create a new
+    <strong><em>RenderMovie</em></strong> component to replace the SingleMovie component.
+</p>
+<p>
+    Since we are creating from scratch two new components, we can improve the UI by
+    adding images to each rendered Movie item. Once finished, you should have something
+    like this:
+</p>
+
+<MoviesCatalog Movies="Movies" />
+<br />
+
+<p>Note that the MoviesCatalog component:</p>
+
+<ul>
+    <li>Does not contain an "Enable Delete" checkbox element.</li>
+    <li>Does not include an instance of the <em>Confirmation</em> component.</li>
+    <li>Does not include the examples on component lifecycle methods.</li>
+    <li>Contains a "summary" functionality for the Movie.Title property.</li>
+    <li>Includes "Edit" and "Delete" &lt;button&gt; elements.</li>
+</ul>
+
+<p>The RenderMovie component:</p>
+<ul>
+    <li>Renders the Movie poster (or image)</li>
+    <li>Renders the Movie.Title</li>
+    <li>Does not include the ReleaseDate anymore.</li>
+    <li>Does not include the "Enable Delete" Checkbox.</li>
+</ul>
+
+<p>The Movie model (or class):</p>
+<ul>
+    <li>Includes a PosterPath property for the URL (source) of the poster image.</li>
+    <li>
+        Includes a TitleSummary property to limit the number of characters displayed
+        on the Title section.
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Modify the Movie model (or
+    class) to include the new PosterPath and TitleSummary properties:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/43-movie-model.png" alt="Movie model with new properties." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Update the <em>RepositoryInMemory</em>
+    service to include the source path for the poster on each Movie item. The path can
+    point to an <a href="https://m.imdb.com">IMDb</a> image on the web
+    or to a local image file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/46-in-memory-repository.png" alt="InMemoryRepository adjustments." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Cretate the RenderMovie component.
+    You can use the SingleMovie component as a template or you can start from scratch.
+    Either way, it should look something like this:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/04-components/44-render-movie-component.png" alt="RenderMovie component." />
+</div>
+<br />
+
+<p>
+    The styling is included in-line with each markup element for simplicity but you
+    should consider implementing <a href="02-components-part-two">CSS Isolation</a>
+    on each component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Create the MoviesCatalog component.
+    You can use the MoviesList component as a template or you can start from zeroe. In
+    any case, you should end up with something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/04-components/45-movies-catalog-component.png" alt="MoviesCatalog component." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The instructor defines an 
+    <strong><code>@@key</code></strong> directive attribute with the RenderMovie component
+    to instruct the <a href="04-forms-part-two">diffing algorithm</a> to use the 
+    <code>Movie.Id</code> as the <dfn>key</dfn> to compare between elements in the collection
+    instead of using their <dfn>index</dfn> (or position). You can find the example in
+    <a href="https://www.udemy.com/share/102l0i3@yGQNUK1b9keVRcbbh8XuxR8rRR0DP7EYVKFwYMAsf4cItB7qrhm4UgPEwMLKMj6K/">
+        Episode 82. Key Attribute and the Diffing Algorithm
+    </a> of the "Programming in Blazor - ASP.NET Core 5" course in Udemy by Felipe Gavilan.
+</p>
+<p>
+    <span>Notice:</span>
+    The loading spinner was later modified to standardize its style throughout the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/04-components/47-spinner.png"
+         alt="Standarized code for loading spinner." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Test the MoviesCatalog component and
+    make sure its "Delete" &lt;button&gt; element is working appropriately.
+</p>
+
+@code {
+
+    private MoviesList moviesList;
+
+    private List<Movie> Movies { get; set; } = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Run(() =>
+        {
+            Movies = inMemoryRepository?.GetMovies();
+        }).ConfigureAwait(false);
+    }
+}
+
+

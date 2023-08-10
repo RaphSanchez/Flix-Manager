@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Flix Manager</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <!--link href="css/myapp.css" rel="stylesheet" />--> <!-- Custom global CSS file -->
+    <link href="BlazorMovies.Client.styles.css" rel="stylesheet" />
+    <link href="favicon.ico" rel="icon" type="image/x-icon" />
+    <link href="manifest.json" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script src="https://kit.fontawesome.com/417347878a.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+    <div id="app">
+        <div class="mt-4">
+            <p class="text-center">
+                <strong>
+                    Getting things ready. This may take a minute...
+                </strong>
+            </p>
+
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border"
+                     style="color: #1b6ec2; width: 3rem; height: 3rem;" role="status">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Defines the low-level methods for the AuthenticationService: -->
+    <!-- https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#index-page -->
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <!-- PWA service worker registration.-->
+    <!-- Episode 147. Transformando una App Existente a PWA of Udemy course -->
+    <!-- Programando en Blazor - ASP.Net Core 7 by Felipe Gavilán.          -->
+    <!-- https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio -->
+    <!-- https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio#convert-an-existing-blazor-webassembly-app-into-a-pwa -->
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+
+    <!-- Bootstrap js files -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dexie.js library (client-side storage for PWA features.) -->
+    <!-- https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API -->
+    <!-- https://dexie.org/docs/Tutorial/Hello-World -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+
+    <!-- Loading a script from an external global JS file. 02-ComponentsPartThree -->
+    <script src="js/Utilities.js"></script>
+    <script src="js/Dexie.js"></script>
+    <script src="js/push-notifications.js"></script>
+
+
+    <!-- JS Script provides access to the SweetAlert2 library. -->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Loading a JS script in the <body> markup. 02-ComponentsPartThree -->
+    <!--<script>window.alert("Greetings from the host page!!");</script>-->
+</body>
+
+</html>
+
+

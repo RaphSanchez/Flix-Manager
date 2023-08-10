@@ -1,0 +1,35 @@
+﻿
+@if (_numberOfPendingSynchronizations > 0)
+{
+    <div class="pwa-sync-border">
+        <div class="pwa-sync-margin">
+            @if (_isSynchronizing)
+            {
+                /// Synchronization flag to inform the user that a sync process
+                /// is taking place.
+                <span class="pwa-text"
+                      title="Synchronizing pending operations with the web server.">
+                    Synchronizing ...
+                </span>
+            }
+            else
+            {
+                /// Bell icon with number of pending operations to sync with
+                /// the web server.
+                <button type="button" class="btn btn-primary position-relative"
+                        @onclick="StartSynchronizationAsync"
+                        title="Number of operations executed offline that need to be
+                        synchronized with the web server. Click to initialize
+                        synchronization.">
+                    <i class="oi oi-bell"></i>
+                    <span class="position-absolute top-0 start-100
+                                    translate-middle badge rounded-pill
+                                    bg-danger">
+                        @_numberOfPendingSynchronizations
+                    </span>
+                </button>
+            }
+        </div>
+    </div>
+}
+

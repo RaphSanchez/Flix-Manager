@@ -1,0 +1,32 @@
+﻿
+/* #region Movie.Trailer responsive iFrame */
+
+/* Fixed aspect ratio for the iFrame container.*/
+.iframe_container {
+
+    position: relative;
+    width: 100%;
+
+    /* Zeroe height container. */
+    height: 0;
+
+    /* Percentage of the container width provides fixed aspect ratio. */
+    padding-bottom: 56.25%;
+}
+
+.movie_trailer {
+
+    /* Enables the iframe to show up eventhough its container has 0 height. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* How To Make a Responsive 100% Width YouTube iFrame Embed 
+https://www.h3xed.com/web-development/how-to-make-a-responsive-100-width-youtube-iframe-embed
+*/
+
+/* #endregion */
+

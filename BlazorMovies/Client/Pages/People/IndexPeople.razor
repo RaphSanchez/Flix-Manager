@@ -1,0 +1,112 @@
+﻿
+@page "/people"
+@attribute [Authorize]
+
+<PageTitle>Actors</PageTitle>
+
+<h3 class="mb-4">Index People</h3>
+
+<!-- Create Person button element. -->
+<AuthorizeView Policy="@AuthZPolicies.ApiCreateContent">
+    <Authorized>
+        <div class="input-group mb-3">
+            <a class="btn btn-success" id="create-person" style="width: 140px"
+               href="people/create">
+                Create Person
+            </a>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<!-- People table. -->
+<div>
+    <TestCollectionNullOrEmpty TItem="Person" ItemsList="_dbPeoplePaginated">
+        <WholeListTemplate>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Picture</th>
+
+                        <AuthorizeView Policy="@AuthZPolicies.ApiEditContent">
+                            <Authorized>
+                                <th scope="col">Edit</th>
+                            </Authorized>
+                        </AuthorizeView>
+
+                        <AuthorizeView Policy="@AuthZPolicies.ApiDeleteContent">
+                            <Authorized>
+                                <th scope="col">Delete</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (Person? p in _dbPeoplePaginated!)
+                    {
+                        <tr class="align-middle">
+                            <th>@(_dbPeoplePaginated.IndexOf(p) + 1)</th>
+                            <td>@p?.Name</td>
+                            <td>
+                                <a href="@($"people/details/{p.Id}/{p.Name}")">
+                                    <img src="@p.PictureUrl"
+                                     style="width: 50px; height: 50px;"
+                                     class="border border-secondary rounded"
+                                     alt="Person image." />
+                                </a>
+
+                            </td>
+
+                            <AuthorizeView 
+                                Policy="@AuthZPolicies.ApiEditContent">
+                                <Authorized>
+                                    <td>
+                                        <a class="btn btn-outline-primary btn-sm"
+                                       id="edit-person"
+                                       href="people/edit/@p?.Id">
+                                            Edit
+                                        </a>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+
+                            <AuthorizeView 
+                                Policy="@AuthZPolicies.ApiDeleteContent">
+                                <Authorized>
+                                    <td>
+                                        <b class="btn btn-outline-danger btn-sm"
+                                       id="delete-person"
+                                       @onclick="@(() => DeletePerson(p))">
+                                            Delete
+                                        </b>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </WholeListTemplate>
+    </TestCollectionNullOrEmpty>
+
+    <!-- Pagination control. -->
+    @if (_paginatedResponseDto is not null)
+    {
+        <Pagination CurrentPage="@_paginatedResponseDto.PaginationMetadata.PageNumber"
+                TotalPages="@_paginatedResponseDto.PaginationMetadata.TotalPages"
+                Radius="1"
+                OnSelectedPageValidated="@( (pageNumber) =>
+                                            LoadSelectedPageAsync(pageNumber) )" />
+    }
+
+    <!-- Confirmation modal component to delete a Person object. -->
+    <Confirmation @ref="_confirmation"
+                  Title="Confirmation Required"
+                  OnCancelCallback="@( CancelDelete )"
+                  OnConfirmCallback="@( PerformDelete )">
+        Please confirm your intention to delete actor named
+        <strong>@_currentPerson?.Name</strong>.
+    </Confirmation>
+</div>
+

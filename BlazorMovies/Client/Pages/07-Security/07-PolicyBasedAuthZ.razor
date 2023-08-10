@@ -1,0 +1,1331 @@
+﻿@page "/07-policy-based-authz"
+<PageTitle>Policy Based AuthZ</PageTitle>
+
+<h2>Security - Policy-based Authorization</h2>
+<p>
+    It is imperative that you have a clear understanding of concepts such as
+    <dfn>entity</dfn>, <dfn>identity</dfn>, <dfn>claims-based identity</dfn>,
+    <code>ClaimsPrincipal</code>, <code>ClaimsIdentity</code>, <dfn>role-based</dfn>
+    authorization, and <dfn>claims-based</dfn> authorization. If you don't,
+    refer to the introductory lesson on <a href="01-security-fundamentals">
+        Security
+    </a> <strong>before</strong> going through this lecture.
+</p>
+
+<p>
+    As you know, authorization in ASP.Net Core is supplied through the
+    <dfn>AuthorizeAttribute</dfn> and its various parameters. In its most
+    basic form, applying the <code>[Authorize]</code> attribute limits
+    access to an element to only authenticated users.
+</p>
+<p>
+    Up to this point, we have implemented a basic authorization mechanism to
+    control access to <a href="02-components-part-one">Razor components</a>
+    (Application/Client/Pages), Razor pages (Application/Server-Api/Areas/Identity/Pages),
+    MVC controllers (Application/Server-Api/Controllers), and controller
+    <dfn>actions</dfn>; i.e., we have employed the <code>[Authorize]</code> authorization
+    attribute and/or the <code>@@attribute [Authorize]</code> directive in its simplest
+    form (without any parameters) to secure different elements of our application.
+</p>
+<p>
+    We have also mentioned in past lectures that in ASP.Net Core, authZ is evaluated
+    by handlers that can grant access to resources based on a number of different
+    factors. These may be <dfn>role-based</dfn> on the current user (as was common
+    in previous versions of .Net), <dfn>policy-based</dfn> on the <dfn>claims</dfn>
+    of the current user, the properties of the resource being accessed, or any
+    other property you can think of.
+</p>
+<p>
+    After a user is authenticated, authorization rules are applied to control what
+    the user can do. Access is typically granted or denied based on whether:
+</p>
+<ul>
+    <li>A user is authenticated (signed-in).</li>
+    <li>A user is in a <dfn>role</dfn>.</li>
+    <li>A user has a <dfn>claim</dfn>.</li>
+    <li>A <dfn>policy</dfn> is satisfied.</li>
+
+</ul>
+<p>
+    Policy-based authorization allows a much more expressive way of creating
+    authorization rules than Role-based authorization. Keep in mind that roles
+    are claims but not all claims are roles. In other words, one can implement
+    policy-based role checks that employ claims of type role to control access.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Since Microsoft recommends policy-based authorization with Blazor, this is
+        where we will focus our attention. <dfn>Claims-based</dfn> authorization to
+        be more precise.
+    </p>
+</div>
+<p>
+    The policy model (<dfn>Role-based authorization</dfn> and/or
+    <dfn>Claims-based authorization</dfn>) consists of three main elements:
+</p>
+<ul>
+    <li>
+        <strong>Policy</strong>: Made up of one or more requirements.
+    </li>
+    <li>
+        <strong>Requirement</strong>: Collection of data parameters which are used
+        by the policy to evaluate the current user principal (ClaimsPrincipal).
+    </li>
+    <li>
+        <strong>Handler</strong>: Evaluates the requirement properties to decide
+        if the current user (ClaimsPrincipal) has access to the requested resource.
+    </li>
+</ul>
+<p>
+    An <dfn>authorization policy</dfn> is typically registered as part of the
+    authorization service configuration in the dependency injection container of
+    the application (Application/Client/Program.cs and/or
+    Application/Server-Api/Program.cs).
+</p>
+<p>
+    Recall that security scenarios differ between Blazor WebAssembly and Blazor Server
+    apps. Because Blazor Server apps run on the server, authorization checks are able
+    to determine:
+</p>
+<ul>
+    <li>
+        The UI options presented to a user (for example, which menu entries are available
+        to the user).
+    </li>
+    <li>
+        Access rules for areas of the app and components.
+    </li>
+</ul>
+<p>
+    In Blazor WebAssembly <strong>apps that run exclusively on the client</strong>, AuthZ is
+    <strong>only</strong> used to determine which UI options to show. Since <strong>
+        client-side checks can be modified or bypassed by a user, Blazor WASM apps cannot
+        enforce authorization access rules.
+    </strong>
+</p>
+<h4>Claims-based authorization</h4>
+<p>
+    When an identity is created, it may be assigned one or more claims issued by a trusted
+    party (e.g., Application/Server-Api IdentityServer engine). A <dfn>claim</dfn> is a
+    name-value pair that represents what the subject is, not what the subject can do. An
+    identity can contain multiple claims with multiple values and can contain multiple
+    claims of the same type.
+</p>
+<p>
+    Claim-based authorization checks:
+</p>
+<ul>
+    <li>Are declarative.</li>
+    <li>
+        Can be applied to Blazor routable components, Razor pages, MVC controllers, and/or
+        to controller <dfn>actions</dfn>.
+    </li>
+    <li>
+        Can <strong>not</strong> be applied at the Razor Page handler (method) level, they
+        must be applied to the page (PageModel level).
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Claims requirements are policy based, the developer must build and register a
+        policy expressing the claims requirements. Claims specify claims which the current
+        user must possess and optionally, the value the claim must hold to access the
+        requested resource.
+    </p>
+</div>
+<p>Data Sources</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-6.0#requirements">
+            Policy-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/claims?view=aspnetcore-6.0">
+            Claims-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://chrissainty.com/securing-your-blazor-apps-configuring-policy-based-authorization-with-blazor/">
+            Configuring Policy-based Authorization with Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction?view=aspnetcore-6.0">
+            Introduction to authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@NIJWU2a04YWpj2U6Ne-QqxFlYul__NvQmgkJUmQLtgjtWumzdV8upfI7cJO448cc/">
+            Episode 95. Implementing Roles
+        </a> of Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+</ul>
+<h3>Claims-based AuthZ server-side</h3>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Build and register authorization policies to control access to Application/Server-Api
+    resources dependent on the kind of operation (or resource) to execute. These operations
+    should be equivalent to claims that the User must hold to be granted access to "create",
+    "edit", or "delete" actions.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the .AddAuthorization policy service in the dependency injection container
+    (Program.cs) of the Application/Server-Api to add the authorization policies that
+    will check for the presence of <dfn>claims</dfn> in the access token of the current
+    user (ClaimsPrincipal) to provide access to "POST", "UPDATE", and/or "DELETE"
+    controller actions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/01-add-authz-policies-server-one.png"
+         alt="Authorization service with authorization policies part one." />
+    <img src="Images/18-claims-authz/02-add-authz-policies-server-two.png"
+         alt="Authorization service with authorization policies part two." />
+</div>
+<p>
+    With the AuthZ policies in place, they can now be applied as authorization rules
+    to Razor pages, MVC controllers, or actions within a controller. Authorization
+    policies cannot be
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0#authorize-attribute-and-razor-pages">
+        applied
+    </a> at the Razor Page handler (methods) level, they must be applied to the Page
+    (PageModel level).
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Apply the policy named "WebApi.Access.Edit" to the UpdateMovieTask action of
+    the Application/Server-Api/Controllers MoviesController and test if the authorization
+    rule is being applied.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Apply the policy to the UpdateMovieTask action using the <code>Policy</code>
+    property on the <code>[Authorize]</code> attribute to specify the policy name:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/03-policy-update-movie-task-action.png"
+         alt="Applying policy to controller action." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Run the application, login to authenticate the current user, navigate to the Flix
+    Manager routable component, and click on the "Edit" button element of a Movie
+    object.
+</p>
+<p>
+    Once in the MovieEdit routable component, open the dev tools of the web browser,
+    clean the Console tab, clean the Network tab, make a simple modification to
+    the form and try to save the changes to test the authorization rule for the
+    UpdateMovieTask endpoint of the MoviesController.
+</p>
+<p>
+    You should be redirected to the error page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/04-error-page.png"
+         alt="Error page with a 'Not Found' title" . />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Go to the Console tab, you should get something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/05-console-403-error.png"
+         alt="Console reports StatusCode 403-Forbidden." />
+</div>
+<p>
+    From the image above one can conclude that the server responded with a Status
+    Code: 403.
+</p>
+<p>
+    The Network tab in turn displays the following information:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/06-network-403-error.png"
+         alt="Network tab reports a 403 Status Code." />
+</div>
+<p>
+    It also displays the Status Code 403 but what exactly does a Status Code 403 mean?
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/18-claims-authz/07-mdn-403.png"
+         alt="MDN StatusCode 403." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403">
+            Mozilla Development Network (MDN)
+        </a>
+    </figcaption>
+</figure>
+<p>
+    The authorization rule is clearly doing its job because it denied the current user to
+    access the required Application/Server-Api resource. But why was it denied if we can
+    see that the authorization header includes the JWT and the cookie header includes the
+    session cookie?
+</p>
+<p>
+    The reason is simple, the User does not have the validation credentials; i.e., the access
+    token provided does not include the required claim(s) in its payload. You can use
+    <a href="https://jwt.io/">jwt.io</a> or <a href="https://jwt.ms/">jwt.ms</a> to decode the
+    user's token. Another option is to open the Application tab of the browser's dev tools and
+    go to "Session Storage":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/08-jwt-payload.png"
+         alt="JWT payload." />
+</div>
+<p>
+    We will take care of this problem shortly but first, let's demonstrate a similar scenario
+    client-side.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/claims?view=aspnetcore-6.0">
+            Claims-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-6.0">
+            Policy-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://andrewlock.net/introduction-to-authorisation-in-asp-net-core/">
+            Introduction to Authorisation in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://chrissainty.com/securing-your-blazor-apps-configuring-policy-based-authorization-with-blazor/">
+            Configuring Policy-based Authorization with Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/apis/aspnetcore/authorization/">
+            Authorization based on Scopes and other Claims
+        </a>
+    </li>
+</ul>
+<h3>Claims-based AuthZ client-side</h3>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Build and register authorization policies to control access to Application/Client
+    routable components (pages) dependent on the kind of operation (or resource) that
+    the component is built for. These operations should be equivalent to claims that
+    the User must hold to be granted access to the component; e.g., "create", "edit",
+    or "delete" a new record in the data store.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In Blazor WASM apps <strong>that run exclusively on the client</strong>
+        (e.g., Application/Client), AuthZ is <strong>only</strong> used to determine
+        which UI options to show. Since client-side checks can be modified or bypassed
+        by a user, Blazor WASM apps cannot enforce authorization access rules. <strong>
+            Always perform authorization checks on the server within any API endpoints
+            accessed by your client-side app.
+        </strong>
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the dependency injection container (Program.cs) of the Application/Client to
+    register the .AddAuthorizationCore service and add the authorization policies that
+    will check for the presence of <dfn>claims</dfn> in the access token of the current
+    user (ClaimsPrincipal) to provide access to routable components reached via the
+    Blazor router:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/09-add-authz-policies-client-one.png"
+         alt="Authorization service client-side with authorization policies part one." />
+    <img src="Images/18-claims-authz/10-add-authz-policies-client-two.png"
+         alt="Authorization service client-side with authorization policies part two." />
+</div>
+<p>
+    With the AuthZ policies in place, they can now be applied as authorization rules
+    to Razor pages, <a href="02-components-part-one">Razor components</a>, MVC
+    controllers, or actions within a controller. Authorization policies 
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0#authorize-attribute-and-razor-pages">
+        cannot be applied
+    </a> at the Razor Page handler (methods) level, they must be applied to the Page
+    (PageModel level).
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Apply the policy named "WebApi.Access.Edit" to the Application/Client/Pages/Movies
+    MovieEdit routable component and test if the authorization rule is being applied.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Apply the policy to the MovieEdit routable component using the <code>Policy</code>
+    property on the <code>@@attribute [Authorize]</code> directive to specify the policy
+    name:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/11-movie-edit-authz.png"
+         alt="Applying policy to routable component." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Run the application, login to authenticate the current user, and navigate to the
+    FlixManager routable component.
+</p>
+<p>
+    Clean the Console tab of the browser's developer tools. This time we don't need to
+    clean the Network tab because the User should not be granted access to the MovieEdit
+    routable component. This means its OnInitialized lifecycle method won't be called and
+    that the HttpClient request is never sent. Click on the "Edit" button element of a
+    Movie object.
+</p>
+<p>
+    You should get the message "You are not authorized to access this resource":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/12-not-authorized-message.png"
+         alt="You are not authorized to access this resource message." />
+</div>
+<p>
+    Recall that this message is produced in the application's root component
+    (Appliation/Client App.razor file). We specified this custom message in the
+    <dfn>Router</dfn> component in conjunction with the <dfn>AuthorizeRouteView</dfn>
+    component when we configured the authentication support in the lesson named
+    <a href="04-security-config-client">Config Client</a>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    The Console tab should report something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/13-console-authz-failed-message.png"
+         alt="Console tab reports an Authorization failed because required claim is missing." />
+</div>
+<p>
+    We have encountered a similar scenario than the one we encountered in last topic when
+    we registered the authorization policies server-side. The current User is not granted
+    access to the routable component because it lacks the validation credentials; i.e.,
+    the access token provided does not include the required claim in its payload.
+</p>
+<p>
+    We are one step closer to fix this problem but first, let's do some cleaning.
+    Eventhough the policy-based authorization mechanism is working as expected, we are
+    not done yet.
+</p>
+<h4>Creating Shared Authorization Policies</h4>
+<p>
+    You might have noticed that the process to create the authorization policies in the
+    Application/Client is almost identical to the one used for the same purpose in the
+    Application/Server-Api.
+</p>
+<p>
+    Furthermore, we are hard coding the authorization policy names and the custom
+    authorization claims in different places. If we were to modify our policies and/or
+    custom authorization claims, it would be quite cumbersome at best because we would
+    have to do it manually in each and every place where we hard coded the policy name
+    and/or policy claim; e.g., in the dependency injection container of the
+    Application/Client and the Application/Server-Api projects, in every Razor page,
+    Blazor component, MVC controller, and/or controller action.
+</p>
+<p>
+    This is obviously not ideal because it breaks the Don't Repeat Yourself (DRY)
+    principle. Why not place the custom authorization claims and authorization
+    policies in one place and make them available elsewhere?
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create shared authorization policies to
+    make them available from elsewhere in the solution and register them as authorization
+    options in the dependency injection container of the Application/Client.Program.cs and
+    Application/Server-Api/Program.cs files. Make sure to:
+</p>
+<ul>
+    <li>
+        Use a custom Claim class that represents the claim type (or name)
+        and the claim value(s) of a given custom authorization claim; e.g.,
+        <code>AuthZClaim</code>. This will be the base class for our custom authorization
+        claims to control access to different application resources such as content
+        resources or application user resources.
+    </li>
+    <li>
+        Use a custom Claims class (AuthZClaims) that wraps all the custom authorization
+        claim types that derive from AuthZClaim base class and provides collections of
+        custom authorization claims. E.g., ApiContentClaims that grant authorization to
+        modify content or ApiUserClaims that control access to create, edit, or delete
+        application users.
+    </li>
+    <li>
+        Use a custom Claim class (ApiContentClaim) that derives from AuthzClaim. This
+        class represents a custom authorization claim to create, edit, update, or
+        delete content.
+    </li>
+    <li>
+        Use a custom Claim class (ApiContentClaims) that wraps all the custom authorization
+        claim types that will control access to Application/Server-Api/Controllers content
+        resources (e.g., GenresController, PeopleController, MoviesController),
+        Application/Server-Api/Areas/Identity resources, and/or
+        Application/Client Razor components.
+    </li>
+    <li>
+        Use an <code>AuthZPolicies</code> class responsible for defining the authorization
+        policy names, building the AuthorizationPolicy types, and the code logic to add
+        them to the AuthorizationOptions of the IServiceCollection in the dependency injection
+        container of the application (e.g., Application/Client/Program.cs and
+        Application/Server-Api/Program.cs).
+    </li>
+    <li>
+        Use CSharp properties to represent authorization policy names to avoid hard
+        coding the authorization policy names in different places.
+    </li>
+</ul>
+<p>
+    The custom authorization claim types and the AuthZPolicies class should reside in
+    a separate directory (e.g., AuthZHelpers) of the Application/Shared project to make
+    them available anywhere in the solution.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Shared project and install the following NuGet packages:
+</p>
+<ul>
+    <li>Microsoft.AspNetCore.Authorization</li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Shared project to create a folder named AuthZHelpers and:
+</p>
+<ul>
+    <li>
+        Add an AuthZClaims file with an AuthZClaim type.
+    </li>
+    <li>
+        Add an AuthZPolicies file to the AuthZHelpers directory.
+    </li>
+    <li>
+        Create a directory named Claims.
+    </li>
+    <li>
+        Add an ApiContentClaims type to the Claims folder.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/47-authz-helpers-folder.png"
+         alt="Application/Shared/AuthZHelpers folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the AuthZClaims type and declare an AuthZClaim class to represent a 
+    custom authorization claim type and its values:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/48-web-api-claims-one.png"
+         alt="AuthZClaims part one." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the ApiContentClaims class and add an ApiContentClaim type that
+    derives from the AuthZClaim class and represents a claim type used for
+    creating, editing, updating, or deleting content:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/49-api-content-claims.png"
+         alt="ApiContentClaims." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    The type AuthZPolicies will be responsible for defining the authorization policy
+    names, building the actual authorization policies, and adding them to the authorization
+    service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/14-shared-authz-policies-one.png"
+         alt="AuthZPolicies class with shared authorization policies part one." />
+    <img src="Images/18-claims-authz/15-shared-authz-policies-two.png"
+         alt="AuthZPolicies class with shared authorization policies part two." />
+    <img src="Images/18-claims-authz/16-shared-authz-policies-three.png"
+         alt="AuthZPolicies class with shared authorization policies part three." />
+    <img src="Images/18-claims-authz/17-shared-authz-policies-four.png"
+         alt="AuthZPolicies class with shared authorization policies part four." />
+    <img src="Images/18-claims-authz/17-shared-authz-policies-five.png"
+         alt="AuthZPolicies class with shared authorization policies part five." />
+</div>
+<p>
+    Go back to the AuthZClaims class and create the fields and properties that provide 
+    the custom authorization claims collections. They should return actual
+    System.Security.Claims.Claim types:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/18-claims-authz/50-authz-claims-one.png"
+    alt="AuthZClaims part one."/>
+    <img src="images/18-claims-authz/51-authz-claims-two.png"
+    alt="AuthZClaims part two."/>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The <code>ApiUserClaims</code> are custom authorization claims that will be
+    used for controlling access to the user manager UI. However, this topic will
+    be explained later in the <a href="04-secure-user-manager">
+        Secure User Manager</a> lesson of the User Management module.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Replace the code logic to add the authorization policies to the authorization
+    services registered in the dependency injection container of the Application/Client
+    and the Application/Server-Api projects.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1:</span>
+    Application/Server-Api:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/18-authz-policy-builder-server-side.png"
+         alt="Call to AddAuthZPolicies from the dependency injection container." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2:</span>
+    Application/Client:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/19-authz-policy-builder-client-side.png"
+         alt="Call to AddAuthZPolicies from the dependency injection container." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Replace the hard coded policy names passed as an argument to satisfy the
+    <code>Policy</code> properties declared so far.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1</span>
+    Go to the Application/Server-Api/Controllers/MoviesController UpdateMovieTask action
+    and replace the hard coded policy name on its <code>[Authorize]</code> attribute with
+    the field of the AuthZPolicies class that represents the desired policy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/20-web-api-edit-policy-property.png"
+         alt="Policy property avoids hard coding policy name." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.2</span>
+    Replace the hard coded policy name passed as an argument to satisfy the
+    <code>Policy</code> property on the <code>@@attribute [Authorize]</code> directive
+    of the Application/Client/Pages/Movies MovieEdit routable component with the field
+    of the AuthZPolicies class that corresponds to the desired policy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/21-movie-edit-policy-property.png"
+         alt="Policy property avoids hard coding policy name." />
+</div>
+<p>
+    We have completed the process to create shared authorization policies and we have
+    also replaced the hard coded policy names with property members that reside in the
+    AuthZPolicies class. It is time to confirm that everything is still working as
+    intended.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Run the application, login to authenticate the current User, and navigate to the
+    FlixManager routable component.
+</p>
+<p>
+    Clean the Console tab of the browser's developer tools and click on the "Edit"
+    button element of a Movie object. You should get the message "You are not authorized
+    to access this resource" and the Console tab should report that "Authorization failed"
+    because the "ClaimsAuthorizationRequirement" is not met.
+</p>
+<p>
+    This is exactly the same behaviour as the one demonstrated in step
+    <span class="badge bg-dark bg-opacity-50">2.2</span> of the topic above on "Claims-based
+    AuthZ client-side" and this is what it is expected. The shared authorization policies
+    are doing their job by denying access to secured resources because the User does not
+    have the required claims.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://chrissainty.com/securing-your-blazor-apps-configuring-policy-based-authorization-with-blazor/">
+            Configuring Policy-based Authorization with Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#resource-authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/61153224/use-authorization-roles-and-policies-in-blazor-webassembly-with-identity">
+            Use Authorization Roles and Policies in Blazor WebAssembly with Identity?
+        </a>
+    </li>
+    <li>
+        Episode 93.
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU">
+            Manage user claims in asp net core
+        </a> of YouTube course: "ASP.Net core tutorial for beginners" by Kudvenkat
+    </li>
+</ul>
+<h4>JSON Web Tokens (JWT)</h4>
+<p>
+    Before jumping straight into coding, it is worth elaborating a little more on the
+    details on how OpendID Connect and OAuth 2.0 protocols employ JSON web tokens (JWT)
+    to execute authentication and authorization operations. Recall that the fundamentals
+    were explained in the <a href="01-security-fundamentals">Security</a> and
+    <a href="02-security-building-blocks">Building Blocks</a> sections.
+</p>
+<p>
+    OpenID Connect (OIDC) is an identity authentication protocol that utilizes the
+    authorization and authentication mechanisms of OAuth 2.0 as an underlying protocol.
+    OIDC is used to verify the identity of a User, OAuth is an authorization protocol
+    used to verify that the User holds valid credentials to have access to a given
+    resource.
+</p>
+<p>
+    Both OIDC and OAuth use <dfn>Bearer Authentication</dfn> which uses bearer tokens.
+    A <a href="https://www.rfc-editor.org/rfc/rfc6750#section-1.2">bearer token</a> is
+    defined as <em>
+        "a security token with the property that any party in possession of the token
+        (a "bearer") can use the token in any way that any other party in possession
+        of it can. Using a bearer token does not require a bearer to prove possession
+        of cryptographic key material (proof-of-possession)."
+    </em>
+</p>
+<p>
+    A <a href="https://www.rfc-editor.org/rfc/rfc7519">JSON Web Token</a> (JWT) is a
+    compact, URL-safe means of representing claims to be transferred between two parties.
+    The claims in a JWT are encoded as a JSON object in a way that they can be
+    cryptographically signed or encrypted. JWTs consist of 3 sections:
+</p>
+<dl>
+    <dt>Header</dt>
+    <dd>
+        A JSON object which indicates the type of the token (JWT) and the algorithm used
+        to sign it. Knowing the algorithm provides information about how to validate the
+        token.
+    </dd>
+    <dt>Payload</dt>
+    <dd>
+        A JSON object with the asserted claims that contains all the important data about
+        the User or Application (Client) that is attempting to call a service.
+    </dd>
+    <dd>
+        It contains the claims (or statements) about an entity (typically the User) and
+        additional metadata.
+    </dd>
+    <dt>Signature</dt>
+    <dd>
+        A string created with the combined header and payload to verify the token has not
+        been tampered with. Sometimes a "secret" is also used to create the signature. However,
+        SPAs (as is the case of our Blazor WASM app) cannot safely store secrets. Therefore,
+        the JWT signature is created only with its header and payload.
+    </dd>
+</dl>
+<p>
+    These sections are encoded in <dfn>base64Url</dfn> format and separated with a dot (.).
+    JWTs allow sending claims in a relatively compact way and protecting them against
+    modification using the signature.
+</p>
+<p>
+    Our implementation of OAuth 2.0 employs the <dfn>Authorization Code Flow</dfn>
+    (a.k.a. the Authorization Grant Type) which uses both a front channel and a back
+    channel for communication between the Client and the Identity provider.
+</p>
+<p>
+    The front channel flow is used by the Client application to obtain a single-use
+    <dfn>Authorization Code grant</dfn> which is then exchanged for an Access Token.
+    The back channel is used by the Client to exchange the Authorization Code grant
+    for an Access Token (and optionally a Refresh Token).
+</p>
+<p>
+    Authorization Code Flow is the most secure flow because the Client can be
+    authenticated to reedem the Authorization Code grant through the front channel and
+    tokens are never passed through a user-agent.
+</p>
+<p>
+    OIDC allows clients of all types (e.g., SPAs, native apps, mobile apps, or websites)
+    to launch sing-in flows and receive verifiable assertions about the identity of
+    signed-in users. In other words, OIDC extends OAuth 2.0. The primary extensions that
+    OIDC makes to OAuth 2.0 to enable end-users to be authenticated are:
+</p>
+<ul>
+    <li>
+        A special scope value named "<strong>openid</strong>" required to indicate that
+        the application intends to use OIDC to verify the user's identity (emphasis on
+        authentication rather than authorization).
+    </li>
+    <li>
+        The use of an extra signed "<strong>id_token</strong>" (JWT). It is a security
+        token that <a href="https://openid.net/specs/openid-connect-core-1_0.html#IDToken">
+            contains claims
+        </a> about the authentication of an end-user by an authorization server (e.g.,
+        IdentityServer) when using a Client. It can optionally include other requested
+        claims. The id_token is represented as a JSON Web Token (JWT).
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Run the application, decode the id_token generated for an authenticated user, and
+    study its content.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application, login, go to the "Session Storage" in the Application tab of the
+    web browser's dev tools and copy the value of the id_token:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/18-claims-authz/22-session-storage.png"
+         style="max-width: 120%"
+         alt="Session storage section." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use a site like <a href="https://jwt.ms/">jwt.ms</a> or <a href="https://jwt.io/">jwt.io</a>
+    to decode the id_token:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/23-id-token-decoded.png"
+         alt="id_token decoded." />
+</div>
+<p>
+    Claims included in the id_token:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/24-id-token-claims-one.png"
+         alt="Claims included in id_token part one." />
+    <img src="Images/18-claims-authz/25-id-token-claims-two.png"
+         alt="Claims included in id_token part two." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://auth0.com/intro-to-iam/what-is-openid-connect-oidc/#!">
+            What is OpenID Connect (OIDC)?
+        </a>
+    </li>
+    <li>
+        <a href="https://andrewlock.net/a-look-behind-the-jwt-bearer-authentication-middleware-in-asp-net-core/">
+            A look behind the JWT bearer authentication middleware in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/access-tokens">
+            Microsoft Identity platform access tokens
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/security-tokens">
+            Security tokens
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@NIJWU2a04YWpj2U6Ne-QqxFlYul__NvQmgkJUmQLtgjtWumzdV8upfI7cJO448cc/">
+            Episode 101. Adding Claims in IdentityServer4
+        </a> of Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes">
+            OpenID Connect Scopes
+        </a>
+    </li>
+    <li>
+        <a href="https://auth0.com/learn/json-web-tokens/">
+            Get Started with JSON Web Tokens
+        </a>
+    </li>
+    <li>
+        <a href="https://jwt.io/introduction">
+            Introduction to JSON Web Tokens
+        </a>
+    </li>
+    <li>
+        <a href="https://openid.net/specs/openid-connect-core-1_0.html#IDToken">
+            ID Token (claims)
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Register three Users, provide them different claim types to satisfy the
+    authorization policies established earlier, and test if the Users are granted
+    access to the resources secured earlier: Application/Client/Pages/Movies
+    EditMovie routable component and the UpdateMovieTask endpoint of
+    theApplication/Server-Api/Controllers MoviesController.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application and register three users with password: Pass123$ and emails:
+</p>
+<ol>
+    <li>email: varios-create@oficina.org.mx</li>
+    <li>email: varios-update@oficina.org.mx</li>
+    <li>email: varios-delete@oficina.org.mx</li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the SQL Server Object Explorer to open the ASPNetUserClaims table of the data
+    store and manually type the claims for each registered User as follows:
+</p>
+<div class="table-responsive">
+    <table class="table table-hover table-sm table-responsive caption-top">
+        <caption>List of Users:</caption>
+        <thead class="table-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Email</th>
+                <th scope="col">Claim Types</th>
+                <th scope="col">Claim Values</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row">1</th>
+                <td>varios-create@oficina.org.mx</td>
+                <td>content.creator</td>
+                <td>creator</td>
+            </tr>
+            <tr>
+                <th scope="row">2</th>
+                <td>varios-edit@oficina.org.mx</td>
+                <td>content.creator, content.editor</td>
+                <td>creator, editor</td>
+            </tr>
+            <tr>
+                <th scope="row">3</th>
+                <td>varios-delete@oficina.org.mx</td>
+                <td>content.creator, content.editor, content.cleaner</td>
+                <td>creator, editor, cleaner</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    Database tables:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/26-user-claims-table.png"
+         alt="AspNetUsers and AspNetUserClaims tables." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application, login the User with the edit credentials (varios-edit@oficina.org.mx)
+    and try to access the MovieEdit routable component from the Flix Manager:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/27-not-authorized-message.png"
+         alt="Denied access to MovieEdit routable component" />
+</div>
+<p>
+    As you can see, the current User is still not authorized to access the requested
+    resource. Repeat the procedure followed above in JSON Web Tokens subject to
+    decode the <dfn>id_token</dfn> and you will see that it still lacks the claim type
+    required (claim type: "webapi.editor") to access the resource.
+</p>
+<p>
+    We have provided the required claims to the User but we haven't configured the
+    Application/Server-Api IdentityServer engine to include the claims in the security
+    tokens (identity and access tokens).
+</p>
+<h3>Adding Claims to Security Tokens</h3>
+<p>
+    As you know, IdentityServer emits claims about Users and Clients into tokens. These
+    are fully configurable to control which claims are emitted, in which situations should
+    they be emitted, and where to retrieve those claims from.
+</p>
+<p>
+    For example, User claims can be put in both identity (id_token) and access tokens.
+    The central extensibility point to implement for emitting claims is the
+    <strong><dfn>profile service</dfn></strong>.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Whenever IdentityServer creates tokens for a User, it invokes the registered
+        profile service. The profile service has a built-in
+        <strong><code>ProfileDataRequestContext</code></strong> that <span class="mark">
+            <strong>
+                represents detailed information about the current token request.
+            </strong>
+        </span>
+    </p>
+</div>
+<p>
+    Some of the information described by the <code>ProfileDataRequest</code> is:
+</p>
+<ul>
+    <li>The identity of the Client who is requesting the token.</li>
+    <li>The identity of the User.</li>
+    <li>The type of token requested.</li>
+    <li>The type of claims requested. </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an  implementation of the IProfileService interface to add Client and User
+    claims to the security tokens that the IdentityServer engine emits.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Helpers directory in the Application/Server-Api project (where the IdentityServer
+    engine was configured) and create a new class named IdentityProfileService. This implementation
+    will be responsible for including profile information (e.g., database claims) associated with
+    the ClaimsPrincipal (current User) into the security tokens:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/28-identity-profile-service-one.png"
+         alt="ProfileService implementation to include claims in security tokens part one." />
+    <img src="Images/18-claims-authz/29-identity-profile-service-two.png"
+         alt="ProfileService implementation to include claims in security tokens part two." />
+    <img src="Images/18-claims-authz/30-identity-profile-service-three.png"
+         alt="ProfileService implementation to include claims in security tokens part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Register the Profile Service in the dependency injection container of the
+    Application/Server-Api:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/31-registering-profile-service.png"
+         alt="Registering the Profile Service." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Try to access the MovieEdit routable component from the Flix Manager, make a
+    simple modification to the movie form, and save (persist) the changes.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Run the application, login the User with the claim type required to perform
+    editing operations (varios-edit@oficina.org.mx), navigate to the Flix Manager
+    component and click the "Edit" button of a Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/32-movie-edit-access.png"
+         alt="Granted access to MovieEdit routable component" />
+</div>
+<p>
+    This time the User is granted access to the required resource:
+    Application/Client/Pages/Movies MovieEdit routable component. Client-side check
+    is working properly.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Clean the Console and Network tab of the browser's dev tools, modify any field on
+    the MovieEdit form and click the "Save Changes" button element to persist the
+    modifications into the data store. You should be redirected to the MovieBulletin
+    routable component where the modifications have been updated.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Go to the Network tab of the dev tools to analyze the headers for the Http
+    request to update the Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/33-successful-put.png"
+         alt="Granted access to the UpdateMovieTask endpoint (resource)." />
+</div>
+<p>
+    The server responds with the HTTP 200 OK success code that indicates that the
+    request has succeeded.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the browser's developer tools to retrieve the current User profile and decode the
+    security tokens (id_token & access token) produced for the User.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Go to the Session Storage section of the Application tab in the dev tools and
+    study the subject's profile:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/34-subject-profile.png"
+         alt="Subject profile." />
+</div>
+<p>
+    This time the subject's profile includes the claims we provided for authorization.
+    In this case, the User holds the "content.creator" and "content.editor" claim types.
+    We can go a step further and confirm this by decoding the access token.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Decode the access token that the IdentityServer engine generated for the ClaimsPrincipal
+    (current user) after a successful authentication:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/35-decoded-access-jwt.png"
+         alt="Access token decoded." />
+</div>
+<p>
+    The access token also includes the authorization claims we provided to the current
+    User.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3</span>
+    Decode the id_token that the IdentityServer engine generated for the ClaimsPrincipal
+    (current user) after a successful authentication:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/36-decoded-id-jwt.png"
+         alt="ID token decoded." />
+</div>
+<p>
+    The id_token does <strong>not</strong> include the extra authorization claims we
+    provided for the current User.
+</p>
+<p>
+    Success!!! The HttpClient services we configured in the <a href="06-security-protect-api">
+        Secure API
+    </a> lesson to build Http requests with and/or without JWTs and our profile service
+    implementation responsible for attaching the subject's claims are working as expected.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episodes 95. Implementing Roles, 100. Migrating Our Application to
+        IdentityServer 4, and 101. Adding Claims in IdentityServer 4 of
+        <a href="https://www.udemy.com/share/102l0i3@NIJWU2a04YWpj2U6Ne-QqxFlYul__NvQmgkJUmQLtgjtWumzdV8upfI7cJO448cc/">
+            Udemy course
+        </a> "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#profile-service">
+            Profile Service
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/fundamentals/claims/">
+            Claims
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/DuendeSoftware/Samples/blob/main/IdentityServer/v6/UserInteraction/ProfileService/IdentityServer/CustomProfileService.cs">
+            DuendeSoftware/Samples
+        </a>
+    </li>
+    <li>
+        <a>
+
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Secure the routable components (client-side) and the API resources (server-side)
+    adhering to the security scheme discussed in the <a href="06-security-protect-api">
+        Secure API
+    </a> lecture. Ensure that the operations to be performed match the security policies
+    defined in the Application/Shared/Helpers AuthZPolicies class.
+</p>
+<p>
+    The main idea with the security scheme is to protect routable components and/or
+    endpoints that allow the User to modify data in any way (e.g., perform Post, Put,
+    and Delete operations on the data store) and allow anonymous (unauthenticated) Users
+    to access routable components and/or controller actions that simply retrieve data
+    (Read operations).
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Secure all the operations related to an entity of type Movie. Include client-side and
+    server-side authorization.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Update the Application/Server-Api/Controllers MoviesController with the appropriate
+    authorization policies dependent on the operation to perform:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/37-securing-movies-controller-one.png"
+         alt="MoviesController with authorization policies updated part one." />
+    <img src="Images/18-claims-authz/38-securing-movies-controller-two.png"
+         alt="MoviesController with authorization policies updated part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    As mentioned in the <a href="06-security-protect-api">Secure API</a> lesson,
+    eventhough the ultimate purpose of the FilterPaginateMoviesTask endpoint is to
+    get-retrieve-read data, it defines an <code>[HttpPost]</code> Http verb because
+    "a payload within a GET request message has no defined semantics; sending a payload
+    on a GET request might cause some existing implementations to reject the request".
+</p>
+<p>
+    The FilterPaginateMoviesTask sends a payload with the request; therefore, it is
+    advisable to employ an [HttpPost] HttpVerb. For more info visit
+    <a href="https://stackoverflow.com/questions/978061/http-get-with-request-body">
+        Http Get with request body
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Update the <strong>routable</strong> components that reside within the
+    Application/Client/Pages/Movies directory with the appropriate authorization policies
+    dependent on the operation to perform. These components are:
+</p>
+<ul>
+    <li>
+        FlixManager: <code>&lt;AuthorizeView&gt;</code> component with proper authorization
+        policy for "Create Movie", "Edit", and "Delete" button elements.
+    </li>
+    <li>MovieBulletin: No authorization policy.</li>
+    <li>MovieCreate: <code>@@atribute[Authorize]</code> with ApiCreateContent policy.</li>
+    <li>MovieDetails: No authorization policy.</li>
+    <li>MovieEdit: <code>@@atribute[Authorize]</code> with ApiEditContent policy.</li>
+    <li>MoviesSearch: No authorization policy.</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/39-authz-client-side-movies.png"
+         alt="Secured routable components that perform operations on objects of type Movie." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In Blazor WASM apps <strong>that run exclusively on the client</strong>
+        (e.g., Application/Client), AuthZ is <strong>only</strong> used to determine
+        which UI options to show. Since client-side checks can be modified or bypassed
+        by a user, Blazor WASM apps cannot enforce authorization access rules. <strong>
+            Always perform authorization checks on the server within any API endpoints
+            accessed by your client-side app.
+        </strong>
+    </p>
+</div>
+<p>
+    Recall from the lesson on <a href="05-security-protect-client">Secure Client</a>
+    that we used an <code>&lt;AuthorizeView&gt;</code> component to selectively display
+    to the User the "Edit" and "Delete" button elements of the Flix Manager routable
+    components. Since each button element performs a different operation, their
+    authorization rules must be updated.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3</span>
+    Refactor the authorization rules to selectively display the "Edit" and "Delete"
+    button elements, in the Flix Manager, only to Users with the valid credentials.
+</p>
+<p>
+    Each Movie object in the FlixManager routable component is presented to the User
+    with the Application/Client/Shared MoviesCatalog component which in turn consumes
+    the Application/Client/Shared RenderMovie component to render the Movie objects.
+    This is the component that needs to be updated:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/40-render-movie-secured.png"
+         alt="RenderMovie component with multiple AuthorizeView calls." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.4</span>
+    Run the application and test the authorization checks for authenticated and
+    unauthenticated Users. Include tests scenarios for Users with authorization
+    claims that do not satisfy the authorization policy required.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Secure all the operations related to an entity of type Genre. Include client-side and
+    server-side authorization.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Update the Application/Server-Api/Controllers GenresController with the appropriate
+    authorization policies dependent on the operation to perform:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/41-securing-genres-controller.png"
+         alt="GenresController with authorization policies updated." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Update the <strong>routable</strong> components that reside within the
+    Application/Client/Pages/Genres directory with the appropriate authorization policies
+    dependent on the operation to perform. These components are:
+</p>
+<ul>
+    <li>
+        IndexGenres:
+        <ul>
+            <li>
+                <code>@@atribute[Authorize]</code> with no specific authorization policy
+                to restrict access only to unuthenticated Users.
+            </li>
+            <li>
+                <code>&lt;AuthorizeView&gt;</code> component with proper authorization
+                policy for "Create Genre", "Edit", and "Delete" button elements.
+            </li>
+        </ul>
+    </li>
+    <li>
+        GenreCreate: <code>@@atribute[Authorize]</code> with WebApiAccessCreate policy.
+    </li>
+    <li>
+        GenreEdit: <code>@@atribute[Authorize]</code> with WebApiAccessEdit policy.
+    </li>
+</ul>
+<p>
+    IndexGenres routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/42-securing-index-genres-one.png"
+         alt="Securing IndexGenres routable component part one." />
+    <img src="Images/18-claims-authz/43-securing-index-genres-two.png"
+         alt="Securing IndexGenres routable component part two." />
+</div>
+<p>
+    GenreCreate and GenreEdit routable components:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/44-securing-genre-create-edit.png"
+         alt="Securing GenreCreate and GenreEdit components." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The GenreCreate and the GenreEdit routable components employ the GenreForm component
+    to handle the data (form fields) bound to an object of type Genre. The GenreForm needs
+    to be updated because it has a button element with an event handler of type event
+    callback. This means it executes a parent's component method when the event is raised.
+</p>
+<p>
+    In other words, the action that the button element will execute is dependent on whether
+    it invokes the functionality of its parent (consumer) component GenreCreate or from
+    GenreEdit. This is important because it determines the authorization policy to enforce.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Refactor the GenreForm component to dynamically set the authorization policy to
+    enforce dependent on the action that will be executed when the OnSubmit event of the
+    "Save Changes" button element is raised.
+</p>
+<p>
+    Markup file for GenreForm component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/45-dynamically-securing-genre-form-front-end.png"
+         alt="Setting the authorization policy dynamically on the GenreForm component front-end." />
+</div>
+<p>
+    CSharp file for GenreForm component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/18-claims-authz/46-dynamically-securing-genre-form-back-end.png"
+         alt="Setting the authorization policy dynamically on the GenreForm component back-end." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Secure all the operations related to an entity of type Person. Include client-side and
+    server-side authorization.
+</p>
+<p>
+    The process is almost identical to the one followed in last step to secure all the
+    operations related to an entity of type Genre except that the PersonForm uses the
+    Person.Id property to determine if the intention is to create a new Person object or
+    to edit an existing one.
+</p>
+<p>
+    Finally, it is worth mentioning that the <code>&lt;NavLink&gt;</code> elements of the
+    Application/Client/Shared NavMenu component that we secured with a simple AuthorizeView
+    element will have no specific authorization policy.
+</p>
+<p>
+    Recall that if no authorization conditions are specified, <dfn>AuthorizeView</dfn> uses
+    a <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorizeview-component">
+        default policy
+    </a> and treats authenticated (signed-in) Users as authorized and unauthenticated
+    (signed-out) Users as unauthorized.
+</p>

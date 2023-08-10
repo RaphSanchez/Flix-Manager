@@ -1,0 +1,410 @@
+﻿@page "/04-push-component"
+
+<PageTitle>Push Notifications - Push Component</PageTitle>
+
+<h2>Web Push Notifications - PushNotifications component</h2>
+<p>
+    In the <a href="02-push-api">Preparing the API</a> lesson, we generated the
+    VAPID keys that our Application/Server-Api will use to voluntarily identify
+    itself to a push service with a signed token that includes its identity.
+</p>
+<p>
+    Then we prepared the Application/Server-Api to handle Http requests/responses
+    for push notifications subscription operations and the IApiService to enable
+    a communication channel between the Application/Client and the Application/Server-Api.
+</p>
+<p>
+    Next, in the <a href="03-push-js-interop">Push JSInterop</a> we created a
+    <dfn>push-notifications.js</dfn> file that defines the JS functions and used
+    JSInterop to define CSharp methods capable of invoking these functions to
+    do something useful with them.
+</p>
+<p>
+    So far, we have completed steps one through three of the procedure outline
+    to implement a push notifications system in our application:
+</p>
+<ol>
+    <li>
+        <p>
+            <a href="https://vapidkeys.com/">Generate</a> the secure VAPID keys
+            required to send and receive web push notifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Store the VAPID keys in a secure location; e.g., in the application
+                    secrets with the help of the application secret manager.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Prepare the Application/Server-Api for PushNotifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Modify the database schema to incorporate a PushSubscriptionDetails
+                    data entity that represents the details of a unique web push
+                    subscription for a specific end user (e.g., PushEndpointUrl, elliptic
+                    curve public key, and the authentication secret).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Add the required functionality to manage PushSubscriptionDetails database
+                    records.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Use <a href="02-components-part-three">JSInterop</a> to subscribe/unsubscribe
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a JavaScript file to define functions responsible for getting
+                    the status of the permission for notifications granted by the user,
+                    subscribing, and unsubscribing a user to/from the push service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Create the methods responsible for invoking these functions using
+                    CSharp.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a PushNotifications component responsible for subscribing/unsubscribing
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    The component employs the CSharp methods created in last step to invoke
+                    the JS functions to subscribe/unsubscribe a user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    It should handle errors when a connection to the web server is not
+                    available. We do not intend to provide offline support to
+                    subscribe/unsubscribe from the push notifications service.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Include a method to send a push message to all users subscribed
+                    to the web push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The method must be capable of including a Movie object as its payload
+                    if and when the Movie is marked with an "InTheaters" flag.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Call the method from the Add and the Update actions of the Movies
+                    controller to send a push notification when a Movie object is either
+                    added or updated. The Movie must be included in its payload.
+                </p>
+            </li>
+            <li>
+                Use the <dfn>service worker</dfn> to handle push notifications sent by the
+                Application/Server-Api to the web browser's push notifications service which
+                in turn sends the push notification to the application user(s).
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Test and <a href="07-dynamic-website">deploy</a> the application to Azure app service.
+        </p>
+        <p>
+            Use Azure key vault to store the VAPID details of our application. Recall that we
+            explained how to use Azure key vault to centralize app secrets in the
+            <a href="07-dynamic-website">Dynamic Website</a> lesson of the Deployment module.
+        </p>
+    </li>
+</ol>
+<p>
+    In this lecture, we will tackle step four. We will create a PushNotifications component
+    capable of subscribing/unsubscribing an application user to the web push notification
+    service.
+</p>
+<h4>Push Notifications Component</h4>
+<p>
+    The PushNotifications component is the consumer of the JS functions defined in
+    the <em>push-notifications.js</em> file to subscribe/unsubscribe a user from the push
+    service. It uses our custom <a href="02-components-part-three">IJSRuntimeExtensions</a>
+    class that extends the functionality of the preconfigured <em>
+        Microsoft.JSInterop.IJSRuntime
+    </em> service to invoke the JS functions.
+</p>
+<p>
+    Examine the push notification system diagram to better understand the role of the
+    PushNotifications component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/05-push-notif-syst-push-component-embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<p>
+    <span class="badge bg-info">Task:</span>
+    Create the Application/Client/Shared PushNotifications component as enlisted below:
+</p>
+<ul>
+    <li>
+        <p>
+            Retrieve the status of the push notification permission for the
+            application user during initialization.
+        </p>
+    </li>
+    <li>
+        <p>
+            Display a bell icon that enables the application user to subscribe/unsubscribe
+            from the push service of the user agent based on the current push subscription
+            status.
+        </p>
+    </li>
+    <li>
+        <p>
+            Be available in the Application/Client/Pages/Movies Flix Manager and the
+            Application/Client/Pages Index routable components.
+        </p>
+    </li>
+    <li>
+        <p>
+            Include an exception handling mechanism to clearly inform the user that the
+            application must be online when a valid connection to the web server cannot
+            be established.
+        </p>
+        <p>
+            Although it is perfectly possible, we did not provide offline support for the
+            subscribe/unsubscribe to/from the push notifications service in the lesson
+            on <a href="03-push-js-interop">JSInterop</a>. You can follow the
+            <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson in case you decide
+            to implement online support.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Add the PushNotifications Razor component to the Application/Client/Shared directory.
+    Split the Razor markup from CSharp logic into different partial classes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Define the CSharp logic for the PushNotifications component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/12-push-component-code-file-one.png"
+         alt="PushNotifications component code file part one." />
+    <img src="Images/47-push-front-end/13-push-component-code-file-two.png"
+         alt="PushNotifications component code file part two." />
+    <img src="Images/47-push-front-end/14-push-component-code-file-three.png"
+         alt="PushNotifications component code file part three." />
+    <img src="Images/47-push-front-end/15-push-component-code-file-four.png"
+         alt="PushNotifications component code file part four." />
+    <img src="Images/47-push-front-end/16-push-component-code-file-five.png"
+         alt="PushNotifications component code file part five." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Define the markup logic for the PushNotifications component. The bell icon should
+    alternate colors dependent on the push notification permission status; e.g.,
+    gray for 'granted' status and blue for 'default'.
+</p>
+<p>
+    In the end, the 'default' push subscription permission state should look
+    something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/18-default-state.png"
+         alt="Bell icon of PushNotifications component in the 'default' state." />
+</div>
+<p>
+    The 'granted' push subscription permission state should look something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/19-granted-state.png"
+         alt="Bell icon of PushNotifications component in the 'granted' state." />
+</div>
+<p>
+    Markup file of the PushNotifications component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/17-push-component-markup-file.png"
+         alt="PushNotifications component markup file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Add an instance of the PushNotifications component to the Application/Client/Pages/Movies
+    FlixManager and Application/Client/Pages Index.razor routable components. You can use the
+    same approach used for the <a href="05-internationalization">CultureSelector</a>
+    component.
+</p>
+<p>
+    As you know, <a href="02-components-part-two">layout components</a> can render other
+    components. You can use the MainLayout component to make the PushNotifications component
+    available throughout the application. Before doing so, let's take a look to the current
+    semantic structure of the MainLayout component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/19-main-layout-structure.png"
+         alt="MainLayout view file." />
+</div>
+<p>
+    The markup for the MainLayout consists of a &lt;div&gt; element with a "sidebar"
+    attribute that encapsulates the NavMenu component responsible for rendering the
+    navigation menu you find on the left side of this page. It also has a &lt;main&gt;
+    section with two &lt;div&gt; elements. The first one instantiates a <a href="04-security-config-client">
+        LoginDisplay
+    </a> component that displays a menu to the user dependent on its authentication
+    state.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/23-flix-manager-en-us.png"
+         alt="LoginDisplay component menu." />
+</div>
+<p>
+    The LoginDisplay component is rendered within a navigation bar and this is likely
+    the best place to insert our PushNotifications component. It is not ideal if the
+    component is outside of the top navigation bar.
+</p>
+<p>
+    In other words, the MainLayout component consumes the LoginDisplay component and we
+    can add an instance of the PushNotifications component right before the CultureSelector
+    component. This way both will be displayed only when the current URL matches that
+    of the Flix Manager and/or the Index routable components:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/20-login-display-push-notifications.png"
+         alt="LoginDisplay component with PushNotifications component." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Both component instances are within a <code>&lt;span&gt;</code> element because
+    it is a generic inline container. Block level elements such as <code>&lt;div&gt;</code>
+    and <code>&lt;p&gt;</code> always start on a new line. Inline elements do no start
+    on a new line and only take up as much width as necessary.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Test the PushNotifications component to confirm that it retrieves the push
+    notifications subscription status for the current user, allows subscribing/unsubscribing
+    from the push service, persists/removes the push subscription details from the database,
+    and gracefully handles a JSException as a result of an invalid connection to the web
+    server.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    "Clean" and "Rebuild" the Application/Client and the Application/Server-Api projects,
+    run the application to a server that supports HTTPS, and access the app in a browser
+    at its secure HTTP address. Recall that service workers do not execute in regular
+    Http protocol.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you get a Console error with something along the lines of: "Failed to
+        find a valid digest in the 'integrity' attribute for resource .......",
+        you can refer to the "Publish and Deploy a PWA Application" at the end of
+        the <a href="02-pwa-creation">Creating a PWA</a> lesson to fix this issue.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Open the web browser's developer tools and verify that a <em>service worker</em>
+    is registered for the host on the <em>Application</em> tab. Install any <em>
+        worker in waiting
+    </em> to activate its latest version and reload the page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/42-mutator-requests/20-skip-waiting.png"
+         alt="Service worker skip waiting option." />
+</div>
+<p>
+    Confirm that the PushNotifications component is available in the Index.razor and
+    FlixManager.razor routable components in the 'default' mode (blue color) because
+    we have not subscribed the current application user to the push service of the
+    user agent (web browser):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/18-default-state.png"
+         alt="Bell icon of PushNotifications component in the 'default' state." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Click the PushNotifications component to subscribe the current application user to the
+    push service of the user agent. You should see a dialog box indicating the result of
+    the operation, the component itself should re-render to update its push notifications
+    permission state to 'granted' (color grey), and the PushSubscriptionsDetail database
+    should have a new record.
+</p>
+<p>
+    UI after a successful operation to subscribe the application user to the push service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/21-successful-dialog-box.png"
+         alt="Dialog box informs that the operation was successful." />
+</div>
+<p>
+    PushSubscriptionsDetails database table with a new record:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/22-push-subscriptions-details-record.png"
+         alt="PushSubscriptionsDetails database table." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4:</span>
+    Click the PushNotifications component to unsubscribe the current application user from
+    the push service of the user agent. You should see a dialog box indicating the result
+    of the operation, the component itself should re-render to update its push notifications
+    permission state to 'denied' (color blue), and the PushSubscriptionsDetail database
+    should no longer have the related record.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4:</span>
+    Use the <em>Network</em> tab of the web browser's developer tools to attempt to perform
+    subscribe/unsubscribe operations in offline mode. You should get a dialog box informing
+    that a valid connection to the web server is required:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/23-online-dialog-box.png"
+         alt="Dialog box informs that application must be online." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.5:</span>
+    Login with an application user that has full admin credentials (e.g., admin@@email.com,
+    password: Pass123$) and repeat steps 4.3 and 4.4 to test the <em>Authorized</em> state.
+</p>
+<p>
+    The PushNotifications component is completed and functioning as intended. We can now
+    focus on developing the IPushNotificationsService to enable send push notifications
+    when an event takes place; e.g., when a new Movie object is created.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode "155. Push API - Frontend" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán
+    </li>
+</ul>

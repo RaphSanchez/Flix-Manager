@@ -1,0 +1,56 @@
+﻿
+<!-- Blazor directive to define generic type parameters -->
+@typeparam TItem
+
+@if (ItemsList == null)
+{
+    if (NullLoadingTemplate != null)
+    {
+        /// Implicit expression references the RenderFragment parameter that represents
+        /// a segment of UI to render.
+        @NullLoadingTemplate
+    }
+    else
+    {
+        <text>Default Loading Notice ...</text>
+    }
+}
+
+else if (ItemsList.Count == 0)
+{
+    if (EmptyTemplate != null)
+    {
+        @EmptyTemplate
+    }
+    else
+    {
+        <text>Default There are no records to show.</text>
+    }
+}
+
+else
+{
+    if (RenderItemTemplate != null)
+    {
+        @foreach (TItem item in ItemsList)
+        {
+            <!-- #region background color renders MoviesCatalog component wrong -->
+            @*<div class="mb-3"
+                style="background-color: @(ItemsList.IndexOf(item) % 2 == 0 ? "rgb(240, 240, 240)" : "white")">
+                RenderFragment parameter that represents a segment of UI to render
+                @RenderItemTemplate(item)
+                </div>*@
+            <!-- #endregion -->
+            @RenderItemTemplate?.Invoke(item)
+        }
+    }
+    else
+    {
+        @WholeListTemplate
+    }
+}
+
+@code {
+
+}
+

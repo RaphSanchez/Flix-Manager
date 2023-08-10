@@ -1,0 +1,1128 @@
+﻿@page "/06-https-cdn"
+
+<PageTitle>HTTPS CDN</PageTitle>
+
+<h2>Deployment - HTTPS on Azure CDN Custom Domain</h2>
+<p>
+    It is essential that you have a basic understanding of digital certificates. You
+    can refer to the introductory lesson for the <a href="01-deployment-fundamentals">
+        Deployment
+    </a> module.
+</p>
+<p>
+    We have already mentioned that Azure CDN supports HTTPS on a CDN endpoint hostname
+    by default. For example, we created a <a href="03-azure-cdn">CDN profile</a> with
+    an endpoint https://rs-landing.azureedge.net where HTTPS is automatically enabled.
+    On the other hand, the <strong>HTTPS protocol on a custom domain must be configured.</strong>
+</p>
+<p>
+    HTTPS protocol ensures that the data exchange is delivered securely via TLS/SSL. <strong>
+        When the web browser is connected via HTTPS, it validates the web site's certificate.
+    </strong> It verifies that the certificate, if any, is issued by a legitimate certificate
+    authority (CA).
+</p>
+<p>
+    To enable HTTPS on an Azure CDN custom domain, you use a TLS/SSL certificate. You
+    can choose to use a certificate that is managed by Azure CDN or to use a certificate
+    from an external certification authority (CA).
+</p>
+<p>
+    This process provides security and protects the web applications from attacks. Some
+    of the key attributes of the custom HTTPS feature managed by Azure are:
+</p>
+<ul>
+    <li>
+        No extra cost. There are no costs for certificate acquisition or renewal and no
+        extra cost for HTTPS traffic. You pay only for GB egress from the CDN.
+    </li>
+    <li>
+        Simple enablement. One-click provisioning is available from the Azure portal or
+        you can use other developer tools to enable the feature such as REST API.
+    </li>
+    <li>
+        <p>Complete certificate management is available:</p>
+        <ul>
+            <li>
+                All Azure certificate procurement and management is handled automatically.
+            </li>
+            <li>
+                Certificates are automatically provisioned and renewed before expriration.
+            </li>
+        </ul>
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Azure CDN-managed certificates are <strong>
+            not available for root or apex domains.
+        </strong>
+    </p>
+</div>
+<p>
+    Since Azure CDN-managed certificates are not available for root or apex domains, we
+    will demonstrate how to enable Https for the custom domain "rafaelsanchez.ws" using an
+    SSL/TLS certificate provided by an external Certification Authority (CA) and how to
+    enable Https for the custom domain "www.rafaelsanchez.ws" using a CDN-managed certificate.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Instead of configuring HTTPS independently for both domains, you could simply establish
+        an Azure managed certificate for the domain "www.rafaelsanchez.ws" and use the CDN
+        <a href="05-custom-domain-cdn">
+            Standard Rules Engine
+        </a> to redirect HTTP requests to the apex or root domain (rafaelsanchez.ws)
+        to the https://www.rafaelsanchez.ws domain:
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/44-https-redirect-rules-engine.png"
+         alt="Rules Engine to redirect from apex to www domain." />
+</div>
+<p>
+    Nevertheless, in the intereset of learning, we will configure both domains to handle
+    HTTPS requests independently.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Get an SSL/TLS certificate from a Certification Authority (CA).
+</p>
+<p>
+    There are a couple Certification Authority entities that provide free SSL/TLS certificates.
+    These are <a href="https://www.sslforfree.com/">SSL For Free</a> and
+    <a href="https://letsencrypt.org/">Let's Encrypt</a>. However, these certificates are valid
+    only for 90 days. This means that you are left with two options:
+</p>
+<ul>
+    <li>
+        Manually renew your certificates every 80 days or so.
+    </li>
+    <li>
+        Implement an <a href="https://youtu.be/MX-7rVL7088">automated</a> function in Azure
+        using an ACME bot.
+    </li>
+</ul>
+<p>
+    Neither of these options seem convenient because now a days, SSL/TLS certificates are
+    not expensive at all. For example, <a href="https://www.ssls.com/">SSLs</a> offers one
+    year domain validated (DV) certificates for as low as $ 3.00 USD. The certificate protection
+    includes apex domain and the wwww subdomain.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    If you choose another Certification Authority (CA), make sure that it is part of the
+    <a href="https://ccadb-public.secure.force.com/microsoft/IncludedCACertificateReportForMSFT">
+        Microsoft Trusted CA List
+    </a>. For example, SSLs certifcate provider is <a href="https://sectigo.com/">Sectigo CA</a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to <a href="https://www.ssls.com/">SSLs</a> to buy a "PositiveSSL" certificate. This is a
+    Domain Validation (DV) certificate for 1 domain only but that is all we need because it
+    covers the root domain and the 'www' domain. Follow the
+    <a href="https://www.ssls.com/knowledgebase/okay-so-i-ordered-an-ssl-how-do-i-get-it-to-work-on-my-domain/#create-csr-in-browser">
+        instructions
+    </a> to activate the certificate.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    In case you have an SSL certificate, a private key, and
+    a CA bundle in separate files in PEM format, follow the <a href="https://www.ssls.com/knowledgebase/how-to-install-an-ssl-on-microsoft-azure-web-app/">
+        instructions
+    </a> to convert them into PFX (PKCS#12 format) using this <a href="https://decoder.link/converter">
+        website
+    </a>. Make sure to <strong>store its password</strong> because you will need it later
+    to upload the certificate.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://www.ssls.com/">SSLs</a>
+    </li>
+    <li>
+        <a href="https://www.ssls.com/knowledgebase/okay-so-i-ordered-an-ssl-how-do-i-get-it-to-work-on-my-domain/#create-csr-in-browser">
+            Create SSL files locally
+        </a>
+    </li>
+    <li>
+        <a href="https://www.ssls.com/knowledgebase/how-to-install-an-ssl-on-microsoft-azure-web-app/">
+            How to install an SSL on Microsoft Azure Web App
+        </a>
+    </li>
+    <li>
+        <a href="https://decoder.link/converter">
+            Converter
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/W2UF1WMPg7o">
+            Azure App service managed certificates | Free SSL for App Service | Configure SSL
+            for App Service
+        </a> (contains how to convert certificate to PFX using OpenSSL).
+    </li>
+</ul>
+<p>
+    Enabling HTTPS with your own certificate is done through an integration with
+    Azure Key Vault which allows you to store your certificates securely. Azure CDN
+    uses this secure mechanism to get your certificate. For this reason, you need
+    to understand how Azure Key Vault works and how it interacts in a secure manner
+    with users, user groups, third party applications, same tenant applications, etc.
+</p>
+<h3>Azure Active Directory (AD)</h3>
+<p>
+    Microsoft introduced Active Directory Domain Services in Windows 2000 to give organizations
+    the ability to manage multiple <strong>on-premises</strong> infrastructure components and
+    systems <strong>using a single identity per user</strong> in an organization.
+</p>
+<p>
+    Azure AD takes this approach to the next level by providing organizations with an
+    Identity as a Service (IDaaS) solution for all their apps <strong>
+        across cloud and on-premises.
+    </strong> In other words, Azure AD is a cloud-based identity and access management service
+    that allows the employees of an organization to access external resources such as
+    Microsoft 365, the Azure portal, and thousands of other SaaS applications.
+</p>
+<p>
+    Azure AD also allows to access internal resources like apps on the corporate intranet
+    network along with any cloud apps developed for that particular organization. Within the
+    Azure AD environment, we have the following basic terms:
+</p>
+<dl>
+    <dt>Identity</dt>
+    <dd>
+        A thing that can get authenticated. An identity can be a user with a username and
+        password but it can also be an application or even another server that might require
+        authentication through secret keys or certificates to interact with Azure resources.
+    </dd>
+    <dt>Account</dt>
+    <dd>
+        An identity that has data associated with it. You cannot have an account without an
+        identity.
+    </dd>
+    <dt>Azure AD account</dt>
+    <dd>
+        An identity created through Azure AD or another Microsoft cloud service such as
+        Microsoft 365. Identities are stored in Azure AD and accessible to the organization's
+        cloud service subscriptions. This account is also sometimes called a <strong>work</strong>
+        or <strong>school</strong> account.
+    </dd>
+    <dt>Azure tenant</dt>
+    <dd>
+        A dedicated and trusted instance of Azure AD. The tenant is automatically created when
+        an organization signs up for a Microsoft cloud service subscription. These subscriptions
+        can be Microsoft Azure, Microsoft Intune, or Microsoft 365. An <strong>
+            Azure tenant represents a single organization.
+        </strong>
+    </dd>
+    <dt>Single tenant</dt>
+    <dd>
+        Azure tenants that access other services in a dedicated environment are considered
+        single tenant.
+    </dd>
+    <dt>Multi-tenant</dt>
+    <dd>
+        Azure tenants that access other services in a shared environment, across multiple
+        organizations, are considered multi-tenant.
+    </dd>
+    <dt>Azure AD directory</dt>
+    <dd>
+        Each Azure tenant has a dedicated and trusted Azure AD directory. The Azure AD directory
+        includes the tenant's users, groups, and apps and is used to perform identity and access
+        management functions for tenant resources.
+    </dd>
+    <dt>Custom domain</dt>
+    <dd>
+        Every new Azure AD directory comes with an <strong>
+            intial domain name (e.g., domainname.onmicrosoft.com).
+        </strong> In addition to that initial name, you can also add the organization's domain
+        names.
+    </dd>
+    <dt>Microsoft account (a.k.a. MSA)</dt>
+    <dd>
+        MSAs are personal accounts that provide access to consumer-oriented Microsoft
+        products and cloud services. These products and services include Outlook, OneDrive,
+        Xbox Live, or Microsoft 365.
+    </dd>
+    <dd>
+        The Microsoft Account (MSA) is created and stored in the Microsoft consumer identity
+        account system that is run by Microsoft.
+    </dd>
+</dl>
+<p>
+    Applications are added to Azure AD to use one or more of the services it provides
+    including:
+</p>
+<ul>
+    <li>
+        Application authentication and authorization.
+    </li>
+    <li>
+        User authentication and authorization.
+    </li>
+    <li>
+        Single Sign-on (SSO) using federation or password.
+    </li>
+    <li>
+        User provisioning and synchronization.
+    </li>
+    <li>
+        Role-based access control (RBAC) - Use the directory to define application roles to
+        perform role-based authorization checks in an application.
+    </li>
+    <li>
+        OAuth authorization services - Used by Microsoft 365 and other Microsoft applications
+        to authorize access to APIs/resources.
+    </li>
+    <li>
+        Application publishing and proxy - Publish an application from a private network to
+        the internet.
+    </li>
+    <li>
+        Directory schema extension attributes - Extend the schema of service principal and
+        user objects to store addtional data in Azure AD.
+    </li>
+</ul>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-compare-azure-ad-to-ad">
+            Compare Active Directory to Azure Active Directory
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-whatis">
+            What is Azure Active Directory?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-how-applications-are-added#why-do-applications-integrate-with-azure-ad">
+            Why do applications integrate with Azure AD?
+        </a>
+    </li>
+</ul>
+<h3>Application and Service Principal objects in Azure AD</h3>
+<p>
+    Is is <strong>strongly suggested</strong> to watch the YouTube video <a href="https://youtu.be/vr1IIkGHiKQ">
+        Demystifying Azure Service Principals and Managed Identities
+    </a> by Peter De Tender. It has important content of the concepts outlined here and
+    how to implement them.
+</p>
+<h4>Application registration</h4>
+<p>
+    To delegate identity and access management functions to Azure AD, an application must
+    be registered with an Azure AD tenant. When you register your application with Azure
+    AD, you are <strong>
+        creating an identity configuration for your application that allows it to integrate
+        with Azure AD.
+    </strong>
+</p>
+<p>
+    Successful registration of an application in the Azure AD provides:
+</p>
+<ul>
+    <li>
+        A globally unique instance of the app. This is the <strong>application object</strong>
+        which resides within your home tenant or directory.
+    </li>
+    <li>
+        A globally unique ID for your app. This is the <strong>app or client ID</strong>.
+    </li>
+    <li>
+        A <strong>Service Principal object</strong> which is an instance of the application object.
+    </li>
+</ul>
+<p>
+    In the portal, you can then add secrets or certificates and scopes to make your app work,
+    customize the branding of your app in the sign-in dialog, and more.
+</p>
+<h4>Application object</h4>
+<p>
+    An Azure AD application is defined by its one and only application object which resides
+    in the Azure AD tenant where the application was registered (known as the application's
+    home tenant). <strong>
+        An application object is used as a template or blueprint to create one or
+        more service principal objects.
+    </strong>
+</p>
+<p>
+    A service principal is created in every tenant where the application will be used. Similar
+    to a class in object-oriented programming, the application object has some static properties
+    that are applied to all the created service principals (or application instances). You can
+    use the <strong>App registrations</strong> page in the Azure portal to list and manage
+    the application objects in your home tenant.
+</p>
+<h4>Service Principal object</h4>
+<p>
+    To access resources that are secured by an Azure AD tenant, <strong>
+        the entity that requires access must be represented by a security principal.
+    </strong> This requirement is true for both <strong>
+        users (user principal) and applications (service principal).
+    </strong> <span class="mark">
+        <strong>
+            The security principal defines the access policy and permissions for the user
+            or application in the Azure AD tenant.
+        </strong>
+    </span> This enables core features such as
+    authentication of the user or application during sign-in and authorization during
+    resource access.
+</p>
+<p>
+    There are three types of service principal:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>Application</strong> - This type of service principal is the <strong>
+                local representation,
+            </strong> or application instance, of a global application object in a
+            single tenant or directory. In this case, a service principal is a concrete
+            instance created from the application object and inherits certain properties
+            from that application object. Keep in mind that it <strong>
+                represents an application not a user.
+            </strong>
+        </p>
+        <p>
+            A service principal is created in each tenant where the application is used
+            and references the globally unique app object. The service principal object
+            defines what the app can actually do in the specific tenant, who can access
+            the app, and what resources the app can access.
+        </p>
+        <p>
+            When an application is given permission to access resources in a tenant (upon
+            registration or consent), a service principal object is created. When you
+            register an application using the Azure portal, a service principal is created
+            automatically. You can also create service principal objects in a tenant using
+            Azure PowerShell, Azure CLI, Microsoft Graph, and other tools.
+        </p>
+        <p>
+            With application service principals, client ID and Secret are exposed/known
+            to the creator and to the consumer of the service principal. Their obejct
+            validity is 1 or 2 years.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Managed identity</strong> - Managed identities are a type of service
+            principal that is linked <strong>only</strong> to Azure resources. Unlike
+            application service principals that can integrate third party tools to Azure,
+            managed identities are <strong>
+                valid only for Azure resources.
+            </strong> Managed identities eliminate the need for developers to manage
+            credentials (application secrets, certificates, and keys to secure communication).
+        </p>
+        <p>
+            You can use the Azure portal to turn an Azure resource into a managed identity
+            in which case you don't have to interact with any credentials because they are
+            not exposed. They are automatically created and linked to the Azure resource.
+            Unfortunately not all resources (or services) support managed identities. You can
+            refer to <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/managed-identities-status">
+                Azure services that can use managed identities to access other services
+            </a> for an updated list.
+        </p>
+        <p>
+            There are two types of managed identities:
+        </p>
+        <dl>
+            <dt>System-assigned</dt>
+            <dd>
+                Some Azure resources, such as virtual machines, allow you to enable a managed
+                identity directly on the resource. When you enable a system-assigned managed
+                identity:
+                <ul>
+                    <li>
+                        A service principal of a special type is creaed in Azure AD for the
+                        identity. The service principal is tied to the lifecycle of that
+                        Azure resource. When the Azure resource is deleted, Azure automatically
+                        deletes the service principal.
+                    </li>
+                    <li>
+                        By design, only that Azure resource can use this identity to request
+                        tokens (AuthN and/or AuthZ tokens) from Azure AD.
+                    </li>
+                    <li>
+                        You authorize the managed identity to have access to one or more services.
+                    </li>
+                </ul>
+            </dd>
+            <dt>User-assigned</dt>
+            <dd>
+                You may also create a managed identity as a standalone Azure resource. You can
+                <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp">
+                    create a user-assigned managed identity
+                </a> and assign it to one or more Azure Resources. When you enable a user-assigned
+                managed identity:
+                <ul>
+                    <li>
+                        A service principal of a special type is created in Azure AD for the
+                        identity. The service principal is managed separately from the resources
+                        that use it and it is <strong>not</strong> tied to the lifecycle of any
+                        given resource. It must be deleted manually.
+                    </li>
+                    <li>
+                        User-assigned identities can be used by multiple resources.
+                    </li>
+                    <li>
+                        You authorize the managed identity to have access to one or more services.
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+    </li>
+    <li>
+        <p>
+            <strong>Legacy</strong> - This type of service principal represents a legacy
+            app; i.e., an app created before app registrations were introduced or an app
+            created through legacy experiences. A legacy service principal does not have
+            an associated app registration. The service principal can only be used in the
+            tenant where it was created.
+        </p>
+    </li>
+</ul>
+<h4>App Registration vs Enterprise Applications</h4>
+<p>
+    As mentioned earlier, when an application is registered in Azure AD, two types of objects are
+    created in the tenant:
+</p>
+<ul>
+    <li>Application Object.</li>
+    <li>
+        Service Principal.
+    </li>
+</ul>
+<p>
+    The <strong>Application Object</strong> is what you see <strong>under "App Registrations"</strong>
+    in Azure AD. This object acts as the template where you can configure API permissions,
+    client secrets, branding, app roles, etc. All these customizations get written to the
+    app manifest file.
+</p>
+<p>
+    The application object describes three aspects of an application:
+</p>
+<ul>
+    <li>How the service can issue tokens in order to access the application.</li>
+    <li>Resources that the application might need to access.</li>
+    <li>The actions that the application can take.</li>
+</ul>
+<p>
+    The <strong>Service Principal Object</strong> is what you see <strong>
+        under the "Enterprise Applications"
+    </strong> registration blade in Azure AD. When an application is registered in the
+    Azure portal, an application object is created and a corresponding service principal object
+    is created automatically in the Enterprise Registration blade of Azure AD.
+</p>
+<p>
+    Recall that a service principal is a concrete instance created from the application object
+    and a service principal is created in each tenant where the application is used and references
+    the globally unique application object. The service principal object defines what the app
+    can actually do in the specific tenant, who can access the app, and what resources the app
+    can access.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals">
+            Application and service principal objects in Azure Active directory
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://www.youtube.com/watch?v=vr1IIkGHiKQ">
+            Demystifying Azure Service Principals and Managed Identities
+        </a> by Peter De Tender.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview">
+            What are managed identities for Azure resources?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp">
+            Manage user-assigned managed identities
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/active-directory-how-applications-are-added">
+            How and why applications are added to Azure AD
+        </a>
+    </li>
+    <li href="https://learn.microsoft.com/en-us/answers/questions/270680/app-registration-vs-enterprise-applications.html">
+        <a>
+            App Registration vs Enterprise Applications
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/rC1TV0_sIrM">
+            Microsoft Azure Managed Identity Deep Dive
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/0XI3Fk9ImAY">
+            How to create Azure Service Principals in Azure Portal and apply API permission
+        </a>
+    </li>
+</ul>
+<h3>Key Management in Azure</h3>
+<p>
+    In Azure, encryption keys can be either managed or customer managed. <strong>
+        Platform-managed Keys
+    </strong> (PMKs) are encryption keys that are generated, stored, and managed
+    entirely by Azure. Customers do not interact with PMKs. <strong>
+        Customer-managed keys
+    </strong> (CMKs), on the other hand, are those that can be read, created, deleted,
+    updated, and/or administered  by one or more customers.
+</p>
+<p>
+    Keys stored in a customer-owned key vault or hardware security module (HSM) are
+    CMKs. Customer-managed keys can be stored on-premises or, more commonly, in a
+    cloud key management service.
+</p>
+<p>
+    Azure offers serveral options for storing and managing your keys in the cloud including
+    Azure Key Vault, Azure Managed Hardware Service Module (HSM), Dedicated HSM, and
+    Payments HSM. These options differ in terms of their <a href="https://www.nist.gov/standardsgov/compliance-faqs-federal-information-processing-standards-fips#:~:text=are%20FIPS%20developed%3F-,What%20are%20Federal%20Information%20Processing%20Standards%20(FIPS)%3F,by%20the%20Secretary%20of%20Commerce.">
+        Federal Information Processing Standards (FIPS)
+    </a> compliance level, management overhead, and intended applications.
+</p>
+<h4>Azure Key Vault</h4>
+<p>
+    Azure Key Vault is a cloud service for securely storing and accessing secrets. A secret
+    is anything that you want to tightly control access to such as API keys, passwords,
+    certificates, or cryptographic keys. Objects stored in Key Vault are versioned whenever
+    a new instance of an object is created. Each version is assigned a unique identifier
+    and URL.
+</p>
+<p>
+    <strong>
+        Objects are uniquely identified within Key Vault using a URL.
+    </strong> No two objects in the system have the same URL regardless of geo-location. <strong>
+        The complete URL to an object is called the object identifier.
+    </strong> Azure Key Vault has two service tiers:
+</p>
+<ul>
+    <li>
+        <strong>Standard tier</strong>: Encrypts with a software key.
+    </li>
+    <li>
+        <strong>Premium tier</strong>: Includes hardware security module (HSM)-protected
+        keys.
+    </li>
+</ul>
+
+<p>
+    Azure Key Vault provides a way to securely store credentials and other keys and secrets
+    but <strong>
+        users (user principal) or services (service principal) need to authenticate to
+        Key Vault to retrieve them.
+    </strong> 
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In the Azure Key Vault context, you can think of a <dfn>security principal</dfn> as a
+        security identity that apps, services, and automation tools use to access specific
+        Azure resources.
+    </p>
+</div>
+<p>
+    Azure Key Vault can be used for:
+</p>
+<ul>
+    <li>
+        <strong>Secrets Management</strong>: Securely stores and tightly controls access to
+        tokens, passwords, certificates, API keys, and other secrets.
+    </li>
+    <li>
+        <strong>Key Management</strong>: Makes it easy to create and control the encryption
+        keys used to encrypt your data.
+    </li>
+    <li>
+        <strong>Certificate Management</strong>: Allows you to easily provision, manage, and
+        deploy public and private TLS/SSL certificates for use with Azure and your internal
+        connected resources.
+    </li>
+</ul>
+<h4>Authentication in Azure Key Vault</h4>
+<p>
+    Authentication to Key Vault to access its stored objects works in conjuction with Azure
+    AD which is responsible for authenticating the identity of any given <strong>
+        security
+        principal.
+    </strong>
+</p>
+<p>
+    A <strong>security principal</strong> is an object that represents a user, a group of
+    users, a service, or an application that is requesting access to Azure resources. Azure
+    assigns a unique <strong>object ID</strong> to every <strong>security principal.</strong>
+</p>
+<ul>
+    <li>
+        A <strong>user</strong> security principal (a.k.a. <strong>user principal</strong>)
+        identifies an individual who has a profile in Azure AD.
+    </li>
+    <li>
+        A <strong>group</strong> security principal identifies a set of users created in
+        Azure AD. Any roles or permissions assigned to the group are granted to all of the
+        users within the group.
+    </li>
+    <li>
+        A <strong>service</strong> security principal (a.k.a. <strong>service principal</strong>)
+        identifies an application or service rather than a user or group. A service principal's <strong>
+            object ID
+        </strong> acts like its username; the service principal's <strong>client secret</strong>
+        acts like its password.
+    </li>
+</ul>
+<p>
+    By default, Key Vault allows access to resources through public IP addresses. For greater
+    security, you can restrict access to specific IP ranges, service endpoints, virtual
+    networks, or private endpoints. Refer to <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/access-behind-firewall">
+        Access Azure Key Vault behind a firewall
+    </a> for more info.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/security/fundamentals/key-management">
+            Key management in Azure
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/basic-concepts">
+            Azure Key Vault basic concepts
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/overview">
+            About Azure Key Vault
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/authentication">
+            Authentication in Azure Key Vault
+        </a>
+    </li>
+</ul>
+<p>
+    Probably by now you have a pretty good idea of what we are doing next. The purpose is to
+    secure the communications between the client and the custom DNS domain that targets our
+    Azure CDN. The secure protocol (HTTPS) requires an SSL/TLS certificate to authenticate that
+    the website is legitimate.
+</p>
+<p>
+    We have an SSL/TLS certificate but we don't have where to store it. The logical step is to
+    create an Azure Key Vault to securely store any credentials, including certificates, that
+    are consumed by our applications. With a Key Vault in place, we will upload the SSL/TLS
+    certificate directly to the Key Vault.
+</p>
+<p>
+    Next, we will create a service principal which will be an instance of the Microsoft CDN
+    application object that will reside in our Azure AD tenant. The CDN will be represented
+    by this service principal and will allow us to define the access policy and permissions that
+    the CDN will have inside our Azure AD tenant; e.g., how and what to access in the Azure Key
+    Vault. It will define what the CDN can do in the specific tenant and what resources can the
+    CDN access.
+</p>
+<p>
+    Once the Azure CDN can access the Key Vault and the certificate that has stored, we can
+    bind the Azure CDN to the certificate that will be deployed for authentication. Finally,
+    we can enable HTTPS for our custom domain and wait for propagation.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Azure Key vault Account under the same subscription as the Azure CDN profile
+    and upload the certificate directly to the Azure Key Vault account.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/quick-create-portal#create-a-vault">
+        create a vault
+    </a> using the Azure portal.
+</p>
+<p>
+    Key Vault attributes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/45-key-vault-attributes.png"
+         alt="Key Vault attributes." />
+</div>
+<p>
+    Key Vault resource:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/46-key-vault-resource.png"
+         alt="Key Vault resource." />
+</div>
+<p>
+    At this point, your Azure account is the only one authorized to perform operations on this
+    new vault.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/quick-create-portal#add-a-certificate-to-key-vault">
+        add a certificate to Key Vault
+    </a>. Use the SSL/TLS certificate we obtained from SSLs at the beginning of this lesson.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/47-import-cert-data.png"
+         alt="Import certificate data fields." />
+</div>
+<p>
+    The password is the one you created after obtaining the certificate and converting its files
+    into a single PFX (PKCS#12) format.
+</p>
+<p>
+    Click on the certificate after successfully uploading it to Key Vault to see its properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/48-uploaded-cert.png"
+         alt="Certificate properties." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/quick-create-portal">
+            Quickstart: Create a key vault using the Azure portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/quick-create-portal">
+            Quickstart: Set and retrieve a certificate from Azure Key Vault using the
+            Azure portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/certificates/about-certificates">
+            About Azure Key Vault certificates
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/AA3yYg9Zq9w">
+            AZ-900 Episode 27 | Azure Key Vault | Secret, Key and Certificate Management
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/HVI5splxG-M">
+            What is Azure Key Vault? | How to Deploy an Azure Key Vault
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/xchSkmHDL0c">
+            Azure Key Vault Tutorial: Step-By-Step Demo | Secret, Key, Certificates
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-2-enable-https-with-your-own-certificate#tabpanel_1_option-2-enable-https-with-your-own-certificate">
+        instructions
+    </a> from MSDN to configure HTTPS on your Azure CDN custom root domain using the TSL/SSL
+    certificate obtained from an external certification authority and uploaded into your
+    Azure Key Vault in last steps.
+</p>
+<p>
+    At the time of this lesson, the Azure CDN is a resource that does not support
+    <dfn>managed identity</dfn>. You can refer to <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/managed-identities-status">
+        Azure services that can use managed identities to access other services
+    </a> for an updated list. This means we need to create a service principal that
+    represents the Azure CDN resource.
+</p>
+<p>
+    The Azure CDN (Content Delivery Network) is what is known as a <dfn>
+        first party Microsoft application
+    </dfn> and as such, it has an official Application ID. The service principal ID for the
+    Microsoft.AzureFrontDoor-Cdn is: 205478c0-bd83-4e1b-a9d6-db63a3e1e1c8. As we mentioned
+    earlier, when an application is registered in Azure AD, two types of objects are created
+    in the tenant where the registration took place:
+</p>
+<ul>
+    <li>
+        Application Object: This object acts as the template where you can configure API
+        permissions, client secrets, branding, app roles, etc. The application object describes
+        how the service can issue tokens, resources that the application might need to
+        access, and the actions that the application can take.
+    </li>
+    <li>
+        Service Principal Object: This is what you see under the "Enterprise Applications"
+        registration blade in Azure AD. This is a concrete instance created from the application
+        object and a service principal is created in each tenant where the application is used
+        and references the globally unique application object. It defines what the app can
+        actually do in the specific tenant, who can access the app, and what resources the
+        app can access.
+    </li>
+</ul>
+<p>
+    Since we are not the owners of the Azure CDN application, we do not have to register the
+    CDN in our Azure AD directory but we have to create a service principal to define what the
+    app can actually do in our specific tenant, who can access the app, and what resources
+    the app can access; e.g., the Azure Key Vault and its secrets (certificate).
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-2-enable-https-with-your-own-certificate#register-azure-cdn">
+        instructions
+    </a> in MSDN documentation to create a service principal for the CDN in your Azure Active
+    Directory via PowerShell. You can refer to <a href="https://learn.microsoft.com/en-us/powershell/azure/install-az-ps">
+        Install Azure PowerShell
+    </a> to download, install, and connect the module to your Azure AD tenant.
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/26-deployment/49-service-principal-cmdlet.png"
+         style="max-width: 105%"
+         alt="Service principal for Azure CDN." />
+</div>
+<p>
+    Recall that the service principal is what you see under the "Enterprise Applications"
+    registration blade in Azure AD:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/50-enterprise-app-blade.png"
+         alt="Azure CDN service principal - Enterprise application." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the instructions to <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-2-enable-https-with-your-own-certificate#grant-azure-cdn-access-to-your-key-vault">
+        Grant Azure CDN access to your key vault
+    </a>.
+</p>
+<p>Access Policy Permissions:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/51-permissions.png"
+         alt="Access policy permissions." />
+</div>
+<p>
+    Acces Policy Principal. You might have to type the name to search for it. Otherwise, it
+    might not be visible:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/52-service-principal.png"
+         alt="Service principal for Access Policy." />
+</div>
+<p>
+    After creating the access policy, Azure CDN can now access the key vault and the
+    certificates (secrets) that are stored in it. Any CDN instance created in the same
+    subscription will have access to the certificates in the key vault.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-2-enable-https-with-your-own-certificate#select-the-certificate-for-azure-cdn-to-deploy">
+        documentation
+    </a>to select the certificate for the Azure CDN to deploy. Make sure you select the root
+    domain (not the www domain) to enable HTTPS:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/26-deployment/53-apex-domain-https.png"
+         style="max-width: 105%"
+         alt="Apex domain HTTPS." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    In order for the certificate to be automatically rotated to the latest version when a
+    newer version of the certificate is available in your key vault, set the certificate/secret
+    version to "Latest".
+</p>
+<p>
+    You will see the following confirmation message:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/54-custom-domain-updated.png"
+         alt="Custom domain updated message." />
+</div>
+<p>
+    When you use your external SSL/TLS certificate, domain validation is not required. At this
+    point HTTPS for the custom root domain is configured. It can take up to 6-8 hours for the
+    custom domain HTTPS feature to be activated. When the process completes, the custom HTTPS
+    status in the Azure portal is changed to "Enabled":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/55-enabling-https.png"
+         alt="Enabling HTTPS message." />
+</div>
+<p>
+    We have successfully configured HTTPS for the apex domain. Now, we will demonstrate how to
+    enable HTTPS fro the custom domain "www.rafaelsanchez.ws" using a CDN managed certificate.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-1-default-enable-https-with-a-cdn-managed-certificate#tabpanel_1_option-1-default-enable-https-with-a-cdn-managed-certificate">
+        instructions
+    </a> from MSDN to configure HTTPS on your Azure CDN custom domain using a TSL/SSL
+    certificate <strong>managed by Azure</strong>.
+</p>
+<p>
+    With a managed certificate, Azure CDN handles tasks such as procurement and renewal. 
+    After you enable the feature, the process starts immediately. If the custom domain is
+    already <a href="03-azure-cdn">
+        mapped to the CDN endpoint
+    </a> (as is our case), no further action is needed. Azure CDN will process the steps 
+    and complete your request automatically. If your custom domain is mapped elsewhere, 
+    use email to validate domain ownership.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the CDN endpoint that you want to configure the custom domain for and select the
+    custom domain to access its overview page:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/56-endpoint-custom-domains.png"
+         alt="Endpoint custom domains." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Toggle custom domain HTTPS to "On" with CDN managed and select "Save":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/57-enable-https.png"
+         alt="Enable HTTPS with CDN managed." />
+</div>
+<p>
+    You should see the following confirmation message:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/58-successfully-updated-message.png"
+         alt="Confirmation message." />
+</div>
+<p>
+    If you have a custom domain in use mapped to your custom endpoint with a CNAME
+    record (as is our case), the DigiCert CA uses it to automatically validate ownership of
+    your custom domain and create the certificate. DigiCert won't send you a verification
+    email and you won't need to approve your request. The certificate is valid for one
+    year and will be <strong>auto renewed</strong> before it expires.
+</p>
+<p>
+    Automatic validation typically takes a few hours. If you don't see your domain validate
+    in 24 hours, open a support ticket. Otherwise, when the process completes, the custom
+    HTTPS status in the Azure portal is changed to "Enabled":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/59-https-status-enabling.png"
+         alt="HTTPS status: Enabling." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the web browser to verify that both domains: <a href="https://rafaelsanchez.ws">
+        https://rafaelsanchez.ws
+    </a> and <a href="https://www.rafaelsanchez.ws">
+        https://www.rafaelsanchez.ws
+    </a> are validated correctly with their TLS/SSL certificate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/60-ssl-tls-validation.png"
+         alt="SSL/TLS certificate validation." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The issuer for the root domain is Sectigo RSA Domain Validation Secure Server CA. This
+    is an external certifcate that we got at the beginning of this lesson.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/62-certificate-issuer.png"
+         alt="SSL/TLS certificate issuer." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The issuer for the www domain is DigiCert TLS RSSA SHA256 2020 CA1 and the organization
+    is Microsoft Corporation. This is an Azure managed certificate that is provisioned with
+    no extra cost by Microsoft. Unfortunately, it is not available for apex domains.
+</p>
+<p>
+    After the custom domain HTTPS certificate has been validated, you should see something like
+    this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/61-custom-domain-validation.png"
+         alt="Custom domain validation." />
+</div>
+
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-custom-ssl?tabs=option-1-default-enable-https-with-a-cdn-managed-certificate">
+            Tutorial: Configure HTTPS on an Azure CDN custom domain
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/howto-authenticate-service-principal-powershell">
+            Use Azure PowerShell to create a service principal with a certificate
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-9.1.0#sign-in">
+            Install the Azure Az PowerShell module
+        </a>
+    </li>
+</ul>
+<p>
+    Other resources:
+</p>
+<ul>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/vr1IIkGHiKQ">
+            Demystifying Azure Service Principals and Managed Identities
+        </a> by Peter de Tender
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/62206432/how-to-register-your-azure-resource-as-an-application-in-azure-active-directory">
+            How to register your Azure resources as an Application in Azure Active Directory?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/purview/create-service-principal-azure">
+            Creating a service principal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal">
+            Use the portal to create an Azure AD application and service principal that
+            can access resources
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli">
+            Create an Azure service principal with the Azure CLI
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/cli/azure/ad/sp?view=azure-cli-latest">
+            az ad sp
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app">
+            Quickstart: Register an application with the Microsoft identity platform
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/howto-assign-access-portal">
+            Assign a managed identity access to a resource by using the Azure portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp">
+            Manage user-assigned managed identities
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy?tabs=azure-portal">
+            Assign a Key Vault access policy
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide?tabs=azure-cli">
+            Provide access to Key Vault keys, certificates, and secrets with an Azure
+            role-based access control
+        </a>
+    </li>
+</ul>
+<p>
+    This conculdes the first part of the deployment module. We have created a standalone
+    Blazor WASM app that is deployed as the landing page for a personal portfolio website
+    that will eventually contain personal information. The app is deployed in an Azure storage
+    account as the hosting service with custom domains that establish a secure communication
+    with the client using HTTPS protocol. What's more, it employs a CDN to optimize content
+    delivery based on the geo-location of the client.
+</p>
+<p>
+    The second part of the deployment module is about deploying a full blown Blazor WASM
+    hosted application. The Blazor Movies application has an SQL database dependency and
+    it implements OAuth 2.0 and OpenId Connect protocol to secure its Application/Server-Api
+    resources. In other words, it requires a special 'Key' to sign the security tokens.
+</p>

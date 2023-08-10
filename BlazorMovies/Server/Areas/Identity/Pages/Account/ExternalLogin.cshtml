@@ -1,0 +1,129 @@
+﻿
+@page
+@model ExternalLoginModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h1>@ViewData["Title"]</h1>
+<h2 id="external-login-title">
+    Associate your @Model.ProviderDisplayName account.
+</h2>
+<hr />
+
+@*<p id="external-login-description" class="text-info">
+    You've successfully authenticated with <strong>@Model.ProviderDisplayName</strong>.
+    Please enter an email address for this site below and click the Register button to finish
+    logging in.
+</p>*@
+
+@if (Model.PendingEmailConfirmation)
+{
+    <!-- Confirm account request message. -->
+    <form id="external-account"
+      asp-page="./ExternalLogin"
+      asp-route-returnUrl="@Model.ReturnUrl"
+      method="post" class="form-horizontal">
+        <p>
+            Please check your inbox for <span class="text-primary">
+                @Model.Input.Email
+            </span>
+            to confirm ownership of the email address before attempting to
+            <button type="submit" name="provider"
+                value="@Model.ProviderDisplayName"
+                title="Log in using your @Model.ProviderDisplayName account"
+                class="btn btn-link p-0 m-0 align-top">
+                Login using your @Model.ProviderDisplayName account
+            </button>.
+        </p>
+    </form>
+
+    <!-- Resend confirmation email button element. -->
+    <p>
+        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">
+            Resend email confirmation.
+        </a>
+    </p>
+}
+else
+{
+    <!-- Register local account message. -->
+    <p id="external-login-description" class="text-black-75"
+   style="text-align: justify">
+        You've successfully authenticated with <strong>
+            @Model.ProviderDisplayName
+        </strong>. Please enter an email address below to create a local
+        account and click the Register button to receive an email with a
+        confirmation link.
+    </p>
+
+    <!-- Set password message. -->
+    <p style="text-align: justify">
+        When you register with an external login provider, you don't require a
+        password to login to Flix Manager. This relieves you from creating
+        and remembering a password for the application but it also makes you
+        dependent on the external provider being available.
+    </p>
+    <p style="text-align: justify">
+        If the external login provider is not available, you won't be able
+        to sign-in to the application. It is not mandatory but as a precautionary
+        measure, you can provide a password for the local account.
+    </p>
+    <p style="text-align: justify">
+        Alternatively, you can provide a password later in the "Password"
+        section of the "Manage Your Account" page after a successful login.
+    </p>
+    <!-- Form with InputModel data and register button element. -->
+    <div class="row">
+        <div class="col-md-4">
+            <form asp-page-handler="Confirmation"
+              asp-route-returnUrl="@Model.ReturnUrl"
+              method="post">
+
+                <div asp-validation-summary="ModelOnly"
+                 class="text-danger">
+                </div>
+
+                <!-- Email field for registration of local account. -->
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control"
+                       autocomplete="email" />
+                    <label asp-for="Input.Email" class="form-label"></label>
+                    <span asp-validation-for="Input.Email"
+                      class="text-danger"></span>
+                </div>
+
+                <!-- Optional Password field for registration of local account. -->
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control"
+                       type="password" autocomplete="new-password" />
+                    <label asp-for="Input.Password" class="form-label"></label>
+                    <span asp-validation-for="Input.Password"
+                      class="text-danger"></span>
+                </div>
+
+                <!-- Confirm Password field. -->
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.ConfirmPassword" class="form-control"
+                       type="password" autocomplete="new-password" />
+                    <label asp-for="Input.ConfirmPassword" class="form-label"></label>
+                    <span asp-validation-for="Input.Password"
+                      class="text-danger"></span>
+                </div>
+
+                <!-- Register account button element. -->
+                <button type="submit" class="w-100 btn btn-lg btn-primary">
+                    Register
+                </button>
+
+            </form>
+        </div>
+    </div>
+}
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+

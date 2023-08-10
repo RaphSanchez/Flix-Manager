@@ -1,0 +1,107 @@
+﻿@if (executeComponent)
+{
+    <!-- #region Comments -->
+    <!-- Bootstrap's CSS rule for Modal component has a "display:none"              -->
+    <!-- declaration. Override it and use custom CSharp method Show()               -->
+    <!-- to control its behavior.                                                   -->
+    <!-- #endregion -->
+    <div class="modal" tabindex="-1" style="display: block">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header bg-light">
+                    <p class="modal-title fs-5">@Title</p>
+                    <!-- Compare with Cancel button below. Same result,
+                    different approach.
+                    -->
+                    <button type="button" @onclick="OnCancelCallback"
+                        class="btn btn-close" aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    @*RenderFragment parameter that represents a segment of UI to render*@
+                    @ChildContent
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <!-- Compare with Close button above. Same Result,
+                    different approach. InvokeAsync() allows you to pass
+                    arguments when using generic EventCallback<T>
+                    parameters and it is an asynchronous operation.
+                    -->
+                    <button type="button" @onclick="@(() =>
+                                                        OnCancelCallback.InvokeAsync())"
+                        class="btn btn-outline-success btn-sm">
+                        Cancel
+                    </button>
+
+                    <button type="button" @onclick="OnConfirmCallback"
+                        class="btn btn-outline-danger btn-sm">
+                        Confirm
+                    </button>
+                </div>
+
+            </div><!-- /modal-content -->
+        </div><!-- /modal-dialog -->
+    </div>
+
+    <!-- /modal -->
+}
+
+
+@code {
+
+    /// <summary>
+    /// Determines if this component should be executed and rendered.
+    /// </summary>
+    private bool executeComponent = false;
+
+    /// <summary>
+    /// Default header for the Confirmation component (modal component).
+    /// </summary>
+    [Parameter] public string Title { get; set; } = "Confirmation";
+
+    /// <summary>
+    /// A render fragment parameter represents a segment of UI to render. It is
+    /// satisfied by providing specific UI content that will be rendered. Naming
+    /// convention if you only have one RenderFragment parameter is to name it
+    /// ChildContent. Else, use meaningful names with 'Template' as a suffix.
+    /// </summary>
+    [Parameter] public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// EventCallback allows you to pass a method (functionality) from the parent
+    /// component as a parameter to this child component.
+    /// </summary>
+    [Parameter] public EventCallback OnCancelCallback { get; set; }
+    [Parameter] public EventCallback OnConfirmCallback { get; set; }
+
+    /// <summary>
+    /// Sets the value to execute and render (or not) the Confirmation
+    /// component. This method is consumed from the same parent
+    /// component (MoviesList) where this component (Confirmation)
+    /// is consumed. It is made possible with an @ref Blazor directive.
+    /// </summary>
+    /// <remarks>
+    /// It is a good practice to define functionality (code logic)
+    /// inside of the component that they act on.
+    /// </remarks>
+    public void ShowConfirmComponent() => executeComponent = true;
+
+    /// <summary>
+    /// Sets the value to execute and render (or not) the Confirmation
+    /// component. This method is consumed from the same parent
+    /// component (MoviesList) where this component (Confirmation)
+    /// is consumed. It is made possible with an @ref Blazor directive.
+    /// </summary>
+    /// <remarks>
+    /// It is a good practice to define functionality (code logic)
+    /// inside of the component that they act on.
+    /// </remarks>
+    public void HideConfirmComponent() => executeComponent = false;
+}
+
+
+
+

@@ -1,0 +1,787 @@
+﻿@page "/02-data-storage-options"
+<PageTitle>Data Storage Options</PageTitle>
+
+<h2>Consuming the API - Data Storage Options</h2>
+<h3>Data Storage</h3>
+<p>
+    As explained in the <a href="05-api">Blazor hosting models</a> section, we
+    are gradually preparing our web application to easily establish a dual
+    architecture; i.e., Blazor WASM <strong>hosted</strong> model and Blazor Server
+    app.
+</p>
+<p>
+    This means that the application's assets should be deployed as static files to a
+    web server (Application/Server-Api) or service (Azure Storage) capable of serving
+    static content to clients.
+</p>
+<p>
+    So far, we have been using a web service (<a href="https://www.imdb.com/">IMDb</a>)
+    to serve images of actors to our application. Using a public web service to retrieve
+    images for the actors and/or movies poses security risks. Instead, we should set up
+    our own service to store any assets (pictures, videos, database files, etc) required
+    by our application. Besides, the application itself will eventually be made available
+    to clients (or users) through some form of hosting service. There are mainly two
+    options:
+</p>
+<ol>
+    <li>
+        Hosting an application locally as we have been doing so far. Unless you plan
+        to consume your application for yourself, using your own computer as a server
+        is obviously not a very good idea.
+    </li>
+    <li>
+        Hosting an application using a cloud platform provider.
+    </li>
+</ol>
+<p>
+    In this course we will only demonstrate how to host a Blazor application, and any
+    resource required, using a cloud service provider. Hosting an application, or any
+    resources, by converting an on-premises computer into a server with the intend to
+    serve two or more remote users would probably need its own complete course. Having
+    said this...
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Although the main purpose of a Blazor
+    (web) application is to be available through some kind of web service, there might
+    be times when you prefer to only use it in your own computer (in an on-premises
+    server as we have beend doing so far). For this reason, we will also teach how to
+    store data in an application's web root folder located in the Application/Server
+    project; i.e., upload images locally (on-premises).
+</p>
+<h3>Uploading Images to Azure Storage</h3>
+<h4 class="mt-4">What is the cloud?</h4>
+<p>
+    The <dfn>cloud</dfn> is a term used to describe a global network of servers, each
+    with a unique function. The cloud is not a physical entity, it refers to a vast
+    network of remote servers around the globe which are hooked together and meant to
+    operate as a single ecosystem.
+</p>
+<p>
+    These servers are designed to store and managage data, run applications, or deliver
+    content. They may provide a service such as streaming videos, web mail, office
+    productivity software, or social media. Instead of accessing files and data from a
+    local or personal computer, you are accessing them online from any Internet-capable
+    device.
+</p>
+<p>
+    There are mainly four different methods to deploy cloud resources:
+</p>
+<ol>
+    <li>
+        <strong>Public cloud:</strong> Shares resources and offers services to the
+        public over the internet.
+    </li>
+    <li>
+        <strong>Private cloud:</strong> Is not shared and offers services over a
+        private internal network typically hosted on-premises.
+    </li>
+    <li>
+        <strong>Hybrid cloud:</strong> Shares services between public and private
+        clouds depending on their purpose.
+    </li>
+    <li>
+        <strong>Community cloud:</strong> Shares resources only between organizations
+        such as with government institutions.
+    </li>
+</ol>
+<p>
+    For more info visit <a href="https://azure.microsoft.com/en-us/overview/what-is-the-cloud/">
+        What is the cloud?
+    </a>
+</p>
+<h4>Azure and .Net</h4>
+<p>
+    Azure is a cloud platform designed for hosting your applications in a scalable,
+    reliable, and maintainable way. Azure Cloud Services is a Platform as a Service
+    (PaaS) technology engineered to deploy applications. In other words, Azure can
+    be incorporated into an application as:
+</p>
+<dl>
+    <dt>Application hosting on Azure</dt>
+    <dd>
+        Azure can host an entire application stack from web applications and APIs to
+        databases to storage services. It supports hosting models from fully managed
+        services to containers to virtual machines.
+    </dd>
+    <dt>Consuming cloud services from applications</dt>
+    <dd>
+        Existing apps can incorporate Azure services to extend their capabilities. This
+        could include adding full-text searching capability with <dfn>Azure Cognitive Search</dfn>,
+        securely storing application secrets in <dfn>Azure Key Vault</dfn> or adding
+        vision, speech, and language understanding capabilities with
+        <dfn>Azure Cognitive Services.</dfn>
+    </dd>
+    <dt>Modern serverless architectures</dt>
+    <dd>
+        Azure functions simplify building solutions to handle event-driven workflows,
+        whether responding to HTTP requests, handling file uploads in Blob storage,
+        or processing events in a queue.
+    </dd>
+</dl>
+<p>
+    Whether an application is hosted in Azure or on-premises, access to most Azure
+    services is provided through the Azure SDK for .Net. The Azure SDK is provided
+    as a series of NuGet packages. Incorporating services to an application is <strong>
+        as easy as installing the correct NuGet package, <span class="mark">
+            instantiating a <dfn>client</dfn> object,
+        </span>
+    </strong> and calling the appropriate methods.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="images/09-ConsumingApi/08-azure-sdk.png"
+         alt=".Net and Azure services diagram." />
+    <figcaption class="figure-caption text-center">.Net Azure Resources</figcaption>
+</figure>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/azure/intro">
+        Introduction to Azure and .Net
+    </a>
+</p>
+<h4>Azure Terminology</h4>
+<dl>
+    <dt>Resource</dt>
+    <dd>
+        A manageable item that is available through Azure. Virtual machines, storage
+        accounts, web apps, databases, and virtual networks are examples of resources.
+        Management groups, subscriptions, resource groups, and tags are also examples
+        of resources.
+    </dd>
+    <dt>Resource group</dt>
+    <dd>
+        A <dfn>container</dfn> that holds related <dfn>resources</dfn> for an Azure
+        <dfn>solution.</dfn> It includes those resources that you want to manage as
+        a group. All the <dfn>resources</dfn> in a <dfn>resource group</dfn> should
+        share the same lifecycle (deployed, updated, and/or deleted together).
+    </dd>
+    <dt>Resource provider</dt>
+    <dd>
+        A service that supplies Azure <dfn>resources</dfn>. Common <dfn>
+            resource providers
+        </dfn> are <dfn>Microsoft.Compute</dfn> (virtual machine), <dfn>Microsoft.Storage</dfn>,
+        and <dfn>App Services</dfn>.
+    </dd>
+    <dt>Subscriptions</dt>
+    <dd>
+        A subscriptions is a container used to provision resources in Azure. It holds the
+        details of all your resources like virtual machines (VMs), databases, app services,
+        and more. When you create an Azure resource like a VM, you identify the subscription
+        it belongs to. As you use the VM, the usage of the VM is aggregated and billed
+        monthly.
+    </dd>
+</dl>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="images/09-ConsumingApi/09-scope-levels.png"
+         alt="Azure scope levels." />
+    <figcaption class="figure-caption text-center">.Net Azure Resources</figcaption>
+</figure>
+<p>
+    In other words, the Azure account is a global unique entity that gets you access
+    to Azure services and your Azure subscriptions. You can create multiple subscriptions
+    in your Azure account to create separation; e.g., for billing or management purposes.
+    In your subscription(s) you can manage resources in resource groups.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/overview">
+        What is Azure Resource Manager?
+    </a> and
+    <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal">
+        Manage Azure Resource Manager resource groups by using the Azure portal
+    </a>
+</p>
+<h4>Azure Storage Services</h4>
+<p>
+    The Azure Storage platform is Microsoft's cloud storage solution for modern data
+    storage scenarios. It offers storage services for data objects, disk storage for
+    Azure virtual machines (VMs), a file system service for the cloud, a messaging
+    store for reliable messaging, and a NoSql store.
+</p>
+<p>
+    Data in Azure Storage is accessible over HTTP or HTTPS protocols. All data is
+    automatically encrypted prior to persisting to the storage account and decrypted
+    prior to retrieval. Some of the storage data services offered by the platform are:
+</p>
+<dl>
+    <dt>Azure Files</dt>
+    <dd>
+        Azure Files enables setting up highly available network file shares that can be
+        accessed by using the standard Server Message Block (SMB) protocol. This means
+        that multiple VMs can share the same files with both read and write access.
+    </dd>
+    <dd>
+        Files stored with Azure Files can be accessed from anywhere in the world using a
+        URL that points to the file and includes a shared access signature (SAS) token;
+        e.g.,
+    </dd>
+    <dd>
+        <strong><code>https://{storageaccount}.file.core.windows.net</code></strong>
+    </dd>
+
+    <dt>Disk storage</dt>
+    <dd>
+        An Azure managed disk is a virtual hard disk (VHD). You can think of it like a
+        physical disk in an on-premises server but virtualized. Azure-managed disks are
+        stored as page blobs, which are a random IO storage object.
+    </dd>
+
+    <dt>Azure Blobs</dt>
+    <dd>BLOB stands for Binary Large Object</dd>
+    <dd>
+        Azure Blob storage is Microsoft's object storage solution for the cloud. Blob
+        storage is optimized for storing massive amounts of unstructured data such
+        as text or binary data. Unstructured data is data that does not adhere to a
+        particular data model (class) or definition. For example, text or binary data.
+    </dd>
+    <dd>
+        Allows soft deleting to recover data after it has been deleted.
+    </dd>
+    <dd>
+        Blob storage is ideal for:
+        <ul class="mt-2">
+            <li>
+                Serving images or documents directly to a browser.
+            </li>
+            <li>
+                Storing files for distributed access.
+            </li>
+            <li>
+                Streaming video and audio.
+            </li>
+            <li>
+                Storing data for backup and restore, disaster recovery, and archiving.
+            </li>
+            <li>
+                Storing data for analysis by an on-premises or an Azure-hosted service.
+            </li>
+        </ul>
+    </dd>
+    <dd>
+        Requires the <dfn>Azure.Storage.Blobs</dfn> NuGet package.
+    </dd>
+    <dd>
+        Blob storage offers three types of <dfn>resources</dfn>:
+        <dl class="mt-2">
+            <dt>Storage Account</dt>
+            <dd>
+                The <dfn>storage account</dfn> provides a unique namespace in Azure for
+                data objects including blobs, file shares, queues, tables, and disks.
+                Every object stored has an address that includes your unique account name.
+                The <strong>combination</strong> of the <strong>account name</strong> and
+                the Azure Storage <strong>blob endpoint</strong> forms the
+                <strong><dfn>base address</dfn></strong> for the objects in your storage
+                account; e.g.,
+            </dd>
+            <dd>
+                <strong><code>https://{storageaccount}.blob.core.windows.net</code></strong>
+            </dd>
+            <dd>
+                To construct the URL for accessing an object in an storage account, you
+                must append the object's location in the <dfn>storage account</dfn> to
+                the blob's endpoint. For example, the URL for a blob will be
+                similar to:
+            </dd>
+            <dd>
+                <strong><code>https://{storageaccount}.blob.core.windows.net/{container}/{blob}</code></strong>
+            </dd>
+            <dd>
+                All objects in a storage account are billed together as a group.
+            </dd>
+            <dd>
+                The <dfn>storage account</dfn> <strong>name must be lowercase</strong>
+                and can contain <strong>only</strong> letters and numbers.
+            </dd>
+            <dd>
+                An Azure <dfn>storage account</dfn> can be accessed and manipulated in .Net
+                through a <strong><code>BlobServiceClient</code></strong> object.
+            </dd>
+            <dt>Container</dt>
+            <dd>
+                A <dfn>container</dfn> in the <dfn>storage account</dfn>
+                organizes a set of blobs, similar to a directory (or folder) in a file
+                system. A <dfn>storage account</dfn> can include an unlimited number of
+                <dfn>containers,</dfn> and a <dfn>container</dfn> can include an unlimited
+                number of blobs.
+            </dd>
+            <dd>
+                The <dfn>container</dfn> <strong> name must be lowercase.</strong>
+            </dd>
+            <dd>
+                An Azure <dfn>container</dfn> can be accessed and manipulated in .Net through
+                a <strong><code>BlobContainerClient</code></strong> object.
+            </dd>
+            <dt>Blob</dt>
+            <dd>
+                Any number of blobs (binary large objects) in a <dfn>container</dfn>.
+            </dd>
+            <dd>
+                An Azure blob can be accessed and manipulated in .Net through a
+                <strong><code>BlobClient</code></strong> object.
+            </dd>
+        </dl>
+        All <span class="mark"><strong><dfn>Client</dfn></strong></span> instance methods
+        are thread-safe and independent of each other. For this reason, you should <strong>
+            always use <span class="mark"><dfn>Client</dfn></span> object instances to
+            access and manipulate Azure blob storage <dfn>resources</dfn>.
+        </strong>
+    </dd>
+</dl>
+<p>
+    Relationship between these Azure blob storage <dfn>resources</dfn>:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 400px; margin:auto;"
+         src="images/09-ConsumingApi/10-blob-resources.png"
+         alt="Blob resources diagram." />
+    <figcaption class="figure-caption text-center">.Net Azure Resources</figcaption>
+</figure>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction">
+        Introduction to the core Azure Storage services
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction">
+        Introductioin to Azure Blob storage
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/Naming-and-Referencing-Containers--Blobs--and-Metadata">
+        Naming and Referencing Containers, Blobs, and Metadata
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/overview/azure/storage.blobs-readme">
+        Azure Storage Blobs client library for .Net - Version 12.10.0
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/azure/storage/common/storage-account-overview">
+        Storage account overview
+    </a>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Configure the application to be
+    capable of connecting to an Azure storage account to upload pictures. Have
+    the People controller upload the Person image selected by the user to an
+    Azure storage account and persist the URL of the object into the database as
+    a Person.PictureUrl property value. You will need an Azure subscription and
+    storage account.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Azure portal, sign-up,
+    configure a free subscription named "Free-subscription", create a <dfn>Resource Group</dfn>
+    named "BlazorMovies-RG", add a <dfn>Storage Account</dfn> named "blazormovies0",
+    and an <dfn>App Service</dfn> named "BlazorMovies-AS".
+</p>
+<p>
+    The Storage Account should adhere to the following specifications:
+</p>
+<ul>
+    <li>
+        Redundancy: Locally-redundant storage (LRS).
+    </li>
+    <li>
+        Require secure transfer for REST API operations.
+    </li>
+    <li>
+        Enable blob public access.
+    </li>
+    <li>
+        Uncheck default to Azure Active Directory (AD) authorization.
+    </li>
+    <li>
+        Connectivity method: "Public endpoint (all networks)".
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/11-storage-account.png"
+         alt="Storage Account successfully created." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal">
+        Create a storage account
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Get the connection string to the
+    Azure storage account you just created. In the Azure portal, click on the storage
+    account (blazormovies0) and go to "Access keys" under "Security + networking".
+    Click on "Show keys" and copy the connection string:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/12-storage-connection-string.png"
+         alt="Connection string for the storage account." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Just like you did to configure the
+    <a href="06-api-db-support">database</a> connection string, go to the
+    Application/Server/appsettings.json/appsettings.Development.json file and declare the
+    connection string to the Azure storage account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/13-storage-config.png"
+         alt="AzureStorageConnection string declaration." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Storage account access keys provide full access to the configuration of a
+        storage account, as well as the data. <strong>
+            You must always protect the access keys by keeping them in a secure location
+        </strong> using tools such as the Secret Manager Tool during development and Azure
+        Key Vault once your application has been deployed.
+    </p>
+</div>
+<p>
+    You can refer to the <a href="10-external-id-providers">External Providers</a> lesson
+    of the Security module for an example on how to use .Net's <a href="https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows#secret-manager">
+        Secret Manager Tool
+    </a> to store sensitive data during the development of an ASP.Net Core project.
+</p>
+<p>
+    You can also refer to the <a href="06-https-cdn">Https CDN</a> and
+    <a href="07-dynamic-website">Dynamic Website</a> lessons of the Deployment
+    module for an example on how to work with secrets from Azure Key Vault.
+</p>
+<p>
+    We need to configure a custom service responsible for handling file storage operations
+    with cloud services. As usual, we will implement an interface to add a level of
+    abstraction for the file storage service. This way, if we later decide to use a
+    different kind of file storage, we can simply change its implementation in the
+    dependency injection system of the Application/Server-Api project.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the Application/Server-Api project
+    and install the NuGet package <dfn>Azure.Storage.Blobs</dfn>. Create a new folder named
+    "FileStorageManager" and add a file with an interface named "IFileStorageService" and
+    a file with its implementation. Since we are implementing an Azure storage service, that
+    should be the name of the implementation class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/14-cloud-service-folder-tree.png"
+         alt="CloudServices folder tree." />
+</div>
+<p>
+    The application must be capable of performing 3 basic operations with the cloud
+    service. It has to:
+</p>
+<ol>
+    <li>Upload (or store) a data object.</li>
+    <li>Delete (or remove) a stored data object.</li>
+    <li>Edit (or update) a stored data object.</li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Declare the members for the IFileStorageService:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/15-i-file-storage-service.png"
+         alt="IFileStorageService interface." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Use the AzureStorageService class to
+    implement the functionality of the IFileStorageService interface to save, delete, and/or
+    edit data objects stored in an Azure storage account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/16-azure-storage-service-one.png" />
+    <img src="images/09-ConsumingApi/16-azure-storage-service-two.png" />
+    <img src="images/09-ConsumingApi/16-azure-storage-service-three.png"
+         alt="AzureStorageService class." />
+</div>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The IFileStorageService and its implementations are extended in the <a href="07-db-reset">
+            DB Backup & Reset
+        </a> lesson of the Miscellaneous module.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Configure the IFileStorageService interface
+    as a service in the dependency injection container of the Application/Server-Api project:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/17-azure-storage-service-config.png"
+         alt="IFileStorageService configuration in DI container." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Refactor the "Add" action of the People
+    controller to consume the IFileStorageService interface to intercept the new Person
+    object to persist to the database, convert the Person.PictureUrl from Base64 format to
+    a byte[], store it in the cloud storage service, and overwrite the current
+    Person.PictureUrl property value with the URL that points to the location of the Person
+    picture in the cloud service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/18-people-controller-cloud-storage-one.png" />
+    <img src="Images/09-ConsumingApi/18-people-controller-cloud-storage-two.png"
+         alt="People controller consumes the IFileStorageService to upload the Person picture." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Test the "Add" action of the People controller
+    by inserting a new Person object into the database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Run the application, go to the PersonCreate
+    routable component, create a new Person named "TestPerson", and "Save Changes":
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/19-new-person-test.png"
+         alt="PersonCreate component fields filled out." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the SQL Server Object Explorer to visually
+    check that the Person.PictureUrl was appropriately persisted to the database; i.e., that
+    the URL format that points to the cloud service that contains the image is stored as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/20-people-database-table.png"
+         alt="People database table." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the web browser to test the Picture.Url
+    property value stored in the database. Copy-paste the URL in the address bar of the web
+    browser. It should download the image stored in the cloud service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/21-cloud-url-test.png"
+         alt="Testing the URL of the picture resource." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the <dfn>Storage browser</dfn> of the
+    Azure portal to check the "images-people" container in the "blazormovies0" storage account.
+    Click the "Download" tab to view the stored image:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/22-azure-picture-stored.png"
+         alt="Azure portal." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/api/overview/azure/storage.blobs-readme">
+        Azure Storage Blobs client library for .Net - Version 12.10.0
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/azure/sdk/dependency-injection">
+        Dependency injection with the Azure SDK for .Net
+    </a> and
+    <a href="https://devblogs.microsoft.com/azure-sdk/best-practices-for-using-azure-sdk-with-asp-net-core/">
+        Best practices for using Azure SDK with ASP.Net Core
+    </a>, and
+    <a href="https://github.com/Azure/azure-sdk-for-net/blob/Azure.Storage.Blobs_12.10.0/sdk/storage/Azure.Storage.Blobs/samples/Sample02_Auth.cs">
+        Azure-sdk-for-net
+    </a>
+</p>
+<p>
+    We have successfully implemented a service capable of uploading data objects to an
+    Azure storage account. The service is consumed through an IFileStorageService interface
+    that provides a layer of abstraction to easily implement different options for uploading
+    application assets. The IFileStorageService can handle any type of data object.
+</p>
+<h3>Uploading Images locally (on-premises)</h3>
+<p>
+    As mentioned in the <a href="01-blazor">Blazor Introduction</a> section, Blazor
+    is a client-side web UI framework similar in nature to JavaScript front-end
+    frameworks like Angular, React, or Vue. It handles user interactions and renders
+    the necessary UI updates.
+</p>
+<p>
+    We also explained in the <a href="02-components-part-two">Layouts</a> section that
+    unlike ASP.Net Web Forms projects, not all files in a Blazor project can be
+    requested as static files. Only the files in the
+    <strong><code>wwwroot/</code></strong> folder are web-addressable. This folder is
+    referred to as the <strong>application's "web root"</strong>. Anything outside of
+    the app's web root folder is not web-addressable. This setup provides an additional
+    level of security that prevents accidental exposing of project files over the web.
+</p>
+<p>
+    In addition, we noted that we are gradually preparing our web application to easily
+    migrate its hosting model from a Blazor WASM <strong>standalone</strong> app to a
+    Blazor WASM <strong>hosted</strong> app.
+</p>
+<p>
+    This means that the application's assets should be deployed as static files to a
+    web server (Application/Server-Api) or a cloud service (Azure Storage) <strong>
+        capable of serving static content
+    </strong> to clients. Since we intend to demonstrate how to store app's assets
+    locally (on-premises), we will have to create a <dfn>web root folder</dfn> for
+    the Application/Server-Api project.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Configure the application to be capable
+    of storing the images selected by the user in a directory inside a physical drive
+    of your computer. Have the People controller store the Person image selected by the
+    user to a custom folder that resides in the web sever's root directory
+    (Application/Server-Api/wwwroot) and persist the URL of the object into the database
+    as a Person.PictureUrl property value.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create the web root directory (wwwroot)
+    where the application assets will be stored (back-end storage):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/25-web-app-root-directory.png"
+         alt="Web server's (Server project) root directory." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create a new implementation of the
+    IFileStorageService interface. This service class will be responsible for storing
+    files into the web root folder of the server project so it can be named
+    InAppStorageService:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/30-in-app-storage-one.png" />
+    <img src="images/09-ConsumingApi/30-in-app-storage-two.png" />
+    <img src="images/09-ConsumingApi/30-in-app-storage-three.png"
+         alt="InAppStorageService class implements the IFileStorageService interface." />
+</div>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The IFileStorageService and its implementations are extended in the <a href="07-db-reset">
+            DB Backup & Reset
+        </a> lesson of the Miscellaneous module.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Configure the IFileStorageService
+    interface in the Application/Server-Api dependency injection container with the
+    InAppStorageService implementation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/31-in-app-storage-config.png"
+         alt="InAppStorageService configuration in the DI container." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Test the "Add" actioin of the People
+    controller by inserting a new Person object into the database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Run the application, go to the PersonCreate
+    routable component, create a new Person named "InApp Person", and "Save Changes":
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/32-in-app-person.png"
+         alt="Person create form." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the SQL Server Object Explorer to
+    visually check that the Person.Url was appropriately persisted to the database; i.e.,
+    that the URL format that points to the web root folder of the application server
+    that contains the image is stored as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/33-in-app-person-stored.png"
+         alt="People database table with url to web root directory.">
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the web browser to connect to the
+    web api service and retrieve the Person object you just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/34-in-app-person-retrieved.png"
+         alt="Web browser with new person object in JSON format." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Visually check the folder tree of the
+    web root directory of the application's web server project. There should be an
+    "image-people" container with an image named with a GUID:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/35-web-root-directory.png"
+         alt="Web root directory." />
+</div>
+<p>
+    To recapitulate, we have demonstrated 3 options to store images uploaded by the client:
+</p>
+<ol>
+    <li>
+        Stores a string representation of the image encoded in Base64. The actual image
+        data is persisted to the database.
+    </li>
+    <li>
+        Uploads an image to a cloud storage service. Persists to the database a string
+        representation of the URL that points to the web service to access the data object.
+    </li>
+    <li>
+        Stores an image to the web root directory of the Application/Server-Api. Persists
+        to the database a string representation of the URL that points to the location
+        of the web root folder to access the data object.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-primary">Task:</span> Bring back the IFileStorageService to
+    employ the AzureStorageService implementation to upload the application assets to
+    a cloud storage service.
+</p>
+<h4>Use ASP.Net Core APIs in a class library</h4>
+<p>
+    <span class="badge bg-info">Notice:</span> Initially, the IFileStorageService code
+    logic was declared in an Application/Repository project. However, since this is a
+    project of type Razor class library, it needs some adjustments to have access to the
+    IWebHostEnvironment interface to have access to the application's web root path.
+</p>
+<p>
+    Unfortunately, at the time of this lesson, the Blazor application produces an error
+    after explicitly referencing ASP.Net core as explained below. In any case, the lesson
+    is left intact for future reference. Keep in mind that it might produce the following
+    error:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/36-web-app-error.png"
+         alt="Web app error with framework reference." />
+</div>
+<p>
+    Having said this, here is the procedure:
+</p>
+<p>
+    You might recall from the <a href="03-routing">
+        Understanding the <dfn>Project</dfn> file
+    </a> section, that Microsoft Build Engine (MSBuild) project files lie at the heart
+    of the build and deployment process. To build a project (.exe or .dll), MSBuild must
+    process the project file asssociated with the project.
+</p>
+<p>
+    With the release of .Net Core 3.0, many ASP.Net Core assemblies are no longer
+    published to NuGet as packages. Instead, the assemblies are included in the
+    <dfn>Microsoft.AspNetCore.App</dfn> shared framework, which is installed with
+    the .Net Core SDK and runtime installers.
+</p>
+<p>
+    As of .Net Core 3.0, projects using the MSBuild SDK: <dfn>Microsoft.NET.Sdk.Web</dfn>,
+    implicitly reference the shared framework. Projects using the <dfn>Microsoft.NET.Sdk</dfn>
+    or <dfn>Microsoft.NET.Sdk.Razor</dfn> SDK must reference ASP.Net Core to use ASP.Net Core
+    APIs in the shared framework:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/28-blazor-movies-folder-tree.png"
+         alt="BlazorMovies folder tree." />
+</div>
+<p>
+    Application/Server-Api project file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/26-server-project-file.png"
+         alt="Project file of the Server project." />
+</div>
+<p>
+    Application/Repository project file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/27-repository-project-file.png"
+         alt="Project file of the Repository project (class library)." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Declare a reference to ASP.Net Core in
+    the project file of the Application/Repository project (class library - .dll) to
+    enable access to the ASP.Net Core APIs.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Add a <strong><code>&lt;FrameworkReference/&gt;</code></strong>
+    element within an <code>&lt;ItemGroup/&gt;</code>. Use the <code>Include</code> attribute
+    to identify the <dfn>Microsoft.AspNetCore.App</dfn> shared framework:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/29-repository-with-shared-framework.png"
+         alt="Repository project file with SharedFramework." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore?view=aspnetcore-6.0&tabs=visual-studio">
+        Use ASP.Net Core APIs in a class library
+    </a>,
+    <a href="https://stackoverflow.com/questions/68764432/how-to-access-iwebhostenvironment-in-class-library-net-5">
+        How to access IWebHostEnvironment in class library .Net 5?
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app?view=aspnetcore-6.0">
+        Microsoft.AspNetCore.App for ASP.Net Core
+    </a>
+</p>
+

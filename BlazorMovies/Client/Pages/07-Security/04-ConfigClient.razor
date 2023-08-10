@@ -1,0 +1,665 @@
+﻿@page "/04-security-config-client"
+<PageTitle>Security Config Client</PageTitle>
+
+<h2>Security - Client App Configuration</h2>
+<p>
+    As you know, Blazor has different <a href="05-api">hosting models</a>. When a
+    Blazor WASM app is created for deployment without a backend ASP.Net Core app
+    to serve its files, the app is called a <dfn>
+        standalone Blazor WebAssembly app
+    </dfn>. When the Blazor WASM app is created for deployment with a backend ASP.Net
+    Core app to serve its files (as is the case of our application), the app is called
+    a <dfn>hosted Blazor WebAssembly app</dfn>.
+</p>
+<p>
+    Using the hosted Blazor WebAssembly model provides a full-stack web development
+    experience with .Net including the ability to share code between the
+    Application/Client and Application/Server-Api apps (or projects), support for
+    prerendering, and integration with MVC and Razor Pages. A hosted client app can
+    interact with its backend server app over the network using a variety of
+    messaging frameworks and protocols such as <a href="https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-6.0">
+        web API
+    </a>, <a href="https://docs.microsoft.com/en-us/aspnet/core/grpc/?view=aspnetcore-6.0">
+        gRPC-web
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/signalr/introduction?view=aspnetcore-6.0">
+        SignalR
+    </a>.
+</p>
+<p>
+    We also mentioned in the introductory section on <a href="01-security-fundamentals">
+        Security
+    </a>, that with Blazor WebAssembly apps that run exclusively on the client (standalone),
+    AuthZ is <strong>only</strong> used to determine which UI options to show. Since
+    client-side checks can be modified or bypassed by a user, Blazor standalone apps cannot
+    enforce authorization access rules.
+</p>
+<p>
+    The model we have implemented for our <dfn>hosted</dfn> Blazor WebAssembly
+    app provides a full stack web development experience. This means that we can use an
+    authentication service, also known as identity provider
+    (Application/Server-Api/IdentityServer), to handle AuthN operations and that we can
+    enforce AuthZ server-side.
+</p>
+<p>
+    The AuthZ operations are the responsibility of the Application/Server-Api which has
+    also been configured to interact with the IdentityServer engine. Both the IdentityServer
+    and the Server-Api in turn, have been integrated with the ASP.Net Core Identity framework
+    to handle the membership system.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You should <strong>always</strong> perform authorization checks server-side,
+        not on the client. Otherwise, the AuthZ checks can be bypassed because all
+        client-side code can be modified by users.
+    </p>
+</div>
+
+<h4>Configuring the Application/Client</h4>
+<h5>Authentication process with OIDC</h5>
+<p>
+    The authentication support in Blazor WebAssembly is built on top of the
+    <dfn>oidc-client.js</dfn> library which is used to handle the underlying authentication
+    protocol details.
+</p>
+<p>
+    Blazor WebAssembly supports authenticating and authorizing apps using OIDC via
+    the <dfn>Microsoft.Asp.NetCore.Components.WebAssembly.Authentication</dfn> library.
+    The library provides a set of primitives for seamlessly authenticating against
+    ASP.Net Core backends. The library also allows integration of ASP.Net Core Identity
+    with API authorization support built on top of Duende IdentityServer.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        SPA frameworks, and Blazor is not the exception, should implement an authentication
+        process where users are redirected to an external provider (e.g.,
+        Application/Server-Api/IdentityServer) and returned to the app (Application/Client).
+        The engineering design of Blazor WebAssembly is settled on OAuth and OIDC as the best
+        option for authentication. <dfn>Token-based authentication</dfn> was chosen over
+        <dfn>cookie-based authentication</dfn> for functional and security reasons.
+    </p>
+</div>
+<p>
+    If you didn't in last lecture, it is strongly suggested to go to Udemy and watch
+    episodes <a href="https://www.udemy.com/share/102l0i3@wgCePs0_ln0ljrZX_ZecJg6cGbVOuoTMgh8PUkaVaSHxK0_9D3RdjAJCDO36A1ZI/">
+        99. Exploring the New Authentication Template for Blazor WebAssembly
+    </a> of the "Programming in Blazor - ASP.Net Core 5" course by Felipe Gavilan and
+    <a href="https://www.udemy.com/share/104giU3@7m-qsV-fpuQcsiVc3jker7jgArjuBQCzTmrMlcQsH4VuMDXibho64sBCoieVVoUL/">
+        127. The Aspects of Making Blazor WASM work with Identity Server
+    </a> of the "Complete Guide to ASP.Net Core RESTful API with Blazor WASM" course by
+    Frank Liu.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Configure the Application/Client
+    project to communicate with the Application/Server-Api/IdentityServer engine
+    to make authentication requests and/or access Application/Server-Api resources.
+</p>
+<p>
+    Except for a few small adjustments, the configuration is very similar to the one
+    exposed by the Demo application we created in Step One of <a href="03-security-id-server">
+        last lecture
+    </a> where we configured the IdentiyServer engine. The Demo app was created using
+    a built-in Visual Studio Template for a hosted Blazor WebAssembly application with
+    an "individual user accounts" authentication model.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Perform an update of all currently installed NuGet packages in the Application/Client
+    and install the following NuGet packages:
+</p>
+<ul>
+    <li>
+        <strong>Microsoft.AspNetCore.Components.WebAssembly.Authentication</strong> to
+        provide a set of primitives that help the app authenticate users and obtains tokens
+        to call protected APIs.
+    </li>
+</ul>
+<p>
+    Blazor WebAssembly (Application/Client) supports authenticating and authorizing
+    apps using OIDC via the <dfn>
+        Microsoft.AspNetCore.Components.WebAssembly.Authentication
+    </dfn> library. This library provides a set of primitives for seamlessly
+    authenticating against ASP.Net Core backends. The library integrates ASP.Net Core
+    Identity with API authorization support built on top of Duende IdentityServer.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Configure the authentication support with a script that defines the Authentication
+    service in JavaScript in the <a href="02-components-part-two">
+        host page
+    </a> (index.html) located in the application's web root folder. The <strong>
+        <code>
+            oidc-client.js
+        </code>
+    </strong> library is responsible of handling the underlying authentication protocol
+    details; i.e., it internally calls methods defined in the script to  perform
+    authentication opertions:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/01-authn-js-script.png"
+         style="max-width: 140%;"
+         alt="oidc-client.js script in the host page." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Set up the services required by the application (Application/Client) to interact
+    with the existing authorization system to authenticate users.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Add a call to the <dfn>.AddApiAuthorization</dfn> extension method in the dependency
+    injection container:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/02-add-api-authz.png"
+         alt="Call to .AddApiAuthorization extension method." />
+</div>
+<h4>Authentication process with OIDC</h4>
+<p>In broad terms, authentication works as follows:</p>
+<ul>
+    <li>
+        When an anonymous user selects the login button or requests a page with the
+        <code>[Authorize]</code> attribute applied, the user is redirected to the
+        Application/Client login page (/authentication/login).
+    </li>
+    <li>
+        In the login page, the authentication library prepares for a redirect to the
+        authorization endpoint. The authorization endpoint is outside of the Blazor
+        WebAssembly app (Application/Client) and can be hosted at a separate origin.
+        The endpoint is responsible for determining whether the user is authenticated
+        (signed-in) and for issuing one or more tokens in response. The authentication
+        library (Application/Client) provides a login callback to receive the
+        authentication response.
+        <ul class="mt-2">
+            <li>
+                If the User is not authenticated, it is then redirected to the
+                underlying authentication system, which is usually ASP.Net Core
+                Identity.
+            </li>
+            <li>
+                If the User was already authenticated, the authorization endpoint
+                generates the appropriate tokens and redirects the browser back
+                to the login callback endpoint (/authentication/login-callback)
+                of the Application/Client.
+            </li>
+        </ul>
+    </li>
+    <li>
+        When the Blazor WebAssembly app (Application/Client) loads the login callback
+        endpoint (/authentication/login-callback), the authentication response is
+        processed.
+        <ul class="mt-2">
+            <li>
+                If the authentication process completes successfully, the user is
+                authenticated and optionally sent back to the original protected
+                URL that the user requested.
+            </li>
+            <li>
+                If the authentication process fails for any reason, the user is sent
+                to the login failed page (/authentication/login-failed), and an error
+                is displayed.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    The interaction between the Application/Client and the
+    Application/Server-Api/IdentityServer engine is the responsibility of the
+    <code>Pages/Authentication.razor</code> routable component. The Authentication component
+    is reponsible for handling remote authentication operations and permits the app
+    (Application/Client) to:
+</p>
+<ul>
+    <li>
+        Configure routes for authentication states.
+    </li>
+    <li>
+        Set UI content for authentication states.
+    </li>
+    <li>
+        Manage authentication state.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Create the Application/Client/Pages/Authentication.razor routable component to
+    manage the interaction between the authentication service (IdentityServer)
+    and the Application/Client; i.e., to handle remote authentication operations.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Go to the Application/Client/_imports support file and add a <dfn>using</dfn>
+    directive to:
+</p>
+<ul>
+    <li><dfn>Microsoft.AspNetCore.Components.WebAssembly.Authentication</dfn></li>
+    <li><dfn>Microsoft.AspNetCore.Components.Authorization</dfn></li>
+</ul>
+<p>
+    Use the Application/Client/Pages/Authentication component of the hosted Blazor
+    WebAssembly with Individual User Accounts security model solution created as a
+    demo in Step One of the last lecture where we configured the <a href="/03-security-id-server">
+        IdentityServer
+    </a> engine. Include a built-in <code>LogOutSucceeded</code> parameter (RenderFragment)
+    to redirect the User to the home page of the application after a successful logout:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/03-authentication-markup.png"
+         alt="Razor markup for the Authentication component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/04-authentication-code-logic.png"
+         alt="Code logic for the Authentication component." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Make sure to allow anonymous access to
+    the Authentication.razor component to permit redirection to the Identity provider;
+    i.e., include the <code>@@attribute [AllowAnonymous]</code> attribute. This is a
+    precautionary measure in case you intend to <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#require-authorization-for-the-entire-app">
+        require authorization
+    </a> for the <strong>entire Client application</strong>.
+</p>
+<p>
+    The page produced by the <dfn>Authentication</dfn> component defines the routes
+    required for handling different authentication stages; i.e., the component defines
+    the routes required for handling different remote authentication actions. These actions
+    can be found with a search in the Visual Studio Object Browser at
+    <code>RemoteAuthenticationActions</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/12-remote-authn-actions.png"
+         alt="RemoteAuthenticationActions class." />
+</div>
+<p>
+    The <code>RemoteAuthenticatorView</code> component in the Authentication routable
+    component manages performing the appropriate actions at each stage of the authentication
+    process.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#authentication-library">
+            Secure ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#index-page">
+            Index page
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#index-page">
+            Secure a hosted ASP.Net Core Blazor WebAssembly app with Identity Server
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#require-authorization-for-the-entire-app">
+            Require authorization for the entire Application/Client app
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/standalone-with-authentication-library?view=aspnetcore-6.0&tabs=visual-studio#authentication-component">
+            Authentication component
+        </a>
+    </li>
+</ul>
+<p>
+    At this point, we have injected the services required by the app to interact with
+    the existing authorization system and we have added a JS script that defines the
+    low-level details to call methods defined in the authentication service to perform
+    authentication operations. Let's establish a mechanism to propagate the result of
+    the AuthN and AuthZ operations throughout the Application/Client.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Expose the current <strong><code>AuthenticationState</code></strong> to the rest of
+    the Application/Client.
+</p>
+<p>
+    The <dfn>Router</dfn> component, in conjunction with the <dfn>AuthorizeRoutView</dfn>
+    component, allows the app to specify custom content if:
+</p>
+<ul>
+    <li>
+        The user fails an <code>[Authorize]</code> condition applied to the component. The
+        markup of the <code>&lt;NotAuthorized&gt;</code> element is displayed.
+    </li>
+    <li>
+        Asynchronous authorization is in progress, which usually means that the process of
+        authenticating the user is in progress. The markup of the <code>&lt;Authorizing&gt;</code>
+        element is displayed.
+    </li>
+</ul>
+<p>
+    The content of &lt;NotAuthorized&gt; and &lt;Authorizing&gt; tags can include arbitrary
+    items such as other interactive components. If the &lt;NotAuthorized&gt; tag is not
+    specified, the <dfn>AuthorizeRouteView</dfn> uses the "Not Authorized" fallback message.
+
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Add a special component called <strong><code>&lt;CascadingAuthenticationState&gt;</code></strong>
+    to the <a href="02-components-part-two">root component</a> of the application
+    (Application/Client/App.razor) to wrap the Blazor <dfn>router</dfn>. Use the
+    solution created in Step One of last lesson to copy/paste the code logic.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Personalize the content displayed to the user for the &lt;NotAuthorized&gt; and
+    &lt;Authorizing&gt; authentication states:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/05-app-root-component.png"
+         alt="Application root component." />
+</div>
+<p>
+    <span>Notice:</span>
+    The loading spinner was later modified to standardize its style throughout the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/30-spinner.png"
+         alt="Standarized code for loading spinner." />
+</div>
+<p>
+    The root component of the Application/Client now includes the following components:
+</p>
+<ul>
+    <li>
+        The <strong><code>CascadingAuthenticationState</code></strong> component manages
+        exposing the <strong>AuthenticationState</strong> to the rest of the app.
+    </li>
+    <li>
+        <p>
+            The <strong><code>AuthorizeRouteView</code></strong> component combines the
+            behaviors of the <strong><code>AuthorizeView</code></strong> component and the
+            <strong><code>RouteView</code></strong> component so that it displays the page
+            matching the specified route but <strong>only</strong> if the user is authorized
+            to see it.
+        </p>
+        <p>
+            Additionally, by using the <code>AuthorizeRouteView</code> component (as opposed
+            to using the <code>AuthorizeView</code> component), a cascading parameter of type
+            <strong><code>Task&lt;AuthenticationState&gt;</code></strong> is exposed which
+            makes the user's current authentication state available to its descendants.
+        </p>
+        <p>If the user is not authorized, it invokes the RedirectToLogin component.</p>
+    </li>
+    <li>
+        The <code>RedirectToLogIn</code> component manages redirecting unauthorized
+        users to the login page (Application/IdentityServer/Pages/Account/Login.
+        We will create the component in next step.
+    </li>
+    <li>
+        The <code>&lt;Authorizing&gt;</code> component provides a custom message to the
+        user.
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Do not confuse the <code>AuthorizeRouteView</code> component which is used in
+        the app's root component (App.razor), with the <code>AuthorizeView</code> component
+        used to selectively display UI content depending on whether the user is
+        authenticated. This component will be employed in <a href="05-security-protect-client">
+            next lesson
+        </a>.
+    </p>
+</div>
+
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/standalone-with-authentication-library?view=aspnetcore-6.0&tabs=visual-studio#app-component">
+            App component (standalone)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#app-component">
+            App component (hosted)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#expose-the-authentication-state-as-a-cascading-parameter">
+            Expose the authentication state as a cascading parameter
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.duendesoftware.com/identityserver/v6/quickstarts/7_blazor/#modifying-the-frontend-part-1">
+            Modifying the frontend (part 1)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authenticationstateprovider-service">
+            AuthenticationStateProvider service
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorizeview-component">
+            AuthorizeView component
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#customize-unauthorized-content-with-the-router-component">
+            Customize unauthorized content with the Router component
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Add the <dfn>RedirectToLogin</dfn> component to the Application/Client/Shared
+    folder to make it available throughout the application.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/06-redirect-login-markup.png"
+         alt="No markup for the RedirectLogin component." />
+</div>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/07-redirect-login-code-logic.png"
+         style="max-width: 140%;"
+         alt="Code logic for the RedirectToLogin component." />
+</div>
+<p>
+    The RedirectToLogin component manages redirecting unauthorized users to the login
+    page and preserves the current URL that the user is attempting to access so that
+    he can be returned to that page if authentication is successful.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The RedirectToLogin component has no
+    markup code because it does not have to render anything on the page. Its job is
+    to redirect the user as soon as it is initialized (invoked) by the authorization
+    system. <strong>
+        Make sure that the RedirectToLogin instance defined in the root component
+        in last step (Step Five) is appropriately bound to the component because the
+        instance was crated before the actual component.
+    </strong>
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The support in <strong>.Net 7 </strong>for authentication in Blazor WebAssembly apps
+        changed to rely on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+            navigation history state
+        </a> instead of query strings in the URL. As a result, <strong>
+            passing the return URL through the query string fails to redirect back
+            to the original page
+        </strong> after a successful login. You can refer to
+        the <a href="04-migrate-dot-net-seven">
+            Migrate to .Net 7
+        </a> lesson and to <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+            Blazor WebAssembly authentication uses history state for redirects
+        </a> for more info.
+    </p>
+</div>
+<p>
+    In an application that targets .Net 7, the <dfn>RedirectToLogin</dfn> component
+    should look something like this:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/26-redirect-to-login-net-7-markup.png"
+         style="max-width: 105%;"
+         alt="RedirectToLogin component in .Net 7 - markup section." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/27-redirect-to-login-net-7-code.png"
+         alt="RedirectToLogin component in .Net 7 - code logic section." />
+</div>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+        new redirection approach for apps that target .Net 7
+    </a> is based on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+        navigation history state
+    </a> and <em>
+        NavigationManagerExtensions.<a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.navigationmanagerextensions.navigatetologin?view=aspnetcore-7.0">
+            NavigateToLogin
+        </a>
+    </em> method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Add the <dfn>LoginDisplay</dfn> component to the Application/Client/Shared
+    directory to make it available throughout the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/08-login-display-markup.png"
+         alt="Markup for the LoginDisplay component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/09-login-display-code-logic.png"
+         alt="Code logic for the LoginDisplay component." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+            new redirection approach for apps that target .Net 7
+        </a> calls the <em>
+            NavigationManagerExtensions.<a>
+                NavigateToLogout
+            </a>
+        </em> method and the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+            SignOutSessionStateManager
+        </a> is removed from the component's directives at the top of the file because
+        is has been deprecated. You can refer to the <a href="04-migrate-dot-net-seven">
+            Migrate to .Net 7
+        </a> lesson for more info.
+    </p>
+</div>
+<p>
+    In an application that targets .Net 7, the <dfn>LoginDisplay</dfn> component should
+    look something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/28-login-display-net-7-markup.png"
+         alt="Markup for the LoginDisplay component in .Net 7." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/29-login-display-net-7-code.png"
+         alt="Code logic for the LoginDisplay component in .Net 7." />
+</div>
+<p>
+    The LoginDisplay component is consumed by the Application/Client/Shared MainLayout
+    component to display a menu to the user with the following behaviors:
+</p>
+<ul>
+    <li>
+        <p>For authenticated users:</p>
+        <ul>
+            <li>
+                Displays the current user name.
+            </li>
+            <li>
+                Offers a link to the user profile page in ASP.Net Core Identity.
+            </li>
+            <li>
+                Offers a button to log out of the app.
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>For anonymous users:</p>
+        <ul>
+            <li>Offers the option to register.</li>
+            <li>Offers the option to login.</li>
+        </ul>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Add the <dfn>LoginDisplay</dfn> component we just created to the
+    Application/Client/Shared MainLayout component to provide the options to the
+    User dependent on its authentication state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/10-main-layout-markup.png"
+         alt="MainLayout component with LoginDisplay component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Nine:</span>
+    Make sure the configuration to run the application is using the Server project as the
+    unique <a href="https://docs.microsoft.com/en-us/visualstudio/ide/how-to-set-multiple-startup-projects?view=vs-2022">
+        startup
+    </a> project and run the application.
+</p>
+<p>
+    We have completed the basic authentication/authorization setup for the
+    Application/Client. However, we haven't protected any Application/Client components
+    nor have we protected any Application/Server-Api resources (endpoints).
+</p>
+<p>
+    You should still have full access to any routable component, to their content, and
+    the <dfn>LoginDisplay</dfn> component should be available to the User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/16-securing-client/11-app-ui-with-login-display.png"
+         alt="Application UI with LoginDisplay options to the User." />
+</div>
+<p>
+    At this point, the Application/Client is able to communicate with the Application/Server-Api
+    IdentityServer engine. For example, if we login a valid User, the IdentityServer
+    engine should create a valid authentication/authorization token for that User.
+</p>
+<p>
+    <span class="badge bg-info">Task:</span>
+    Ensure that the IdentityServer engine is creating the authentication/authorization
+    tokens for authenticated Users.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application and click on the "Register" link to register a new User. Use the
+    following credentials:
+</p>
+<ul>
+    <li>Email: " varios@oficina.org.mx "</li>
+    <li>Password: " Pass123$ "</li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Close the application, run it again, and make sure there is no authenticated User.
+    Go to the Application tab of the browser's developer tools, and study the values for
+    the "Session Storage":
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/24-session-storage-no-tokens.png"
+         style="max-width: 120%"
+         alt="Session storage no tokens - unauthenticated user." />
+</div>
+<p>
+    There are no authentication/authorization tokens because the current User is an
+    anonymous User; i.e., it has not signed-in.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Login with the credentials of the User created earlier and study the values for
+    the "Session Storage":
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/25-session-storage-tokens.png"
+         style="max-width: 120%"
+         alt="Session storage with tokens - authenticated user." />
+</div>
+<p>
+    Success! The Application/Server-Api IdentityServer engine is creating the
+    "id_token" and the "access_token" for an authenticated User as expected.
+</p>

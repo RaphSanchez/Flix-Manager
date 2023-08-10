@@ -1,0 +1,379 @@
+﻿@page "/01-pwa-fundamentals"
+
+<PageTitle>PWAs - Fundamentals</PageTitle>
+
+<h2>Progressive Web Apps - Fundamentals</h2>
+<p>
+    A Blazor Progressive Web Application (PWA) is a single-page application (SPA) that uses
+    modern browser APIs and capabilities to behave like a desktop app. Blazor WASM is a
+    standards-based client-side web platform so it can use any browser API, including PWA
+    APIs required for the following capabilities:
+</p>
+<ul>
+    <li>
+        <p>
+            Loading instantly, independent of network speed.
+        </p>
+    </li>
+    <li>
+        <p>
+            Running in its own app window, not just a web browser window.
+        </p>
+    </li>
+    <li>
+        <p>
+            Being launched from the host's operating system start menu, dock, or home
+            screen.
+        </p>
+    </li>
+    <li>
+        <p>
+            Automatically updating in the background.
+        </p>
+    </li>
+    <li>
+        <p>
+            Optionally implementing working off-line capabilities.
+        </p>
+    </li>
+    <li>
+        <p>
+            Receiving <dfn>push notifications</dfn> from a back-end server, even while the
+            user is not using the app.
+        </p>
+    </li>
+</ul>
+<p>
+    The word <dfn>progressive</dfn> is used to describe these apps because:
+</p>
+<ul>
+    <li>
+        <p>
+            Users first discover and use the app within their web browser like any
+            other SPA.
+        </p>
+    </li>
+    <li>
+        <p>
+            Later, the users progress to installing it in their OS and enabling <dfn>
+                push notifications.
+            </dfn>
+        </p>
+    </li>
+</ul>
+<h4>Installation of PWAs (users' perspective)</h4>
+<p>
+    When users use their web browser to access an app with PWA capabilities, they will
+    have the option of installing the app into their OS's start menu, dock, or home
+    screen. The way this option is presented depends on the user's browser.
+</p>
+<p>
+    When using desktop Chromium-based browsers, such as Edge or Chrome, an icon along
+    the lines of <strong>Add</strong> or <strong>install</strong> appears within the
+    URL address bar. After the users select the button, they receive a confirmation
+    dialog:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/41-pwa/01-confirm-dialog.png"
+         alt="Confirmation dialog." />
+</div>
+<p>
+    On iOS, visitors can install the PWA using Safari's <strong>Share</strong> button
+    and its <strong>Add to Home screen</strong> option. On Chrome for Android, users
+    can select the <strong>Menu</strong> button in the upper-right corner, followed
+    by <strong>Add to Home screen</strong>. Once installed, the app appears in its
+    own window without an address bar.
+</p>
+<h4>Offline Support</h4>
+<p>
+    By default, apps created using the PWA template option have support for running
+    offline. However, <strong>
+        the user must first visit the app while there is a connection to the network
+    </strong> to allow the browser to automatically download and cache the <strong>
+        static
+    </strong> resources required to operate offline.
+</p>
+<p>
+    Not all apps should attempt to support offline use. <strong>
+        Offline support adds significant complexity,
+    </strong> while not always being relevant for the use cases required. Offline support
+    is usually relevant if:
+</p>
+<ul>
+    <li>
+        <p>
+            The primary data store is local to the browser. For example, the approach
+            is relevant in an app with a UI for an <a href="https://en.wikipedia.org/wiki/Internet_of_things">
+                IoT
+            </a> device that stores data in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">
+                localStorage
+            </a> or <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API">
+                IndexedDB
+            </a>.
+        </p>
+    </li>
+    <li>
+        <p>
+            The app performs a significant amount of work to <em>fetch</em> and <em>catch</em>
+            the <strong>backend API data relevant to each user</strong> so that they can
+            navigate through the data offline.
+        </p>
+    </li>
+</ul>
+<p>
+    If the app must support editing (create, update, and delete operations), <strong>
+        a system for tracking changes and synchronizing data with the backend must be
+        built.
+    </strong>
+</p>
+<h4>Web Workers API</h4>
+<p>
+    <dfn>Web Workers</dfn> make it possible to run a script operation (JS code) in a
+    background thread separate from the main execution thread of a web application. The
+    advantage of this is that laborious processing can be performed in a separate thread,
+    allowing the main (usually the UI's thread) to run without being blocked/slowed down.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        A <dfn>worker</dfn> is an object that runs a named JavaScript file. This file
+        contains the code that will run in the worker thread.
+    </p>
+</div>
+<p>
+    Data is sent between <dfn>workers</dfn> and the main thread via a system of messages,
+    both sides send their messages using the <code>postMessage()</code> method, and
+    respond to messages via the <code>onMessage</code> event handler (the message is
+    contained within the message event's data property).
+</p>
+<h4>Worker Types</h4>
+<p>
+    There are a number of different types of workers:
+</p>
+<dl>
+    <dt>Dedicated Workers</dt>
+    <dd>
+        Workers that are utilized by a single script.
+    </dd>
+    <dt>Shared Workers</dt>
+    <dd>
+        Workers that can be utilized by multiple scripts running in different windows,
+        IFrames, etc., as long as they are in the same domain as the worker. They are
+        a little more complex than <dfn>dedicated workers</dfn> because scripts must
+        communicate via an active port.
+    </dd>
+    <dt>Service Workers</dt>
+    <dd>
+        Essentially act as <em>proxy servers</em> that sit between web applications, the
+        browser, and the network (when available). They are intended, among other things,
+        to enable the creation of effective offline experiences, intercept network
+        requests, and take appropriate action based on whether the network is available.
+    </dd>
+    <dd>
+        They update assets residing on the server and allow access to push notifications
+        and background sync APIs.
+    </dd>
+    <dd>
+        A <dfn>service worker</dfn> is an event-driven <dfn>worker</dfn> registered against
+        an origin and a path. It takes the form of a JavaScript file that can control the
+        web-page/site that is associated with, intercepting and modifying <dfn>navigation</dfn>
+        and resource requests, and caching resources in a very granular fashion to give complete
+        control over how the app behaves in certain situations (the most obvious one being
+        when the network is not available).
+    </dd>
+    <dd>
+        <strong><dfn>Service workers</dfn> only run over HTTPS</strong> for security
+        reasons. Most significantly, HTTP connections are susceptible to malicious code
+        injection by <a href="https://developer.mozilla.org/en-US/docs/Glossary/MitM">
+            manipulator in the middle
+        </a> attacks, and such attacks could be worse if allowed access to these powerful
+        APIs.
+    </dd>
+</dl>
+<p>
+    A <dfn>service worker</dfn> is first registered and if successful, it will be downloaded
+    to the <dfn>client</dfn> and attempt installation/activation for URLs accessed by the
+    user inside the whole origin or inside a subset explicitly specified.
+</p>
+<h4>Service Worker Lifecycle</h4>
+<div class="alert alert-success mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is strongly suggested to read Google Chrome developers documentation on
+        <a href="https://developer.chrome.com/docs/workbox/">Workbox</a> which provides
+        a thorough introduction to PWAs, <em>service workers</em>,  and how they
+        interact.
+    </p>
+</div>
+<p>
+    The lifecycle of a service worker includes:
+</p>
+<dl>
+    <dt>Download</dt>
+    <dd>
+        The <dfn>service worker</dfn> is immediately downloaded when a user first accesses
+        a <dfn>service worker</dfn> controlled page/site.
+    </dd>
+    <dd>
+        <p>After installation, it is updated when:</p>
+        <ul>
+            <li>
+                A navigation to an in-scope page occurs.
+            </li>
+            <li>
+                An event is raised on the <dfn>service worker</dfn> and it has not been
+                downloaded in the last 24 hours.
+            </li>
+        </ul>
+    </dd>
+    <dt>Install</dt>
+    <dd>
+        Installation is attempted when the downloaded file is found to be new, either
+        different to an existing <dfn>service worker</dfn> (byte-wise compared), or it is
+        the first <dfn>service worker</dfn> encountered for this page/site.
+    </dd>
+    <dt>Activate</dt>
+    <dd>
+        If it is the first time a <dfn>service worker</dfn> has been made available,
+        installation is attempted, then after a successful installation, it is activated.
+    </dd>
+    <dd>
+        If there is an existing <dfn>service worker</dfn> available, the new version is
+        installed in the background but not yet activated. At this point, it is called
+        the <dfn>worker in waiting</dfn>. It is only activated when there are no longer
+        any pages loaded that are still using the old <dfn>service worker</dfn>.
+    </dd>
+    <dd>
+        As soon as there are no more pages to be loaded, the new <dfn>service worker</dfn>
+        activates (becoming the <dfn>active worker</dfn>).
+    </dd>
+</dl>
+<p>
+    As a developer, you can listen for the <strong><code>install</code></strong>,
+    <strong><code>activate</code></strong>, and <strong><code>fetch</code></strong> events.
+</p>
+<p>
+    Blazor's PWA template enables offline support using a <dfn>service worker</dfn> which is
+    a web standard, not specific to Blazor. The Blazor PWA template produces two service worker
+    files:
+</p>
+<ul>
+    <li>
+        Application/Client/wwwroot/service-worker.js which is used during development.
+    </li>
+    <li>
+        Application/Client/wwwroot/service-worker.published.js which is used when the app
+        is published.
+    </li>
+</ul>
+<h4>Background Updates</h4>
+<p>
+    As a mental model, you can think of an offline-first PWA as behaving like a mobile
+    app that can be installed. The app starts up immediately regardless of network
+    connectivity but the installed app logic comes from a point-in-time snapshot that
+    might not be the latest version.
+</p>
+<p>
+    The Blazor PWA template produces apps that automatically try to update themselves
+    in the background whenever the user visits and has a working network connection.
+    The way this works is as follows:
+</p>
+<ul>
+    <li>
+        <p>
+            During compilation, the project generates a <em>service worker assets manifest</em>.
+            By default, the file is called <code>service-worker-assets.js</code>. The
+            manifest lists all the static resources that the app requires to function
+            offline such as .Net assemblies, JavaScript files, and CSS, including their
+            content hashes.
+        </p>
+        <p>
+            The resources list is loaded by the <dfn>service worker</dfn> so that it
+            knows which resources to cache.
+        </p>
+    </li>
+    <li>
+        <p>
+            Each time the user visits the app, the browser re-requests <em>
+                service-worker-published.js
+            </em> and <em>service-worker-assets.js</em> in the background. The files are
+            compared byte-for-byte with the existing installed <dfn>service worker</dfn>.
+            If the server returns changed content for either of these files, the <dfn>
+                service worker
+            </dfn> attempts to install a new version of itself.
+        </p>
+    </li>
+    <li>
+        <p>
+            When installing a new version of itself, the <dfn>service worker</dfn> creates
+            a new, separate cache for offline static resources and starts populating the
+            cache with the resources listed in <em>service-worker-assets.js</em> file.
+            This logic is implemented in the <code>onInstall</code> function inside the
+            <em>service-worker-published.js</em> file.
+        </p>
+    </li>
+    <li>
+        <p>
+            The process completes successfully when all of the resources are loaded
+            without error and all content hashes match. If successful, the new <em>
+                service worker
+            </em> enters a <em>waiting for activation</em> state.
+        </p>
+        <p>
+            As soon as the user closes the app (no remaining app tabs or windows), the
+            new <dfn>service worker</dfn> becomes <em>active</em> and is used for
+            subsequent app visits. The old <dfn>service worker</dfn> and its cache are
+            deleted.
+        </p>
+    </li>
+    <li>
+        <p>
+            If the process does not complete successfully, the new <dfn>service worker</dfn>
+            instance is discarded and the update process is attempted again on the next
+            user's visit when hopefully the client has a better network connection that
+            can complete the requests.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    None of the preceding behaviour is exclusive to Blazor but rather the default experience
+    provided by the PWA template standards.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        YouTube playlist
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers
+    </li>
+    <li>
+        <a href="https://developer.chrome.com/docs/workbox/">
+            Workbox
+        </a> by Gooble Chrome Developers
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/">
+            Overview of Progressive Web Apps (PWAs)
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app?view=aspnetcore-7.0&tabs=visual-studio">
+            ASP.Net Core Blazor Progressive Web Application (PWA)
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API">
+            Web Workers API
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API">
+            Service Worker API
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/learn/pwa/installation/">
+            Installation
+        </a>
+    </li>
+</ul>

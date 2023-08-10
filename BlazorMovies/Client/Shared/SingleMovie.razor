@@ -1,0 +1,44 @@
+﻿<!-- SingleMovie component was replaced for RenderMovie component for more advanced lessons. -->
+
+<div class="form-control rounded bg-light ps-2">
+    <p class="small mb-0">
+        <strong>Movie:</strong> @(Movie.Title); released on:
+        @(Movie.ReleaseDate?.ToString("dd-MMM-yyyy"))
+    </p>
+
+    <!-- Renders buttons dependent of the value passed to satisfy the           -->
+    <!-- RenderDeleteButtons parameter                                          -->
+    @if (RenderDeleteButtons)
+    {
+        <!-- #region Comments -->
+        <!-- Explicit expression with anonymous function as event handler (method)  -->
+        <!-- InvokeAsync(T) invokes the delegate (method) when the user raises the  -->
+        <!-- click event and dispatches notification to the appropriate component (parent)           -->
+        <!-- #endregion -->
+        <button type="button"
+                    @onclick="@(() => DeleteMovie.InvokeAsync(Movie))"
+                class="btn btn-sm btn-outline-danger">
+                Delete
+            </button>
+    }
+</div>
+
+
+@code {
+    [Parameter]
+    public Movie Movie { get; set; }
+
+    /// <summary>
+    /// Bool parameter used as a Flag to render (or not) delete Button
+    /// </summary>
+    [Parameter]
+    public bool RenderDeleteButtons { get; set; } = false;
+
+    /// <summary>
+    /// EventCallback<TValue> allows you to pass a method (functionality) from the parent
+    /// component as a parameter to this child component. The type parameter Movie
+    /// is the movie to be deleted.
+    /// </summary>
+    [Parameter]
+    public EventCallback<Movie> DeleteMovie { get; set; }
+}

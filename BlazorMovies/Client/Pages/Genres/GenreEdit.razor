@@ -1,0 +1,19 @@
+﻿
+@page "/genres/edit/{id:int}"
+@attribute [Authorize (Policy = AuthZPolicies.ApiEditContent)]
+
+<PageTitle>Edit Genre</PageTitle>
+
+<div class="form-control">
+
+    <h3 class="mb-0">Edit Genre</h3>
+    <p class="small text-muted">(open the browser's console)</p>
+
+    @if (_dbGenre is not null)
+    {
+        <GenreForm Genre="_dbGenre" 
+            OnValidSubmit="EditGenre" />
+    }
+
+</div>
+

@@ -1,0 +1,44 @@
+﻿
+@page "/users/edit/{userId}"
+@attribute [Authorize(Policy = AuthZPolicies.ApiEditUser)]
+
+<PageTitle>Edit User Claims</PageTitle>
+
+<h3>Manage User Claims</h3>
+<p>User: @_userDto?.Email</p>
+
+<!-- Custom authZ claims. -->
+<TestCollectionNullOrEmpty TItem="AuthZClaimDto"
+                           ItemsList="_userClaimsDto?.AuthZClaimDtos
+                                                .OrderBy(c => c.Type)
+                                                .ToList()"
+                           Context="authZClaim">
+    <RenderItemTemplate>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox"
+                   @bind="@authZClaim.IsSelected" id="claimCheckBox">
+            <label class="form-check-label" for="claimCheckBox">
+                @authZClaim.Type
+            </label>
+        </div>
+    </RenderItemTemplate>
+    <EmptyTemplate>
+        No Custom Authorization Claims Found.
+    </EmptyTemplate>
+</TestCollectionNullOrEmpty>
+
+<!-- Call to action button elements. -->
+<div class="mt-3">
+    <a href="/users" class="btn btn-outline-dark">
+        Go Back
+    </a>
+    <AuthorizeView Policy="@AuthZPolicies.ApiEditUser">
+        <Authorized>
+            <button class="btn btn-outline-success" @onclick="UpdateUserClaims">
+                Update
+            </button>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+

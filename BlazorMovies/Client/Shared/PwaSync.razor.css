@@ -1,0 +1,20 @@
+﻿
+/* Draws the horizontal line above the component. */
+.pwa-sync-border {
+    color: white;
+    margin-bottom: 1em;
+    border-top: 1px solid white;
+}
+
+/* Determines the location of the component. */
+.pwa-sync-margin {
+    margin-left: 8px;
+    margin-top: 5px;
+}
+
+/* Text size for the "Synchronizing..." text. */
+.pwa-text {
+    font-size: .9em;
+}
+
+

@@ -1,0 +1,23 @@
+﻿@* Pagination control presents data to the client in small and manageable
+    portions (or segments) through button elements with page numbers that
+    evenly distribute the full set of available data.
+*@
+
+<nav aria-label="Data navigation control.">
+    <ul class="pagination justify-content-center">
+        @if (_paginationButtons is not null)
+        {
+            @foreach (PaginationButtonModel pButton in _paginationButtons)
+            {
+                <li @onclick="@( () => OnPageSelected(pButton))"
+                    style="cursor: pointer"
+                    class="page-item @(pButton.Enabled ? null : "disabled")
+                    @(pButton.Active ? "active" : null)">
+                    
+                    <a class="page-link">@pButton.ButtonTextToDisplay</a>
+                </li>
+            }
+        }
+    </ul>
+</nav>
+

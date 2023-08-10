@@ -1,0 +1,775 @@
+﻿@page "/01-security-fundamentals"
+<PageTitle>Security Fundamentals</PageTitle>
+
+<h2>Security - Fundamentals</h2>
+<h4>Authentication</h4>
+<p>
+    <dfn>Authentication</dfn> is a process in which a user provides credentials that are
+    then compared to those stored in an operating system, database, app, or resource. If
+    they match, users authenticate successfully. It is sometimes shortened to <dfn>AuthN.</dfn>
+</p>
+<h4>Authorization</h4>
+<p>
+    <dfn>Authorization</dfn> is the process of granting an authenticated party permission
+    to perform actions. It specifies what data that party is allowed to access and what it
+    can do with that data. Authorization is sometimes shortened to <dfn>AuthZ.</dfn>
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Another way to think of <dfn>AuthN</dfn> is to consider it as a way to enter a space
+        such as a server, database, app, or resource while <dfn>AuthZ</dfn> is which actions
+        the user can perform to which objects inside that space.
+    </p>
+</div>
+<h4>Microsoft's Frameworks</h4>
+<dl>
+    <dt>ASP.Net Core</dt>
+    <dd>
+        Microsoft defines ASP.Net Core as a cross-platform, high-performance,
+        open-source framework for <strong>building</strong> modern, cloud-enabled,
+        internet-connected <strong>applications</strong>. It enables a developer to build web
+        applications and services, Internet of Things (IoT) apps, and mobile backends.
+    </dd>
+    <dt>
+        Entity Framework Core
+    </dt>
+    <dd>
+        Entity Framework Core is a <strong>data access technology</strong> that
+        serves its purpose as an object-relational mapper (ORM) that uses a set of conventions
+        to build a model based on the shape of <dfn>entity classes.</dfn> Each entity (class) is
+        mapped to a database table and each entity property represents a column in that table.
+        Data access is performed using the Entity Data Model (EDM) and a context object (DbContext)
+        that represents a session with the database. The context object allows querying and saving
+        data.
+    </dd>
+    <dt>ASP.Net Core Identity</dt>
+    <dd>
+        ASP.Net Core <dfn>Identity</dfn> is <strong>a membership system</strong>
+        that provides a framework for <strong>
+            managing and storing user accounts in ASP.Net Core applications.
+        </strong> It allows to create, read, update, and delete user accounts, perform account
+        confirmation, authentication & authorization, two-factor authentication, etc.
+    </dd>
+    <dd>
+        ASP.Net Core Identity is typically configured using a SQL Server database to persist
+        account and user data among other things. By default, ASP.Net Core Identity makes use of
+        an Entity Framework Core data model.
+    </dd>
+    <dd>
+        ASP.Net Core Identity handles operations for dealing with passwords, two-factor
+        authentication, account confirmation, and other security related concerns. Furthermore,
+        ASP.Net Core Identity is about adding functionality to the user interface (UI) for login,
+        logout, register, etc operations to ASP.Net Core applications.
+    </dd>
+    <dd>
+        The amount of code required to setup a functional <dfn>Identity</dfn> <strong>UI</strong>
+        is very extense and prone to errors and security concerns because it needs views (pages)
+        for register, login, logout, confirm email, sign-out, etc.
+    </dd>
+</dl>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        ASP.Net Core incorporates Identity as a
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/razor-pages/ui-class?view=aspnetcore-6.0&tabs=visual-studio">
+            Razor Class Library
+        </a>. Applications that include ASP.Net Core Identity can apply a <dfn>scaffolder</dfn>
+        to create full Identity UI templates and selectively expose the source code to gain
+        full control of the provided UI system.
+    </p>
+</div>
+<h4>Entity vs. Identity</h4>
+<p>
+    The Joint Technical Committee for information security, cybersecurity, and privacy
+    protection specifies important terms and definitions in its
+    <a href="https://www.iso.org/obp/ui/#iso:std:iso-iec:29115:ed-1:v1:en">
+        ISO/IEC 29115:2013
+    </a> international standard for entity authentication assurance. Some of these terms
+    are <dfn>entity</dfn> and <dfn>identity</dfn>.
+</p>
+<dl>
+    <dt>Entity</dt>
+    <dd>
+        An entity is something that has separate and distinct existence and that can be
+        identified in a context.
+    </dd>
+    <dd>
+        Within a particular context, and entity is something that claims an
+        <dfn>identity</dfn>.
+    </dd>
+    <dt>Identity</dt>
+    <dd>
+        An identity is a set of attributes related to an <dfn>entity</dfn>.
+    </dd>
+</dl>
+<p>
+    In the context of cyber security, an <dfn>entity</dfn> can be a human being, a
+    machine, a service, or anything. However, we don't perceive entities directly. Instead,
+    entities are perceived indirectly through a set of attributes about the entity.
+</p>
+<p>
+    For example, a human named Bob can have a set of attributes such as blond hair, use
+    glasses, etc. Furthermore, in our analogy, a human may choose a certain set of attributes
+    to express himself depending on who he is interacting with. By controlling what set of
+    attributes are shown, a human is implicitly deciding his or her identity to show.
+</p>
+<p>
+    The <dfn>identity</dfn> we choose to display to our boss, friends, and/or to social
+    media is naturally different. A human (an <dfn>entity</dfn>) has multiple identities,
+    each with a set of attributes. For example, a man can typically have an identity for
+    work, an identity as a father, as a husband, etc. A woman may have an identity as a
+    boss, as a colleague, as a mother, as a wife, and so on and so forth.
+</p>
+<p>
+    Humans determine which <dfn>identity</dfn> to use depending on the <dfn>context</dfn>.
+    The same principle stands for websites or web applications. A human (the end-user)
+    may use different identities depending on the site. This is the identity layer.
+</p>
+<p>
+    In the context of cyber security,
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <strong><dfn>AuthN</dfn></strong> is the process of challenging a party for
+        legitimate credentials providing the basis for creation of a <strong>
+            <dfn>
+                security principal
+            </dfn>
+        </strong> to be used for <strong><dfn>identity</dfn></strong> and
+        <strong><dfn>access control</dfn></strong>. This process may create <strong>
+            one or more <dfn>identities</dfn> for the <dfn>principal</dfn>
+        </strong> (current user).
+    </p>
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <strong><dfn>AuthZ</dfn></strong> is the act of <strong><dfn>granting</dfn></strong>
+        an authenticated <dfn>security principal</dfn> <strong>
+            permission to do something.
+        </strong> It specifies what data the authenticated party is allowed to access
+        and what it can do with that data.
+    </p>
+</div>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/?view=aspnetcore-6.0#authentication-vs-authorization">
+            ASP.Net Core security topics
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/Kb56GzQ2pSk">
+            Identity, Authentication + OAuth = OpenId Connect
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/?view=aspnetcore-6.0">
+            Overview of ASP.Net Core authentication
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio">
+            Introduction to Identity on ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction?view=aspnetcore-6.0">
+            Introduction to authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/developer-glossary#authentication">
+            Glossary: Microsoft identity platform
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/scaffold-identity?view=aspnetcore-6.0&tabs=visual-studio#full">
+            Scaffold Identity in ASP.Net Core projects
+        </a>
+    </li>
+    <li>
+        <a href="https://devblogs.microsoft.com/dotnet/aspnetcore-2-1-identity-ui/">
+            ASP.Net Core 2.1.0-preview1: Introducing Identity UI as a library
+        </a>
+    </li>
+</ul>
+<h4>Claims-based identity</h4>
+<p>
+    <dfn>Claims-based identity</dfn> is a common way for <strong>applications</strong> to
+    <strong>acquire</strong> the <dfn>identity</dfn> information they need <strong>
+        about users.
+    </strong> Claims-based identity abstracts the invidual elements of <dfn>identity</dfn>
+    and <dfn>access control</dfn> into two parts: a notion of <strong><dfn>claims</dfn></strong>,
+    and the concept of an <strong><dfn>issuer</dfn></strong> or <strong><dfn>authority</dfn></strong> 
+    also known as <span class="mark"><strong><dfn>identity provider</dfn></strong></span>.
+</p>
+<p>
+    A <dfn>claim</dfn> is a statement that one subject or entity makes about itself or
+    another subject. Claims are name/value pairs in a <dfn>security token</dfn> that
+    provide <dfn>assertions</dfn> made by one entity to another. The subject or entity
+    producing the claim(s) is known as the identity provider, the authorization server,
+    and/or the security token service.
+</p>
+<p>
+    Attaching the concept of <dfn>claims</dfn> to the concept of <dfn>identity</dfn>
+    appears to be combining <dfn>AuthN</dfn> (determination of <dfn>identity</dfn>) with
+    <dfn>AuthZ</dfn> (what the identified subject can and cannot do) but this is not the
+    case. <dfn>Claims</dfn> are not what the subject can and cannot do. They are what
+    the subject is or is not. It is up to the application receiving the incoming claim(s)
+    to map the is/is not claims to the may/may not rules of the application.
+</p>
+<h4>Introduction to Authentication with ASP.Net Core</h4>
+<p>
+    In ASP.Net Core, AuthN is handled by the authentication service,
+    <code>IAuthenticationService</code>, which is used by authentication <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        middleware
+    </a>. The AuthN service uses registered <strong><dfn>authentication handlers</dfn></strong>
+    to complete authentication related actions (e.g., authenticating a user or responding
+    when an unauthenticated user tries to access a restricted resource).
+</p>
+<p>
+    The <strong>registered <dfn>authentication handlers</dfn></strong> and their configuration
+    options <strong>are called <span class="mark">"<dfn>schemes</dfn>"</span></strong>.
+    Authentication <dfn>schemes</dfn> are specified by registering authentication services in
+    the Program.cs class (in our app, it is registered in the Application/Server-Api/Program.cs
+    but more on that later).
+</p>
+<p>
+    The <strong><dfn>authentication scheme</dfn></strong> can select which <dfn>
+        authentication handler
+    </dfn> is responsible for constructing AuthenticationTicket objects representing the
+    user's identity and generating the correct set of <strong><dfn>claims</dfn></strong>
+    if authentication is successful. The current user's claims are used to make authorization
+    decisions. For example:
+</p>
+<ul>
+    <li>
+        The app may use a <dfn>JWT bearer</dfn> (JSON web token - Id token) <dfn>
+            authentication scheme
+        </dfn> responsible for including the correct set of <dfn>claims</dfn> when a
+        <strong>Client</strong> (application) is authenticated.
+    </li>
+    <li>
+        The app may use a <dfn>JWT bearer</dfn> (JSON web token - access token) <dfn>
+            authentication scheme
+        </dfn> responsible for including the correct set of <dfn>claims</dfn> when a
+        <strong>User</strong> (end-user) is authenticated and is trying to <strong>
+            access
+        </strong> Application/Server/Api resources through an HTTP request.
+    </li>
+    <li>
+        The app may use cookie-based authentication scheme to log in.
+    </li>
+</ul>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/?view=aspnetcore-6.0">
+            Overview of ASP.Net Core authentication
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/limitingidentitybyscheme?view=aspnetcore-6.0">
+            Authorize with a specific scheme in ASP.Net Core
+        </a>
+    </li>
+    <li href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/limitingidentitybyscheme?view=aspnetcore-6.0">
+        Authorize with a specific scheme in ASP.Net Core
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Full Disclosure:</span> Most of the following intro is taken
+    from a blog of <a href="https://andrewlock.net/introduction-to-authentication-with-asp-net-core/">
+        Andrew Lock
+    </a>
+</p>
+<p>
+    It used to be that AuthZ was <dfn>role-based</dfn> so a user could belong to one or
+    more roles and different sections of your application could require a user to have a
+    particular role in order to access it. In ASP.Net Core this kind of role-based
+    AuthZ can still be used but that is primarily for backwards compatibility. The route
+    one should follow is <dfn>claims-based authentication</dfn>.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In ASP.Net Core, authentication is responsible for providing the
+        <strong><code>ClaimsPrincipal</code></strong> for authorization to make permission
+        decisions. The <code>ClaimsPrinciapl</code> is represented by a property named
+        <strong><code>User</code></strong> on <dfn>HttpContext</dfn> which <strong>
+            constitutes the current user for an Http request:
+        </strong>
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/01-user-claims-principal.png"
+         alt="User property of type ClaimsPrincipal." />
+</div>
+<p>
+    The concept of <dfn>claims-based authentication</dfn> is very similar to approaches
+    you are already using. As mentioned earlier, a <dfn>claim</dfn> is a statement about,
+    or a property of, a particular <dfn>identity</dfn> and that statement consists of a
+    name/value pair. For example, you could have a <dfn>DateOfBirth</dfn> claim, a
+    <dfn>FirstName</dfn> claim, <dfn>EmailAddress</dfn> claim, etc. Note that this statements
+    are about what or who the <dfn>identity</dfn> is not what it can do.
+</p>
+<p>
+    The <dfn>identity</dfn> itself presents a single declaration that may have many claims
+    associated with it. For example, consider a driving license. This single identity
+    contains a number of claims such as FirstName, LastName, DateOfBirth, Address, and which
+    vehicles you are allowed to drive. Your passport would be a different <dfn>identity</dfn>
+    with a different set of <dfn>claims</dfn>.
+</p>
+<p>
+    So let's take a look to our analogy in the context of ASP.Net Core. <strong>
+        In ASP.Net Core, an <dfn>identity</dfn> is represented by a type <code>ClaimsIdentity</code>
+    </strong>. Here is a simplified version of the class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/02-claims-identity.png"
+         alt="ClaimsIdentity type." />
+</div>
+<p>
+    As you can see, <dfn>Claims</dfn> is a collection of type <strong><code>Claim</code></strong>
+    which consists of all the <dfn>claims</dfn> associated with an <dfn>identity</dfn>.
+    There are multiple helper methods for working with <dfn>claims</dfn>, two of which are
+    shown here. These are useful when you come to AuthZ and you are trying to determine
+    whether a particular <dfn>Identity</dfn> has a given <dfn>claim</dfn>.
+</p>
+<p>
+    The <dfn>AuthenticationType</dfn> property is fairly self-explanatory. In our practical
+    example, this might be the string <dfn>"Passport"</dfn> or <dfn>"Drivers License"</dfn>
+    but in ASP.Net it is more likely to be string <dfn>"Cookies"</dfn>, <dfn>"Bearer"</dfn>,
+    <dfn>"Google"</dfn>, etc. It is simply the method that was used to AuthN the user and to
+    determine the <dfn>claims</dfn> associated with an <dfn>identity</dfn>.
+</p>
+<p>
+    Finally, the property <dfn>IsAuthenticated</dfn> indicates whether an <dfn>identity</dfn>
+    is authenticated or not. This might seem redundant - how could you have an identity with
+    claims when it is not authenticated? One scenario may be where you allow guest users on
+    your site; e.g., on a shopping cart. You still have an identity associated with the user
+    and that identity may still have claims associated with it but they will no be
+    authenticated. This is an important distinction to bear in mind.
+</p>
+<p>
+    As an adjunct to that, in ASP.Net Core if you create a <strong><code>ClaimsIdentity</code></strong>
+    and provide an <dfn>AuthenticationType</dfn> in the constructor, <dfn>IsAuthenticated</dfn>
+    will always be true. So an authenticated user must always have an
+    <dfn>AuthenticationType</dfn> and conversely, you cannot have an unauthenticated user which
+    has an <dfn>AuthenticationType</dfn>.
+</p>
+<h5>Multiple Identities</h5>
+<p>
+    At this point you are likely to have a conceptual handle on claims and how they relate
+    to an <dfn>Identity</dfn>. We mentioned at the beginning of this section that the
+    <strong><code>User</code></strong> property on <dfn>HttpContext</dfn> is a
+    <strong><code>ClaimsPrincipal</code></strong> not a <strong><code>ClaimsIdentity</code></strong>
+    so let's take a look at a simplified version of it:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/03-claims-principal.png"
+         alt="ClaimsPrincipal type." />
+</div>
+<p>
+    The important point to take from this class is that there is an <dfn>Identities</dfn>
+    property which returns <code>IEnumerable&lt;ClaimsIdentity&gt;</code>. So a single
+    <code>ClaimsPrincipal</code> can constitute multiple <dfn>Identities</dfn>.
+</p>
+<p>
+    Going back to our previous example of the passport and driving license, multiple
+    identities actually make sense - those documents are both forms of identity each of
+    which contains a number of <dfn>claims</dfn>. In this case you are the
+    <dfn>subject principal</dfn> and you have two forms of identity. When you have those
+    two pieces of identity in your possession, you as the <dfn>principal</dfn> possess all
+    the <dfn>claims</dfn> from all your <code>ClaimsIdentity</code> objects.
+</p>
+<p>
+    Carrying on with our practical example, consider when you are taking a flight. First,
+    you are asked at the booking desk to prove the claims you make about your
+    <dfn>First Name</dfn>, <dfn>Last Name</dfn>, <dfn>Date of Birth</dfn>, etc. Your passport
+    is an identity that verifies those claims so you receive your boarding pass and you are
+    on your way to the next step.
+</p>
+<p>
+    At security, you are asked to prove the claim that you are booked on to a flight. This
+    time you need other form of identity you are carrying. The boarding pass has the
+    <dfn>Flight Number</dfn> claim among others so you are allowed to continue on your way.
+    Finally, once you are through security, you make your way to the VIP lounge and are
+    asked to prove your VIP status with the <dfn>VIP Number</dfn> claim. If you do not
+    present the requested claim, you will be denied access and will probably be asked to
+    leave the premises.
+</p>
+<p>
+    Again, the key point is that a principal can have multiple identities, these identities
+    can have multiple claims, and the <code>ClaimsPrincipal</code> owns all the claims
+    of its Identities. Thinking in terms of ASP.Net Core again, multiple identities and
+    claims could be used for securing different parts of your application just as they were
+    used at the airport.
+</p>
+<p>
+    You may login with a username and password, and be granted a set of claims based on
+    the identity associated with that. This could for example, allow you to browse the
+    site. But if the application has a particularly sensitive section that needs to be
+    secured further, it could require the user to present additional identity with
+    additional associated claims. This means that the current principal would have multiple
+    identities and it owns all the provided identities.
+</p>
+<h5>Creating a new principal</h5>
+<p>
+    Now that we have seen how principals work in ASP.Net Core, a simple example would
+    be creating a subject (principal) during a login operation. The "Login" controller
+    might contain code similar to the shown below:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/04-new-claims-principal.png"
+         alt="New ClaimsPrincipal object during a user LogIn operation." />
+</div>
+<p>
+    This <dfn>action</dfn> hard codes the claims but typically the claim values are
+    obtained from a database table named User, an identity provider, an external identity
+    provider, or some other source. As you can see, the first step is to build up a
+    collection of claims, populating each with a string for its name, a string for its
+    value, and optional <code>ClaimValueType</code> and <code>Issuer</code> parameters.
+</p>
+<p>
+    The <code>ClaimValueType</code> is a helper class that exposes a number of common
+    claim types. Once a collection of claims is conformed, it can be used to construct
+    a <strong>ClaimsIdentity</strong> which expects a collection of claims. Specifying
+    the AuthenticationType (e.g., "Passport" or "BoardingPass"), ensures that your identity
+    has <code>IsAuthenticated = true</code>.
+</p>
+<p>
+    Finally you can create a new <code>ClaimsPrincipal</code> using the <code>ClaimsIdentity</code>
+    objects. The <dfn>ClaimsPrincipal</dfn> represents the current user and can be signed-in.
+    In our example, we are telling the <dfn>AuthenticationManager</dfn> to use the
+    <dfn>"Cookie"</dfn> authentication handler which should have been configured as part of
+    the middleware pipeline.
+</p>
+<p>
+    At this point, you should have a good grasp on how a <dfn>claims-based</dfn>
+    authentication system works and how it applies to ASP.Net Core.
+</p>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://en.wikipedia.org/wiki/Claims-based_identity">
+            Claims-based identity
+        </a>
+    </li>
+    <li>
+        <a href="https://andrewlock.net/introduction-to-authentication-with-asp-net-core/">
+            Introduction to Authentication with ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/?view=aspnetcore-6.0">
+            Overview of ASP.Net Core authentication
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/claims?view=aspnetcore-6.0">
+            Claims-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/?view=aspnetcore-6.0&tabs=visual-studio">
+            Facebook, Google, and external provider authentication in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<h4>Introduction to Authorization with ASP.Net Core</h4>
+<p>
+    AuthZ is independent from AuthN but it requires an AuthN mechanism. The AuthN process
+    ascertains who a User is and it creates one or more associated identities
+    (<code>ClaimsIdentity</code>) with the correct set of <dfn>claims</dfn> for the current
+    User (<code>ClaimsPrincipal</code>) if AuthN is successful.
+</p>
+<p>
+    <span class="badge bg-info">Full Disclosure:</span> Most of the following intro is taken
+    from a blog of <a href="https://andrewlock.net/introduction-to-authorisation-in-asp-net-core/">
+        Andrew Lock
+    </a>
+</p>
+<p>
+    ASP.Net Core AuthZ provides a simple, declarative <dfn>role-based</dfn> and a rich
+    <dfn>policy-based</dfn> AuthZ model. AuthZ is expressed in requirements (represented
+    by <dfn>roles</dfn> or <dfn>policies</dfn>) and handlers evaluate a user's
+    <dfn>claims</dfn> against these requirements.
+</p>
+<p>
+    In ASP.Net Core, AuthZ is evaluated by handlers that can grant access to resources
+    based on a number of different factors. These may be <dfn>role-based</dfn> on the
+    current user (as was common in previous versions of .Net), <dfn>policy-based</dfn> on
+    the <dfn>claims</dfn> of the current user, the properties of the resource being
+    accessed, or any other property you can think of.
+</p>
+<h4>Role-based authorization in ASP.Net Core</h4>
+<p>
+    When an <dfn>identity</dfn> is created, it may belong to one or more <dfn>roles</dfn>.
+    Roles are exposed to the developer through the <code>IsInRole</code> method on the
+    <code>ClaimsPrincipal</code> class. <code>AddRoles</code> must be <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/roles?view=aspnetcore-6.0#add-role-services-to-identity">
+        added
+    </a> as a service in the the dependency injection system of the web app.
+</p>
+<p>
+    While roles are claims, not all claims are roles. This is why Single Page Application
+    (SPA) templates are not designed around roles. With the advent of ASP.Net Core 3 and
+    later, <dfn>role-based</dfn> authorization check became obsolte and replaced by
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/roles?view=aspnetcore-6.0#policy-based-role-checks">
+        policy-based
+    </a> role checks. For this reason, we will focus our attention on purely
+    <dfn>claims-based</dfn> authorization. Nevertheless, episode 95. <a href="https://www.udemy.com/share/102l0i3@j3ZcTwivpyRrKL9iT4vmjWUSTuFqPQ12OpV34lvR9KElrhrA_YBK57w1lFalsIMw/">
+        Implementing Roles
+    </a> of Udemy course "Programming in Blazor - ASP.Net Core5" demonstrates how to
+    implement a policy-based role check AuthZ mechanism.
+</p>
+<h4>Claims-based authorization in ASP.Net Core</h4>
+<p>
+    When an identity (<code>ClaimsIdentity</code>) is created, it may be assigned one or
+    more <dfn>claims</dfn> issued by a trusted party (identity provider). Claims-based
+    AuthZ, at its simplest, checks the value of a <dfn>claim</dfn> and allows access to a
+    resource based upon that value.
+</p>
+<p>
+    Underneath the covers, <dfn>role-based authorization</dfn> and <dfn>
+        claims-based authorization
+    </dfn> use a requirement, a requirement handler, and a pre-configured <dfn>policy</dfn>.
+    These building blocks support the expression of AuthZ evaluations in code.
+</p>
+<p>
+    In other words, ASP.Net Core <dfn>identity</dfn> is entirely focused around <dfn>claims</dfn>
+    and one of the most obvious modes of AuthN is to check that a User has a given claim(s).
+    For example, there could be a section of your app which requires the current user to have
+    a <em>read and write</em> claim. In order to screen requests (HTTP requests) for AuthZ,
+    you can create a policy or more specifically, an
+    <strong><code>AuthorizationPolicy</code>.</strong>
+</p>
+<p>
+    Creating a new <dfn>authorization policy</dfn> is part of the configuration of the
+    <dfn>Authorization</dfn> service in the Application/Server-Api/Program class. You
+    use an <dfn>AuthorizationPolicyBuilder</dfn> to provide a name for the policy, a
+    requirement that the user has a certain <dfn>claim</dfn>, and optionally, a value
+    for that claim:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/11-policy-based-authz.png"
+         alt="Registering policy-based AuthZ checks." />
+</div>
+<p>
+    A best practice <strong>naming convention</strong> is to use a
+    "<strong>resource.operation.constraint</strong>" format.
+</p>
+<p>
+    With the authorization <dfn>policy</dfn> configured, you can now apply it to Razor Pages,
+    controllers, or actions within a controller. Authorization policies cannot be <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0#authorize-attribute-and-razor-pages">
+        applied
+    </a> at the Razor Page handler (methods) level, they must be applied to the Page (PageModel).
+</p>
+<p>
+    AuthZ in ASP.Net Core is controlled with <dfn>AuthorizeAttribute</dfn> and its
+    various parameters. It its most basic form, applying the <strong><code>[Authorize]</code></strong>
+    attribute to an <dfn>action</dfn>, <dfn>controller</dfn>, <dfn>Razor Page</dfn>, or
+    globally, limits access to only authenticated users. Thinking in terms of
+    <code>ClaimsPrincipal</code> and <code>ClaimsIdentity</code>, this means that the
+    current principal must contain a <code>ClaimsIdentity</code> for which
+    <code>IsAuthenticated=true</code>.
+</p>
+<p>
+    The <code>[Authorize]</code> attribute can also explicitly define a requirement
+    (named policy) to apply for AuthZ checks:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/12-authorize-attribute-policy.png"
+         alt="Policy based authorization check on a controller action." />
+</div>
+<p>
+    You can use the <strong><code>[AllowAnonymous]</code></strong> attribute to ignore an
+    <code>[Authorize]</code> attribute. This allows access to every user, regardless of
+    their authenticated or unauthenticated/anonymous status.
+</p>
+<p>Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction?view=aspnetcore-6.0">
+            Introduction to authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://andrewlock.net/introduction-to-authorisation-in-asp-net-core/">
+            Introduction to Authorisation in ASP.Net Core (Andrew Lock)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/roles?view=aspnetcore-6.0">
+            Role-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/claims?view=aspnetcore-6.0">
+            Claims-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/policies?view=aspnetcore-6.0">
+            Policy-based authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/claims?view=aspnetcore-6.0">
+            Mapping, customizing, and transforming claims in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://andrewlock.net/setting-global-authorization-policies-using-the-defaultpolicy-and-the-fallbackpolicy-in-aspnet-core-3/">
+            Setting global authorization policies using the DefaultPolicy and the FallbackPolicy in ASP.Net Core 3.x
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-6.0#customize-the-model">
+            Identity model customization in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<p>
+    Although you can implement a fairly robust security system with ASP.Net Core
+    Identity on its own, modern day applications employ the OAuth (Open Authorization)
+    standard for AuthZ operations and the OpenID Connect protocol for AuthN operations.
+    ASP.Net Core Identity is designed to fully integrate these standards by working
+    together with the Duende Identity Server framework.
+</p>
+<p>
+    Before delving into authentication and authorization using OpenId Connect and OAuth, it
+    is imperative that you understand the basics of securing a single page application. As you
+    know, <a href="01-blazor">Blazor</a> is a client-side web UI framework similar in nature to
+    JavaScript front-end frameworks like Angular, React, or Vue.
+</p>
+<p>
+    More over, <a href="02-components-part-four">Blazor</a> is a <dfn>single-page</dfn>
+    application (SPA) framework for building <strong>interactive</strong> client-side web apps.
+    When a Blazor WASM app is created for deployment with a back-end ASP.Net Core app to
+    serve its files, the app is called a <a href="05-api">hosted</a> Blazor WebAssembly app.
+</p>
+<p>
+    Using the <dfn>hosted</dfn> Blazor WASM model, as is the case of our application, you get
+    a full-stack web development experience with .Net including the ability to share code
+    between the "client" and "server" apps, support for prerendering, and integration with
+    MVC Razor pages. A <dfn>hosted</dfn> client app can interact with its backend server app
+    over the network using a variety of messaging frameworks and protocols such as web API,
+    gRPC-web, and SignalR.
+</p>
+<h4>ASP.Net Core Blazor AuthN and AuthZ</h4>
+<p>
+    Security scenarios differ between Blazor Server and Blazor WebAssembly apps. Because
+    Blazor Server apps run on the server, authorization checks are able to determine:
+</p>
+<ul>
+    <li>
+        The UI options presented to a user (for example, which menu entries are available
+        to the user).
+    </li>
+    <li>
+        Access rules for areas of the app and components.
+    </li>
+</ul>
+<p>
+    In Blazor WebAssembly <strong>apps that run exclusively on the client</strong>, AuthZ is
+    <strong>only</strong> used to determine which UI options to show. Since <strong>
+        client-side checks can be modified or bypassed by a user, Blazor WASM apps cannot
+        enforce authorization access rules.
+    </strong>
+</p>
+<p>
+    Again, the <dfn>hosted</dfn> Blazor WASM model, as is the case of our application,
+    provides a full-stack web development exprience with .Net including the ability to
+    share code between the "client" and "server" apps. Hosted Blazor WASM applications are
+    configured for security in the same manner as ASP.Net Core apps. Blazor Server uses
+    ASP.Net Core Identity for AuthN and AuthZ.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        SPA frameworks, and Blazor is not the exception, should implement an authentication
+        process where users are redirected to an external provider (identity provider) and
+        returned to the app.
+    </p>
+</div>
+<p>
+    Blazor WASM supports authenticating and authorizing apps using OpenId Connect
+    (OIDC) via the <dfn>Microsoft.AspNetCore.Components.WebAssembly.Authentication</dfn>
+    library. The library provides a set of primitives for seamlessly authenticating
+    against ASP.Net Core backends.
+</p>
+<p>
+    The library integrates ASP.Net Core Identity with API AuthZ support built on
+    top of Duende Identity Server. The library can authenticate against any third-party
+    Identity Provider (IP) that supports OIDC. In the context of OIDC, identity providers
+    are called OpenId Providers (OP).
+</p>
+<p>
+    The authentication support in Blazor WASM is built on top of the
+    <strong><code>oidc-client.js</code></strong> library which is used to handle the
+    underlying authentication protocol details.
+</p>
+<p>
+    In fact, the engineering design of Blazor WASM is settled on OAuth and OIDC
+    as the best option for AuthZ and AuthN. Token-based authentication supported with
+    JSON Web Tokens (JWTs) was chosen over cookie-based authentication for functional and
+    security reasons.
+</p>
+<p>
+    It is now time to understand what the OAuth standard, the OpenId Connect (OIDC)
+    protocol, and Duende Identity Server framework are and how they work together to
+    provide a robust AuthN and AuthZ service for modern day applications.
+</p>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#authentication-library">
+            Secure ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/server/?view=aspnetcore-6.0&tabs=visual-studio">
+            Secure ASP.Net Core Blazor Server apps
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/standalone-with-authentication-library?view=aspnetcore-6.0&tabs=visual-studio">
+            Secure an ASP.Net Core Blazor WebAssembly standalone app with the Authentication library
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio">
+            Secure a hosted ASP.Net Core Blazor WebAssembly app with Identity Server
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/additional-scenarios?view=aspnetcore-6.0">
+            ASP.Net Core Blazor WebAssembly additional security scenarios
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/project-structure?view=aspnetcore-6.0">
+            ASP.Net Core Blazor project structure
+        </a>
+    </li>
+</ul>
+
+
+
+

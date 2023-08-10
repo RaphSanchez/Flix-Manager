@@ -1,0 +1,483 @@
+﻿@page "/05-custom-domain-cdn"
+<PageTitle>Custom Domain with Azure CDN</PageTitle>
+
+<h2>Deployment - Add a Custom Domain to a CDN Endpoint</h2>
+<p>
+    As explained before, for static websites using Azure storage, HTTPS is
+    not natively supported. To <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#mapping-a-custom-domain-to-a-static-website-url">
+        enable HTTPS with custom domains
+    </a> to a static website URL, it is required to use an Azure CDN.
+</p>
+<p>
+    In previous lessons, we created an <a href="03-Azure CDN">Azure CDN profile</a>
+    (cdn-profile-RS-landing) with an endpoint (rs-landing.azureedge.net) to serve our
+    <a href="02-static-website">static website</a> hosted in an Azure storage account.
+    The automatically generated endpoint name in the CDN profile is a subdomain of
+    azureedge.net. By default, when delivering content, the CDN profile domain is
+    included within the URL:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/17-cdn-endpoint-subdomain.png"
+         alt="CDN endpoint URL." />
+</div>
+<p>
+    The Azure Content Delivery Network (CDN) provides the option of associating
+    a custom domain with a CDN endpoint. This option delivers content with a
+    custom domain in your URL instead of the default domain.
+</p>
+<p>
+    We also <a href="04-azure-dns">demonstrated</a> that since the zone apex (e.g.,
+    rafaelsanchez.ws) will always contain the NS and SOA record sets during creation
+    of the DNS zone, you cannot create a CNAME record set at the zone apex.
+</p>
+<p>
+    In other words, if you define a zone record (CNAME) for the root domain (e.g.,
+    rafaelsanchez.ws) to point to the Azure CDN endpoint you will get a resolution
+    conflict because the root domain (rafaelsanchez.ws) already has a SOA record. An
+    alternative for this issue is to implement an Azure DNS alias record set to refer 
+    to an Azure resource such as a CDN endpoint.
+</p>
+<p>
+    For this reason, we also created an <a href="04-azure-dns">Azure DNS</a> service
+    to host and manage the DNS for the domain that will represent the entrance for
+    our personal portfolio website. This will allow us to set up a custom domain for
+    the Azure CDN endpoint that serves the static website.
+</p>
+<p>
+    As you know, Azure DNS is a hosted DNS management and name resolution service.
+    You can use it to create public DNS names for other applications and services
+    that you deploy in Azure. Creating a name for an Azure service in your custom
+    domain is simple. You just add a record of the <a href="https://learn.microsoft.com/en-us/azure/dns/dns-for-azure-services">
+        correct type for the service
+    </a>:
+</p>
+<ul>
+    <li>
+        <p>
+            For dynamically allocated IP Addresses, you can create a DNS CNAME record
+            that maps to the DNS name that Azure created for your service. Nevertheless,
+            as we demonstrated in the <a href="04-azure-dns">Azure DNS</a> lesson, DNS
+            standards prevent you from using a CNAME record for the zone apex.
+        </p>
+        <p>
+            You <strong>can use an alias record instead.</strong>
+        </p>
+    </li>
+    <li>
+        <p>
+            For statically allocated IP addresses, you can create a DNS "A" record by
+            using any name, this includes a <dfn>naked domain</dfn> name at the zone
+            apex.
+        </p>
+    </li>
+</ul>
+<p>
+    For more information on the supported record types for various Azure services, you can
+    refer to <a href="https://learn.microsoft.com/en-us/azure/dns/dns-for-azure-services">
+        How Azure DNS works with other Azure services
+    </a>.
+</p>
+<h3>Azure DNS Alias Records</h3>
+<p>
+    Azure DNS alias records are qualifications on a DNS record set. They can reference
+    other Azure resources from within your DNS zone. For example, you can create an
+    alias record set that references an Azure public IP address (e.g., rs-landing.azureedge.net)
+    instead of an "A" record (instead of an ip address).
+</p>
+<p>
+    The alias record set points to an Azure public IP address service instance dynamically.
+    As a result, the alias record set seamlessly updates itself during DNS resolution. An
+    alias record set is supported for the following record types in an Azure DNS zone:
+</p>
+<ul>
+    <li>A</li>
+    <li>AAAA</li>
+    <li>CNAME</li>
+</ul>
+<h4>Use Cases for Alias Records</h4>
+<dl>
+    <dt>Point to a public IP resource from a DNS A/AAAA record set</dt>
+    <dd>
+        You can create an A/AAAA record set and make it an alias record set to
+        point to a public IP resource (standard or basic Azure pricing plan tiers). The
+        DNS record set changes automatically if the public IP address changes or is deleted.
+    </dd>
+    <dd>
+        <a href="https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover">
+            Dangling
+        </a> DNS records that point to incorrect IP addresses are avoided. If an Azure
+        resource is deprovisioned or deleted after it is no longer needed, <span class="mark">
+            <strong>
+                any related CNAME record must be removed from the DNS zone.
+            </strong>
+        </span> Otherwise, it is advertised as an active domain but it doesn't route traffic
+        to an active Azure resource. This is the definition for a "dangling" DNS record.
+    </dd>
+    <dd>
+        <span class="badge bg-info">Notice:</span>
+        To <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-map-content-to-custom-domain?tabs=azure-dns%2Cazure-portal%2Cazure-portal-cleanup#clean-up-resources">
+            prevent
+        </a> dangling DNS entries and the security risks they create, starting from
+        April 9th 2021, Azure CDN requires removal of the CNAME records to Azure CDN
+        endpoints before the resources can be deleted.
+    </dd>
+    <dd>
+        Resources include Azure CDN custom domains, Azure CDN profiles/endpoints and/or
+        Azure resource groups that have Azure CDN custom domain(s) enabled.
+    </dd>
+    <dt>Point to a Traffic Manager profile from a DNS A/AAAA/CNAME record set</dt>
+    <dd>
+        You can create an A/AAAA or CNAME record set and use alias records to point it to
+        a Traffic Manager profile. It is especially useful when you need to route traffic
+        at a zone apex, as traditional CNAME records are not supported for a zone apex.
+    </dd>
+    <dd>
+        For example, say your Traffic Manager profile is myprofile.trafficmanager.net and
+        your business DNS zone is contoso.com. You can create an alias record set of type
+        "A" or "AAAA" for contoso.com (the zone apex) and point to
+        myprofile.trafficmanager.net.
+    </dd>
+    <dt>Point to an Azure Content Delivery Network (CDN) endpoint</dt>
+    <dd>
+        This is useful when you create static websites using Azure storage and Azure
+        CDN. Just like a Traffic Manager profile, you can also use alias records to
+        point your DNS zone apex to Azure DNS endpoints.
+    </dd>
+    <dd>
+        You can then access the website without prepending "www" to your DNS name. For
+        example, if your static website is named <strong><code>www.contoso.com</code></strong>,
+        your users can access your site using <strong><code>contoso.com</code></strong>
+        without the need to preprend "www" to the DNS name.
+    </dd>
+    <dd>
+        As described previously, CNAME records are not supported at the zone apex. You
+        can not use a CNAME record to point contoso.com to your CDN endpoint. Instead,
+        you can use an alias record to point the zone apex to a CDN endpoint directly.
+    </dd>
+    <dd>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-alias#point-zone-apex-to-azure-cdn-endpoints">
+            Pointing
+        </a> a zone apex to CDN endpoints for Azure CDN from <a href="03-azure-cdn">
+            Akamai
+        </a> is currently not supported.
+    </dd>
+    <dt>Point to another DNS record set within the same zone</dt>
+    <dd>
+        Alias records can reference other record sets of the same type. For example,
+        a DNS CNAME record set can be an alias to another CNAME record set. This
+        arrangement is useful if you want some record sets to be aliases and some
+        non-aliases.
+    </dd>
+</dl>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Associate a custom domain (e.g., rafaelsanchez.ws) to the CDN endpoint created
+    to serve the static website hosted with Azure storage. Create an alias record for
+    the domain apex and an alias record for the "www" subdomain.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+</p>
+<ul>
+    <li>
+        Before you can complete the task, you need to <a href="03-azure-cdn">
+            create a CDN profile
+        </a> and at least one CDN endpoint.
+    </li>
+    <li>
+        If you are using Azure to host your DNS domain (as we are), <a href="04-azure-dns">
+            delegate your custom domain
+        </a> to Azure DNS.
+    </li>
+    <li>
+        If you are using a domain provider to host your DNS domain, you can
+        visit <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-map-content-to-custom-domain?tabs=azure-dns%2Cazure-portal%2Cazure-portal-cleanup#create-a-cname-dns-record">
+            Create a CNAME DNS record
+        </a>.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the instructions in the MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-map-content-to-custom-domain?tabs=azure-dns%2Cazure-portal%2Cazure-portal-cleanup#create-a-cname-dns-record">
+        Create a CNAME DNS record
+    </a> (or alias record) with Azure DNS to point to your CDN endpoint. The CNAME record is a DNS record that
+    maps a source domain name to a destination domain name.
+</p>
+<p>
+    For Azure CDN, the source domain name is your custom domain name and the destination
+    domain name is your CDN endpoint hostname. Azure DNS uses alias records for Azure
+    resources within the same subscription.
+</p>
+<p>
+    Alias record type CNAME for "www" subdomain:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/37-www-alias-record.png"
+         alt="Alias record type CNAME for www subdomain." />
+</div>
+<p>
+    Alias record type A for domain apex:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/38-apex-alias-record.png"
+         alt="Alias record type A for zone apex." />
+</div>
+<p>
+    Azure DNS Zone for 'rafaelsanchez.ws' with alias record sets:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/39-alias-records-set.png"
+         alt="Azure DNS zone with alias records." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Azure automatically creates "cdnverify" record sets for each alias. These can be
+    <a href="https://stackoverflow.com/questions/51825435/adding-custom-domain-to-azure-cdn-endpoint-caused-downtime-to-cdn">
+        used
+    </a> when you want to avoid downtime because you want to map an existing domain that
+    is in production.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Follow the instructions in the MSDN documentation to <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-map-content-to-custom-domain?tabs=dns-provider%2Cazure-portal%2Cazure-portal-cleanup#map-the-permanent-custom-domain">
+        Add a custom domain to your CDN endpoint
+    </a>:
+</p>
+<div class="ima mb-3">
+    <img src="Images/26-deployment/40-cdn-custom-domains.png"
+         alt="Custom domains for CDN endpoint." />
+</div>
+<p>
+    For Azure CDN Standard tier from Microsoft profiles, propagation to all CDN edge nodes of
+    the new custom domain settings usually completes in 10 minutes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Verify the custom domains.
+</p>
+<p>
+    After you have completed the registration of the custom domains, verify that they
+    reference the CDN endpoint:
+</p>
+<ol>
+    <li>
+        Ensure that you have public content that is cached at the endpoint.
+    </li>
+    <li>
+        Go to your web browser's address bar and type in the custom domains:
+        <a href="https://www.rafaelsanchez.ws">https://www.rafaelsanchez.ws</a> and
+        <a href="https://rafaelsanchez.ws">https://rafaelsanchez.ws</a>. Verify that the
+        result is the same as when you access the CDN endpoint directy at
+        <a href="https://rslandingsite.z13.web.core.windows.net/">
+            https://rslandingsite.z13.web.core.windows.net/
+        </a>.
+    </li>
+</ol>
+<p>
+    Both custom domains are enabled and pointing to the Azure CDN endpoint. However, the
+    browser displays a warning to the user before accessing their content because although
+    the URL makes a connection request with Https protocol, the connection is not secure:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/41-not-secure-warning.png"
+         alt="Connection not secure warning." />
+</div>
+<p>
+    What's more, if you type any of the custom domains into the address bar of the web
+    browser without the "https" (secure protocol), you get an HttpStatusCode: 400 (Bad Request)
+    response:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/42-http-400-code.png"
+         alt="Http response with Status Code 400." />
+</div>
+<p>
+    Although the "ErrorCode" field indicates that "AccountRequiresHttps", it might not
+    be perfectly clear to the regular user that the URL must contain the trailing 's'
+    to initiate a secure request using the Https protocol. Instead, the user should be
+    automatically redirected to ensure a secure communication exchange.
+</p>
+<p>
+    This is not the case for the Azure CDN endpoint hostname <a href="https://rslandingsite.z13.web.core.windows.net/">
+        https://rslandingsite.z13.web.core.windows.net/
+    </a> because Azure supports Https on a CDN endpoint hostname by default at no extra cost.
+    Let's tackle automatically redirecting the user to initiate an Https request first and
+    then we can deal with implementing Https on an Azure CDN custom domain.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-map-content-to-custom-domain?tabs=azure-dns%2Cazure-portal%2Cazure-portal-cleanup#tabpanel_1_azure-dns">
+            Tutorial: Add a custom domain to your endpoint>
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-alias#point-zone-apex-to-azure-cdn-endpoints">
+            Azure DNS alias records overview
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website#mapping-a-custom-domain-to-a-static-website-url">
+            Static website hosting in Azure storage
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-for-azure-services">
+            How Azure DNS works with other Azure services
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-alias#point-zone-apex-to-azure-cdn-endpoints">
+            Azure DNS alias records overview
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/wzjMi3DO2xU">
+            Setting up Custom DNS Records to point to Azure Web Sites with Stefan Schackow
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover">
+            Prevent dangling DNS entries and avoid subdomain takeover
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/51825435/adding-custom-domain-to-azure-cdn-endpoint-caused-downtime-to-cdn">
+            Adding Custom Domain to Azure CDN Endpoint Caused Downtime to CDN
+        </a>
+    </li>
+</ul>
+<h3>Standard Rules Engine</h3>
+<p>
+    In the Standard rules engine for Azure CDN, <strong>
+        a rule consists of one or more <dfn>match conditions</dfn> and an <dfn>action</dfn>.
+    </strong> The rules engine is designed to be the final authority on how specific
+    types of requests are processed by Standard Azure CDN.
+</p>
+<p>
+    Common uses for the rules are:
+</p>
+<ul>
+    <li>
+        Override or define a custom cache policy.
+    </li>
+    <li>
+        Redirect requests.
+    </li>
+    <li>
+        Modify HTTP request and response headers.
+    </li>
+</ul>
+<dl>
+    <dt>Match conditions</dt>
+    <dd>
+        The first part of a rule is a match condition or set of match conditions. In the
+        Standard rules engine for Azure CDN, each rule can have up to four match conditions.
+    </dd>
+    <dd>
+        Each match condition identifies specific types of requests for which defined actions
+        are performed. If you use multiple match conditions, the match conditions are
+        <strong>grouped together using the <code>AND</code> logic.</strong>
+    </dd>
+    <dd>
+        The order in which multiple rules are listed affects how rules are handled. The
+        actions that are specified in a rule <span class="mark">
+            <strong>
+                might be overwritten by a subsequent rule.
+            </strong>
+        </span>
+    </dd>
+    <dd>
+        There are multiple <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine-match-conditions#match-conditions">
+            match conditions
+        </a> available to use in the Standard rules engine for Azure CDN.
+    </dd>
+    <dt>Actions</dt>
+    <dd>
+        The second part of a rule is an action. An action defines the behavior that is
+        applied to the request type that a match condition or set of match conditions
+        identifies.
+    </dd>
+    <dd>
+        There are multiple <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine-actions">
+            actions
+        </a> available to use in the Standard rules engine for Azure CDN.
+    </dd>
+</dl>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Caching rules are available only for Azure CDN Standard from Verizon and Azure CDN
+        Standard from Akamai profiles. For Azure <a href="03-azure-cdn">
+            CDN from Microsoft profiles
+        </a>, you must use the Standard rules engine. For Azure CDN Premium from Verizon
+        profiles, you must use the Verizon Premium rules engine in the Manage portal for
+        similar functionality.
+    </p>
+</div>
+<p>
+    To explore pricing options visit <a href="https://azure.microsoft.com/pricing/details/cdn/">
+        Content Delivery Network pricing
+    </a> for rule engine pricing.
+</p>
+<p>
+    You can use the Standard rules engine for Azure CDN to customize how HTTP requests
+    are handled. For example, you can use the rules engine to enforce content delivery to
+    use specific protocols, to define a caching policy, or to modify an HTTP header.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Set up and use the Standard rules engine for Azure CDN to create a rule that automatically
+    <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine#redirect-users-to-https">
+        redirects users to HTTPS
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a rule (e.g., EnforceHTTPS) to automatically redirect users to HTTPS:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/43-https-rules-engine.png"
+         alt="Azure CDN Enforce HTTPS rule." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to a web browser and type the URL for your custom domains without the trailing "s" in
+    HTTP to test the "EnforceHTTPS" rule. Consider that it might take up to 15 minutes for
+    the rule to propagate through Azure CDN.
+</p>
+<p>
+    Now we can focus on implementing HTTPS with our custom domain.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine-reference">
+            Standard rules engine reference for Azure CDN
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine">
+            Set up the Standard rules engine for Azure CDN
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine-match-conditions">
+            Match conditions in the Standard rules engine for Azure CDN
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-standard-rules-engine-actions">
+            Actions in the Standard rules engine for Azure CDN
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/pricing/details/cdn/">
+            Content Delivery Network pricing
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/cdn/cdn-caching-rules-tutorial">
+            Tutorial: Set Azure CDN caching rules
+        </a>
+    </li>
+</ul>

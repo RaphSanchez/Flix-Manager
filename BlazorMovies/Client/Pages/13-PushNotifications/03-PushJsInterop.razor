@@ -1,0 +1,575 @@
+﻿@page "/03-push-js-interop"
+
+<PageTitle>Push Notifications - JSInterop</PageTitle>
+
+<h2>Web Push Notifications - JSInterop Subscribe/Unsubscribe</h2>
+<p>
+    As we explained in the <a href="01-push-notifications-intro">Push Notifications</a>
+    introductory lesson, a general model for push services includes <strong>
+        three basic actors:
+    </strong>
+</p>
+<ol>
+    <li>The Application/Server-Api.</li>
+    <li>A push service.</li>
+    <li>A user agent.</li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/46-push-intro/01-push-overview.svg"
+         alt="Push notifications flow." />
+</div>
+<p>
+    In last lesson on <a href="02-push-api">Preparing the Api</a>, we successfully
+    established actor number one and a way (IApiService) for the Application/Client
+    to communicate with the Application/Server-Api for any push notifications related
+    operations. In doing so, we covered steps one and two of the procedure outline to
+    implement a push notifications system in our application:
+</p>
+<ol>
+    <li>
+        <p>
+            <a href="https://vapidkeys.com/">Generate</a> the secure VAPID keys
+            required to send and receive web push notifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Store the VAPID keys in a secure location; e.g., in the application
+                    secrets with the help of the application secret manager.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Prepare the Application/Server-Api for PushNotifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Modify the database schema to incorporate a PushSubscriptionDetails
+                    data entity that represents the details of a unique web push
+                    subscription for a specific end user (e.g., PushEndpointUrl, elliptic
+                    curve public key, and the authentication secret).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Add the required functionality to manage PushSubscriptionDetails database
+                    records.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Use <a href="02-components-part-three">JSInterop</a> to subscribe/unsubscribe
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a JavaScript file to define functions responsible for getting
+                    the status of the permission for notifications granted by the user,
+                    subscribing, and unsubscribing a user to/from the push service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Create the methods responsible for invoking these functions using
+                    CSharp.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a PushNotification component responsible for subscribing/unsubscribing
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    The component employs the CSharp methods created in last step to invoke
+                    the JS functions to subscribe/unsubscribe a user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    It should handle errors when a connection to the web server is not
+                    available. We do not intend to provide offline support to
+                    subscribe/unsubscribe from the push notifications service.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Include a method to send a push message to all users subscribed
+                    to the web push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The method must be capable of including a Movie object as its payload
+                    if and when the Movie is marked with an "InTheaters" flag.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Call the method from the Add and the Update actions of the Movies
+                    controller to send a push notification when a Movie object is either
+                    added or updated. The Movie must be included in its payload.
+                </p>
+            </li>
+            <li>
+                Use the <dfn>service worker</dfn> to handle push notifications sent by the
+                Application/Server-Api to the web browser's push notifications service which
+                in turn sends the push notification to the application user(s).
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Test and <a href="07-dynamic-website">deploy</a> the application to Azure app service.
+        </p>
+        <p>
+            Use Azure key vault to store the VAPID details of our application. Recall that we
+            explained how to use Azure key vault to centralize app secrets in the
+            <a href="07-dynamic-website">Dynamic Website</a> lesson of the Deployment module.
+        </p>
+    </li>
+</ol>
+<p>
+    In this lesson, we will take care of step three. We will create a
+    <em>push-notifications.js</em> file that defines the JS functions and we will use
+    JSInterop to invoke those functions from CSharp code. Take a look to our push notification
+    system diagram to have a better understanding:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/03-push-notif-syst-js-interop.drawio-embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<h4>Setup Subscribe/Unsubscribe Operations</h4>
+<p>
+    As explained in <a href="02-push-api">last lesson</a>, at the very beginning of the
+    process, a new <a href="https://w3c.github.io/push-api/#push-subscription">
+        push subscription
+    </a> to the web push service must be created, for a specific application user, by the
+    user agent (web browser) if and when an authorization to do so is granted by the
+    application user.
+</p>
+<p>
+    Upon successful subscription of an application user to a web push service
+    resource, a response with a <code>StatusCodes.StatusCode201 Created</code> is
+    received. The response payload includes the <a href="https://w3c.github.io/push-api/#push-subscription">
+        push subscription
+    </a> details that must be distributed to the Application/Server-Api who is responsible
+    for persisting the data into the database table.
+</p>
+<p>
+    The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Push_API">
+        Push API
+    </a> and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API">
+        Notifications API
+    </a> are two separate JS APIs that are used together. Push API is used to deliver new
+    content from the Application/Server-Api to the Application/Client without any
+    client-side intervention and its operation is handled by the app's <dfn>
+        service worker
+    </dfn>. Notifications API allows web pages to control the display of system notifications
+    to the end user.
+</p>
+<p>
+    Our objective for this lesson is to define the JavaScript code logic to subscribe/unsubscribe
+    users and use JSInterop to invoke these functions from CSharp. Hence, we need:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>A <em>push-notification.js</em> file:</strong> Contains the JS
+            functions.
+        </p>
+
+    </li>
+    <li>
+        <p>
+            <strong>JS functions:</strong>
+        </p>
+        <ul>
+            <li>
+                <p>
+                    <code>getStatusNotificationPermission()</code> to get the status of the
+                    push notification permission for a given application user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    <code>subscribeUserToPushNotifications()</code> to subscribe an application
+                    user to the push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    <code>unsubscribeUserFromPushNotifications()</code> to unsubscribe an
+                    application user from the push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    <code>arrayBufferToBase64(buffer)</code> helper function to convert a
+                    bytes array into a Base64 encoded string.
+                </p>
+                <p>
+                    Each push subscription key (P256dh and Auth) returned from the push
+                    service are contained in a byte array. They need to be encoded into
+                    a <a href="04-forms-part-one">Base64</a> string that allows safely
+                    carrying and storing data across different channels.
+                </p>
+            </li>
+            <li>
+                <p>
+                    <code>getSubscriptionDetails</code> helper function to wrap the push
+                    subscription details into property members that are equivalent to the
+                    Application/Shared/EDM PushSubscriptionDetails class that represents
+                    a record in the PushSubscriptionsDetails database table with the required
+                    data to target a specific end user to send push notifications.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    Later, we can use <a href="02-components-part-three">JSInterop</a> to consume these
+    functions from CSharp code; i.e., from a <a href="04-push-component">PushNotifications</a>
+    component.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create the JS functions responsible for getting the push notifications permission
+    status, subscribe, and unsubscribe an application user from the the push service.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Keep in mind that although it is perfectly possible, we will not provide offline
+        support for the subscribe/unsubscribe to/from the push notifications service. You
+        can follow the <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson
+        in case you decide to implement online support.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Add a .js file named "push-notifications.js" to the "js" directory that resides in the
+    web root folder (Application/Client/wwwroot). This is the JS file that will contain all
+    the JS code required by our push notifications service.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Ensure that the <em>push-notifications.js</em> file is loaded during initialization of the
+    application.
+</p>
+<p>
+    To load a JS function from a .js file, we need to provide a script tag with a script
+    <span class="mark"><code>src</code></span> path before the closing &lt;/body&gt; tag of
+    the host page but after the Blazor script reference:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/01-index-host-page.png"
+         alt="Application/Client host page." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Declare the code logic for the JS functions mentioned earlier to check notification
+    permission status and subscribe/unsubscribe an application user from the push service.
+</p>
+<p>
+    Upon successful subscription of an application user to a web push service
+    resource, a response with a <code>StatusCodes.StatusCode201 Created</code> is
+    received. The response payload includes the <a href="https://w3c.github.io/push-api/#push-subscription">
+        push subscription
+    </a> details in the form of byte<a href="https://w3c.github.io/push-api/#push-service-use">
+        array buffers
+    </a> that contain the value of the corresponding key (e.g.; p256dh and auth keys) or
+    null if it doesn't exist.
+</p>
+<p>
+    We need to convert each byte array buffer with a push subscription key into a
+    <a href="04-forms-part-one">
+        Base64
+    </a> encoding string that allows safely carrying and storing data across different
+    channels.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Add an <code>arrayBufferToBase64(buffer)</code> helper function capable of converting
+    a byte array buffer into a string in Base64 format:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/02-array-buffer-function.png"
+         alt="arrayBufferToBase64 helper function." />
+</div>
+<p>
+    Now we need a way to wrap the push subscription details, including the Base64
+    encoded strings that represent the subscription keys, and pass them to the CSharp
+    world.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Add a <code>getSubscriptionDetails</code> helper function responsible for wrapping the
+    push subscription details into property members that are equivalent to the
+    Application/Shared/EDM PushSubscriptionDetails class that represents a record in
+    the PushSubscriptionsDetails database table with the required data to target a
+    specific end user to send push notifications:
+</p>
+<p>
+    <div class="image-lesson mb-3">
+        <img src="Images/47-push-front-end/03-get-subscription-details.png"
+             alt="getSubscriptionDetails helper function." />
+    </div>
+</p>
+<p>
+    <span class="badge bg-info">Note:</span>
+    The property names of the <code>getSubscriptionDetails</code> helper function
+    must exactly match the property names of the Application/Shared/EDM PushSubscriptionDetails
+    type.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Add the <code>getStatusNotificationPermission</code> function:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/04-get-status-notification-permission.png"
+         alt="getStatusNotificationPermission function." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4:</span>
+    Add the <code>subscribeUserToPushNotifications</code> function:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/05-subscribe-user-one.png"
+         alt="subscribeUserToPushNotifications part one." />
+    <img src="Images/47-push-front-end/06-subscribe-user-two.png"
+         alt="subscribeUserToPushNotifications part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Examine the following distinctions for the subscribeUserToPushNotifications function:
+</p>
+<ul>
+    <li>
+        <p>
+            Although it is perfectly possible, we do not provide offline support for the
+            subscribe/unsubscribe to/from the push notifications service. For this reason,
+            the <code>fetch</code> function is placed at the beginning to find out as
+            soon as possible if the application is not connected to the internet.
+        </p>
+        <p>
+            If so, this throws a JSException with a "Failed to fetch" error that we can
+            handle from the CSharp world to inform the user that a valid connection is
+            required to use this feature.
+        </p>
+        <p>
+            You can follow the <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson
+            in case you decide to implement online support.
+        </p>
+    </li>
+    <li>
+        <p>
+            The '/get-public-key' route segment <strong>must be registered</strong>
+            in the <code>getResponseAndUpdateCache</code> function of the
+            Application/Client/wwwroot <dfn>service-worker.js</dfn> <span class="mark">
+                <strong>and</strong>
+            </span> in the <dfn>service-worker.published.js</dfn> files to prevent our custom
+            'dynamic cache' from capturing and storing the Http response because we do
+            not intend to provide offline support.
+        </p>
+        <p>
+            You can refer to the <a href="03-pwa-accessor-requests">Accessor Requests</a>
+            lesson for more info on the <a>getResponseAndUpdateCache</a> function.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.5:</span>
+    Register the '/get-public-key' route segment in the <code>getResponseAndUpdateCache</code>
+    function of the Application/Client/wwwroot <dfn>service-worker.js</dfn> <span class="mark">
+        <strong>and</strong>
+    </span> in the <dfn>service-worker.published.js</dfn> files to prevent our custom
+    'dynamic cache' from capturing and storing the Http response because we do not intend to
+    provide offline support:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/07-service-worker.png"
+         alt="service-worker.js file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.6:</span>
+    Add the <code>unsubscribeUserFromPushNotifications()</code> function:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/08-unsubscribe-user-one.png"
+         alt="unsubscribeUserFromPushNotifications part one." />
+    <img src="Images/47-push-front-end/09-unsubscribe-user-two.png"
+         alt="unsubscribeUserFromPushNotifications part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The unsubscribeUserFromPushNotifications function has the same distinctions
+    as its counterpart:
+</p>
+<ul>
+    <li>
+        <p>
+            Although it is perfectly possible, we do not provide offline support for the
+            subscribe/unsubscribe to/from the push notifications service. For this reason,
+            the <code>fetch</code> function is placed at the beginning to find out as
+            soon as possible if the application is not connected to the internet.
+        </p>
+        <p>
+            If so, this throws a JSException with a "Failed to fetch" error that we can
+            handle from the CSharp world to inform the user that a valid connection is
+            required to use this feature.
+        </p>
+        <p>
+            You can follow the <a href="04-pwa-mutator-requests">Mutator Requests</a> lesson
+            in case you decide to implement online support.
+        </p>
+    </li>
+    <li>
+        <p>
+            The '/get-public-key' route segment <strong>must be registered</strong>
+            in the <code>getResponseAndUpdateCache</code> function of the
+            Application/Client/wwwroot <dfn>service-worker.js</dfn> <span class="mark">
+                <strong>and</strong>
+            </span> in the <dfn>service-worker.published.js</dfn> files to prevent our custom
+            'dynamic cache' from capturing and storing the Http response because we do
+            not intend to provide offline support.
+        </p>
+        <p>
+            You can refer to the <a href="03-pwa-accessor-requests">Accessor Requests</a>
+            lesson for more info on the <a>getResponseAndUpdateCache</a> function.
+        </p>
+    </li>
+</ul>
+<p>
+    We have completed the JavaScript code logic of the <dfn>push-notifications.js</dfn> 
+    file to get the status of the push notifications permission for the current application
+    user and to subscribe/unsubscribe an application user to the web push service of the 
+    user agent. Now we need to create CSharp code capable of invoking JS functionality from
+    our Blazor application.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode "155. Push API - Frontend" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán
+    </li>
+    <li>
+        Episode "30. Send and receive push messages - Progressive Web App Training"
+        from YouTube course
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/9267899/arraybuffer-to-base64-encoded-string/9458996#9458996">
+            ArrayBuffer to base64 encoded string
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Tutorials/js13kGames/Re-engageable_Notifications_Push#push">
+            How to make PWAs re-engageable using Notifications and Push
+        </a>
+    </li>
+    <li>
+        Section
+        <a href="https://codelabs.developers.google.com/codelabs/push-notifications#4">
+            5. Subscribe the user
+        </a> of the "Add push notifications to a web app" code lab for Google
+        developers.
+    </li>
+</ul>
+<h4>JSInterop</h4>
+<p>
+    As we explained in the <a href="02-components-part-three">Blazor Components Part III</a>
+    lesson, Blazor uses JavaScript (JS) to bootstrap the .Net runtime. CSharp can call a
+    JS function/API and JS code can call any CSharp method. This ability to call a JS
+    method from CSharp and viceversa is referred to as JavaScript Interoperability.
+</p>
+<p>
+    The idea is to create a PushNotifications component that will use JSInterop to invoke
+    the JS functions created earlier. In this section, we will define the CSharp methods
+    that are equivalent to the JS functions. These CSharp methods will be employed by
+    the PushNotifications component to perform push notification related operations such
+    as subscribe/unsubscribe an application user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/03-push-notif-syst-js-interop.drawio-embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<p>
+    You might recall that in lesson <a href="02-components-part-three">
+        Blazor Components Part III
+    </a>, we extended the <em>Microsoft/JSInterop.IJSRuntime</em> that represents an
+    instance of a JavaScript runtime to which calls my be dispatched. We created an
+    Application/Client/Helpers IJSRuntimeExtensions class responsible for centralizing
+    the CSharp <em>extension methods</em> that encapsulate the code logic required to invoke
+    JS functions.
+</p>
+<p>
+    Having commonly required JS function invocations integrated into a single class
+    that is available from everywhere in the application allows changing their implementation
+    from a single place.
+</p>
+<p>
+    We can user the existing IJSRuntimeExtensions type to incorporate <em>extension methods</em>
+    that will allow us to subscribe/unsubscribe users from anywhere in our application using
+    CSharp code. These <em>extension methods</em> must be exactly equivalent, and compatible,
+    with the JS functions defined in the Application/Client/wwwroojt/js push-notifications.js
+    file.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Application/Client/Helpers IJSRuntimeExtensions class to declare the
+    <em>extension methods</em> that encapsulate invocations to the JS functions of the
+    Application/Client/wwwroot/js push-notifications.js file.
+</p>
+<p>
+    Keep in mind that as <em>extension methods</em> that extend the functionality of
+    the <em>Microsoft/JSInterop.IJSRuntime</em>, they must adhere to the following
+    conditions:
+</p>
+<ul>
+    <li>
+        Reside within a static class.
+    </li>
+    <li>
+        Include the <code>static</code> modifier.
+    </li>
+    <li>
+        Their first formal input parameter must be preceded with the keyword <code>this</code>
+        followed by the type that the method operates on; i.e., the type that is being
+        extended.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/47-push-front-end/10-js-runtime-extensions-one.png"
+         alt="IJSRuntimeExtensions part one." />
+    <img src="Images/47-push-front-end/11-js-runtime-extensions-two.png"
+         alt="IJSRuntimeExtensions part two." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode "155. Push API - Frontend" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@FHXR8HROjz7zUmlmb0LdPBR7qBb3ffpRwyKadwoOp833xq3Gp8pRfnTVDJ6xaO9s/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán
+    </li>
+</ul>

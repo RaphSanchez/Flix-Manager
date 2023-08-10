@@ -1,0 +1,1174 @@
+﻿@page "/06-security-protect-api"
+<PageTitle>Secure API</PageTitle>
+
+<h2>Security - Securing API Resources</h2>
+<p>
+    At this point, we have completed the Application/Server-Api IdentityServer
+    engine configuration to perform AuthN and AuthZ operations and we have also
+    configured the Application/Client to selectively display UI elements based
+    on the current authentication state of the User.
+</p>
+<p>
+    As mentioned in last lecture, with Blazor WASM apps that run exclusively on the
+    client (e.g., Application/Client), AuthZ is <strong>only</strong> used to
+    determine which UI options to show. Since client-side checks can be modified or
+    bypassed by a user, Blazor WASM apps cannot enforce authorization access rules.
+</p>
+<p>
+    Authorization checks should <strong>always</strong> be performed on the server
+    within any API endpoints accessed by your client-side app. For this reason, the
+    next step is to establish a rich policy-based authorization model to control
+    access to Application/Server-Api resources based on different authorization rules
+    applied at the controller and/or action level. But before that, we still need to
+    make a couple adjustments to the app. Let's see in action what we have accomplished
+    so far to understand why.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Test the security system under a "User authenticated" scenario with basic
+    server-side access rules for API endpoints; e.g., refactor the
+    Application/Server-Api/Controllers MoviesController with an [AllowAnonymous] and
+    an [Authorize] attribute to test its behaviour.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Server-Api/Controllers MoviesController and decorate its
+    GetFlixManagerDtoTask action with an <code>[AllowAnonymous]</code> attribute to
+    allow access to this Application/Server-Api resource to unauthenticated Users and
+    decorate its GetMovieEditDtoTask action with an <code>[Authorize]</code> attribute
+    to restrict access to this resource to unauthenticated Users:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/01-movies-controller.png"
+         alt="MoviesController." />
+</div>
+<p>
+    With these basic authorization rules in place, an authenticated User should have
+    access to both API resources and unauthenticated Users should only be able to
+    access the GetFlixManagerDtoTask API resource.
+</p>
+<p>
+    Recall that in last lecture, we used an <code>&lt;AuthorizeView&gt;</code> component
+    to restrict UI access to the button elements of a Movie object rendered by the
+    Application/Client/Shared RenderMovie.razor component. For this reason, you have to
+    login with a valid User to have access to the "Edit" button element which redirects
+    the User to the MovieEdit routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the application, login, and navigate to the Application/Client/Pages/Movies
+    Flix Manager routable component. You should have no problem accessing the
+    GetFlixManagerDtoTask action (API resource) because at this point the current User
+    has been authenticated. In any case, the endpoint is decorated with an [AllowAnonymous]
+    attribute.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Click on the "Edit" button element of any of the Movie objects to navigate to the
+    MovieEdit routable component. The component consumes the GetMovieEditDtoTask API
+    resource to load the data related to the selected Movie object.
+</p>
+<p>
+    You should also be able to access the GetMovieEditDtoTask action (API resource)
+    because the current User is authenticated:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/02-edit-movie-denied-access.png"
+         alt="MovieEdit routable component denied access." />
+</div>
+<p>
+    The User has been properly authenticated but the Application/Server-Api
+    IdentityServer engine has denied access to the API resource but why?
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Ensure that the IdentityServer engine created an authentication/authorization token
+    for the current User. You might recall that we followed this procedure with the
+    last Task at the end of the lesson on <a href="04-security-config-client">
+        Configuring Client
+    </a>:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/16-securing-client/25-session-storage-tokens.png"
+         style="max-width: 120%"
+         alt="Session storage with tokens - authenticated user." />
+</div>
+<p>
+    Alternately, you can check the <dfn>debugging console window</dfn>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/03-debugging-console.png"
+         alt="Debugging console." />
+</div>
+<p>
+    If the user is being authenticated and is also being provided authentication/authorization
+    tokens, what is the problem?
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    As you know, the Application/Client uses the Application/Client IApiService to send
+    Http requests to the Application/Server-Api Controllers. Let's study the Http request
+    headers produced.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1</span>
+    Make sure the current User is still logged-in and navigate to the FlixManager routable
+    component.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/04-flix-manager-ui.png"
+         alt="Flix Manager UI." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2</span>
+    Open the "Network" tab of the browser's developer tools, clean any available content,
+    and click the "Edit" button of a Movie object to try to access the GetMovieEditTask
+    action (API resource) consumed by the MovieEdit routable component.
+</p>
+<p>
+    Go to the Network tab of the developer tools and click on the request (1022) to
+    display more information:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/05-request-headers-one.png"
+         alt="Http Request Headers part one." />
+    <img src="Images/17-protect-api/06-request-headers-two.png"
+         alt="Http Request Headers part two." />
+</div>
+<p>
+    From the image above one can conclude that:
+</p>
+<ul>
+    <li>The server responded with a Status Code: 401</li>
+    <li>The Response Headers declare an "www-authenticate: Bearer" authentication method.</li>
+    <li>The Request Headers include a "cookie" for the current session.</li>
+</ul>
+<p>
+    What's more, if you go to the Console window of the browser's developer tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/07-console-401.png"
+         alt="Console window with StatusCode 401 and stack trace." />
+</div>
+<p>
+    The Console window displays a 401 code and it also provides the stack trace for the
+    problem. We can follow the trace all the way down to the GetMovieEditDtoAsync action. But
+    what exactly does a StatusCode 401 mean?
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/17-protect-api/08-mdn-401.png"
+         alt="MDN StatusCode 401." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401">
+            Mozilla Development Network (MDN)
+        </a>
+    </figcaption>
+</figure>
+<p>
+    The Http request <strong>lacks the authentication/authorization tokens</strong>
+    that we know for certain that the IdentityServer engine is producing; i.e.,
+    the request headers are missing the authentication and the authorization tokens. The
+    Http request is not granted access because it fails to properly authenticate
+    the User because it <strong>lacks valid authentication credentials</strong> for
+    the required resource.
+</p>
+<p>
+    Let's take a look one more time to the "Network" tab of the browser's developer
+    tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/05-request-headers-one.png"
+         alt="Http Request Headers part one." />
+    <img src="Images/17-protect-api/06-request-headers-two.png"
+         alt="Http Request Headers part two." />
+</div>
+<p>
+    The code is sent with an Http <code>www-authenticate: Bearer</code> response
+    header that contains information on how the client can request for the resource
+    again; i.e., to properly authenticate a User, we need to include a JWT Bearer token.
+</p>
+<p>
+    Also notice that the request headers do not include the id/access tokens. Let's
+    work on including the tokens in the Http requests.
+</p>
+<h4>HTTP Client with/without AuthZ Headers</h4>
+<p>
+    As we explained in the introductory lesson on <a href="01-security-fundamentals">
+        Security
+    </a> and in the <a href="02-security-building-blocks">Building Blocks</a> lecture,
+    the Application/Server-Api IdentityServer engine authenticates users and provides
+    security tokens such as <dfn>access tokens</dfn>, <dfn>refresh tokens</dfn>, and
+    <dfn>ID tokens</dfn>. Security tokens allow a Client/User to access protected
+    resources on a resource server.
+</p>
+<dl>
+    <dt>ID token:</dt>
+    <dd>
+        ID tokens are sent to the Client application as part of an OpenID Connect
+        flow. They can be sent alongside or instead of an access token. ID tokens
+        are <strong>used by the Client</strong> to <strong>authenticate a User</strong>.
+    </dd>
+    <dt>Access token:</dt>
+    <dd>
+        An access token is a security token that is issued by an authorization server
+        as part of an OAuth 2.0 flow. It <strong>
+            contains information about the User and the resource for which the token is intended.
+        </strong> The info can be used to access web APIs and other protected resources.
+    </dd>
+    <dt>Refresh token:</dt>
+    <dd>
+        Because access tokens are valid for only a short period of time, authorization
+        servers will sometimes issue a refresh token at the same time the access token
+        is issued. The Client application can then exchange this refresh token for a
+        new access token when needed.
+    </dd>
+</dl>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/03-debugging-console.png"
+         alt="Debugging console." />
+</div>
+<p>
+    We also explained that our security system implements security tokens as JSON
+    Web Tokens (JWTs) that contain claims. <span class="mark"><strong>
+        Access tokens are passed to a web API as the <dfn>bearer token</dfn> in the 
+        <dfn>Authorization</dfn> header </strong></span> and the IdentityServer 
+    engine is responsible for validating the User's credentials to allow access (or not) 
+    to the requested API resource.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure an HttpClient service that attaches authorization JWTs to its
+    authorization headers for outgoing requests.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <dfn>AuthorizationMessageHandler</dfn> is a <dfn>DelegatingHandler</dfn> used
+        to attach tokens to outgoing <dfn>HttpResponseMessage</dfn> instances. Tokens are
+        acquired using the <dfn>IAccessTokenProvider</dfn> service which is registered by
+        the framework. If a token cannot be acquired, an
+        <dfn>AccessTokenNotAvailableException</dfn> is thrown; i.e., <strong>
+            if a token is not available, an exception will be thrown.
+        </strong>
+    </p>
+</div>
+<p>
+    For convenience, ASP.Net Core provides the
+    <strong><code>BaseAddressAuthorizationMessageHandler</code></strong> preconfigured
+    with the app's base address as an authorized URL. The
+    <dfn>BaseAddressAuthorizationMessageHandler</dfn> attaches tokens to outgoing
+    <dfn>HttpResponseMessage</dfn> instances. <strong>
+        Access tokens are only added when the request URI is within the app's base URI.
+    </strong>
+</p>
+<p>
+    HttpClient instances can be configured by name so you can refer to them by name
+    or by type. A <span class="mark"><strong>typed HttpClient</strong></span> is a class
+    that allows configuring a custom HttpClient (by type). By type means that a class
+    represents one or more instances of the HttpClient.
+</p>
+<p>
+    A typed HttpClient can handle all of the Http and token acquisition concerns within
+    a single class; i.e., the class encapsulates multiple HttpClient instances.
+</p>
+<p>
+    The application needs an HttpClient service that includes the authorization tokens
+    (JWTs) when making requests to the Application/Server-Api because tokens allow the
+    IdentityServer engine to validate that the Http request originates from a User that
+    holds valid credentials to access a protected API resource.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client, update any installed NuGet packages and install the
+    following:
+</p>
+<ul>
+    <li>Microsoft.Extensions.Http</li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Application/Client/Helpers folder and create a class named
+    HttpClientWithJwt that will represent a typed Http service that attaches JWTs to every
+    request/response. This type (class) will be configured as a service in the dependency
+    injection container with a <dfn>BaseAddressAuthorizationMessageHandler</dfn> responsible
+    for attaching the authorization JWTs to its authorization headers.
+</p>
+<p>
+    The additional HttpClient instance is simply a read-only property member that
+    is instantiated with the built-in HttpClient that is constructor injected.
+    The built-in HttpClient is needed to have access to its public interface; e.g., to
+    be able to access its <code>HttpClient.BaseAddress</code> needed by the
+    Application/Client/ApiServices/ApiManager ApiConnector class to build the URI for
+    the requested endpoint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/09-http-client-with-jwt-one.png"
+         alt="Typed HttpClient named HttpClientWithJwt part one." />
+    <img src="Images/17-protect-api/10-http-client-with-jwt-two.png"
+         alt="Typed HttpClient named HttpClientWithJwt part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The constructor has additional
+    configurations for the Http headers; e.g., clearing the request headers and
+    defining the <a href="05-api">media type</a> (also known as MIME) for the content
+    headers. These were originally defined in the
+    Application/Client/ApiServices/ApiManager ApiConnector class but they were moved
+    here to enable an appropriate separation of concerns; i.e., any HttpClient
+    configuration should be defined here, not in the ApiConnector class because it
+    will handle two different HttpClient configurations.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Configure the HttpClientWithJwt type as an HttpClient service that attaches authorization
+    JWTs to its authorization headers. Get rid of the preconfigured HttpClient service, it
+    is no longer needed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/11-http-client-with-jwt-service.png"
+         alt="Configuration for an HttpClient service with JWTs." />
+</div>
+<p>
+    The <code>BaseAddressAuthorizationMessageHandler</code> attaches authorization JWTs
+    to the Http requests whenever the HttpClientWithJwt service is consumed. This means
+    we need to actually use this service to include the JWTs. You might recall that the
+    Application/Client/ApiServices/ApiManager <a href="09-api-connector-service">
+        ApiConnector
+    </a> class is the one responsible for serializing and deserializing .Net objects to
+    JSON format because it acts as an Http session to send/receive HTTP requests/responses.
+    Keep in mind that <strong>
+        if a token is not available, an exception will be thrown.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Refactor the Application/Client/ApiServices/ApiManager ApiConnector class
+    to consume the HttpClientWithJwt service which is configured to attach
+    authorization JWTs to Http requests/responses:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/12-api-connector-one.png"
+         alt="ApiConnector class consumes HttpClientWithJwt type part one." />
+    <img src="Images/17-protect-api/13-api-connector-two.png"
+         alt="ApiConnector class consumes HttpClientWithJwt type part two." />
+    <img src="Images/17-protect-api/14-api-connector-three.png"
+         alt="ApiConnector class consumes HttpClientWithJwt type part three." />
+    <img src="Images/17-protect-api/15-api-connector-four.png"
+         alt="ApiConnector class consumes HttpClientWithJwt type part four." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The configuration for the
+    HttpClient default request headers and its media type were moved to
+    the HttpClientWithJwt class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Test the HttpClient service. It should include the JWTs in the Http requests/responses.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Run the application, login, and navigate to the FlixManager routable component. Go
+    to the "Network" tab of the browser's developer tools and click on the Http request
+    that corresponds to the FlixManager routable component. The Http request includes
+    the "Authorization Header" with a Bearer JWT:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/16-authz-token.png"
+         alt="Http request with authorization header and JWT." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Click on the Edit button of a Movie object to navigate to the EditMovie routable
+    component. This time the User should be granted access to the Application/Server-Api
+    resource; i.e., should be able to target the GetMovieEditDtoTask endpoint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/17-edit-movie-component.png"
+         alt="EditMovie component full access." />
+</div>
+<p>
+    We have confirmed that the authentication/authorization operations with
+    authenticated Users perform with no problems at all. But what about unauthenticated
+    Users?
+</p>
+<p>
+    Recall that at the beginning of this lecture, we decorated the
+    Application/Server-Api/Controllers/MoviesController GetFlixManagerDtoTask action
+    with an <code>[AllowAnonymous]</code> attribute. This means that unauthenticated
+    (anonymous) Users should be able to access the Application/Server-Api resource.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.3:</span>
+    Logout the current User and navigate to the FlixManager routable component. The User
+    should be granted access eventhough it is an anonymous User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/18-no-access-flix-manager.png"
+         alt="Access denied to FlixManager GetFlixManagerDtoTask." />
+</div>
+<p>
+    Access to the GetFlixManagerDtoTask endpoint is denied. The Console tab in
+    the web browser's tools provides a hint of the problem:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/19-console-http-client-jwt-info.png"
+         alt="Console hint points to HttpClientWithJwt type." />
+</div>
+<p>
+    The issue originates with the HttpClientWithJwt type. Can you determine what is
+    going on? We know that the problem is related to the HttpClientWithJwt type and we
+    also know that this type is consumed by the Application/Client/ApiServices/ApiManager
+    ApiConnector class to build the Http requests/responses that include authorization
+    JWTs.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.4:</span>
+    Create a custom exception handler for the InvokeGetAsync method of the
+    Application/Client/ApiServices/ApiManager ApiConnector class. It should be able to
+    catch the exception because this is the method being used to serialize/deserialize
+    the HttpClient request/response that targets the GetFlixManagerDtoTask action:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/21-apiconnector-exception-handler-one.png"
+         alt="Exception handler for InvokeGetAsync method part one." />
+    <img src="images/17-protect-api/22-apiconnector-exception-handler-two.png"
+         alt="Exception handler for InvokeGetAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.5:</span>
+    Run the application, navigate to the FlixManager component and open the Console
+    tab of the browser's developer tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/20-access-token-not-available-ex.png"
+         alt="AccessTokenNotAvailable Exception." />
+</div>
+<p>
+    If you follow the stack trace, you can determine that when the
+    <dfn>AuthorizationMessageHandler</dfn> is invoked, it throws an
+    <dfn>AccessTokenNotAvailableException</dfn>. As mentioned earlier, the
+    <dfn>AuthorizationMessageHandler</dfn> is a <dfn>DelegatingHandler</dfn> used to
+    attach tokens to outgoing <dfh>HttpResponseMessage</dfh> instances. We also mentioned
+    that if a token cannot be acquired, an <dfn>AccessTokenNotAvailableException</dfn>
+    is thrown.
+</p>
+<p>
+    We configured our custom HttpClientWithJwt service with the
+    <dfn>BaseAddressAuthorizationMessageHandler</dfn> which attaches tokens to outgoing
+    <dfh>HttpResponseMessage</dfh> instances; i.e., every time we invoke this HttpClient
+    service, its <dfn>BaseAddressAuthorizationMessageHandler</dfn> expects an authorization
+    token to be present. Otherwise, it throws an <dfn>AccessTokenNotAvailableException</dfn>.
+</p>
+<p>
+    Each time the ApiConnector invokes an HttpClient, it indirectly
+    uses the <dfn>BaseAddressAuthorizationMessageHandler</dfn> which tries
+    to authentify each and every Http request but in some cases, such as when
+    trying to access the GetFlixManagerDtoTask endpoint, the request should not be
+    authentified because it is decorated with an [AllowAnonymous] attribute.
+</p>
+<p>
+    Since we are operating with an unauthenticated User (anonymous user), the
+    Application/Server-Api IdentityServer engine does not provide authorization tokens.
+    <strong>
+        We need to give the Application/Client the capability to handle two HttpClient
+        services.
+    </strong>
+</p>
+<p>
+    The first service is for authenticated calls and we have already created
+    it with the HttpClientWithJwt class. The second service is for anonymous
+    calls and uses the built-in HttpClient which does not try to authentify
+    each and every request; i.e., it does not consume the
+    <dfn>BaseAddressAuthorizationMessageHandler</dfn>.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure an <strong>additional</strong> HttpClient service that does <strong>not</strong>
+    attach authorization JWTs to its Http requests/responses.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        A common use case for Http requests without authorization JWTs is when
+        a User is not authenticated and requires access to Application/Server-Api
+        resources decorated with an <strong><code>[AllowAnonymous]</code></strong>
+        attribute; i.e., when an unauthenticated User requests access to unprotected
+        resources.
+    </p>
+</div>
+<p>
+    The idea is to create an additional Http service that does not include JWTs and
+    inject it to the Application/Client/ApiServices/ApiManager ApiConnector class.
+    The ApiConnector will have two Http services available, one that appends JWTs
+    and one that doesn't.
+</p>
+<p>
+    We can control which Http service is employed to build (serialize/deserialize)
+    requests/responses by adding a formal input parameter of type Enum to the
+    <a href="09-api-connector-service">resource methods</a> defined in the ApiConnector
+    and a local helper method that allocates the required HttpClient instance based
+    on the argument passed to satisfy its Enum parameter.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Client/Helpers folder and create a class named
+    HttpClientNoJwt that will represent a typed Http service that does <strong>not</strong>
+    consume the <dfn>BaseAddressAuthorizationMessageHandler</dfn> to attach JWTs:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/23-http-client-no-jwt-one.png"
+         alt="HttpClientNoJwt class part one." />
+    <img src="Images/17-protect-api/24-http-client-no-jwt-two.png"
+         alt="HttpClientNoJwt class part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The constructor has additional
+    configurations for the Http headers; e.g., clearing the request headers and
+    defining the <a href="05-api">media type</a> (also known as MIME) for the content
+    headers. These were originally defined in the
+    Application/Client/ApiServices/ApiManager ApiConnector class but they were moved
+    here to enable an appropriate separation of concerns; i.e., any HttpClient
+    configuration should be defined here, not in the ApiConnector class because it
+    handles different HttpClient instances.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Configure the HttpClientNoJwt type as an HttpClient service in the dependency
+    injection container of the Application/Client:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/25-http-client-service-no-jwt.png"
+         alt="HttpClientNoJwt service." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Refactor the Application/Client/ApiServices/ApiManager ApiConnector class to have
+    the capability to request different HttpClient services.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Go to the Application/Shared/Helpers directory and create a class named Enums with
+    an enumeration named JwtOptions that will be used to determine which HttpClient
+    service to allocate:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/29-jwt-enum.png"
+         alt="Enum with JWT criteria." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Perform an additional constructor injection of a type HttpClientNoJwt that enables
+    requesting the service that does not include JWTs in the requests/responses and add
+    a local helper method responsible for allocating the appropriate HttpClient instance
+    to a class level variable based on the formal input parameter of type Enum:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/26-api-connector-constructor-one.png"
+         alt="ApiConnector class with two HttpClient instances part one." />
+    <img src="Images/17-protect-api/27-api-connector-constructor-two.png"
+         alt="ApiConnector class with two HttpClient instances part two." />
+    <img src="Images/17-protect-api/28-api-connector-constructor-three.png"
+         alt="ApiConnector class with two HttpClient instances part three." />
+</div>
+<p>
+    The main purpose of this lesson is to protect Application/Server-Api resources
+    with authorization rules. As you know, authorization in ASP.Net Core is
+    controlled with the <dfn>AuthorizeAttribute</dfn> and its various parameters.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In its most basic form, applying the <code>[Authorize]</code> attribute to a
+        controller or to an action, limits access to that Api resource to authenticated
+        Users. You can also use the <code>[AllowAnonymous]</code> attribute to allow
+        access by non-authenticated Users to individual actions.
+    </p>
+</div>
+<p>
+    The idea is to protect endpoints that allow the User to modify data in any way
+    (e.g., perform Post, Put, and Delete operations on the datastore) and to allow
+    anonymous (unauthenticated) Users to access controller actions that simply retrieve
+    data (Read operations).
+</p>
+<p>
+    Since the <strong>
+        authorization rules for API resources are defined at the controller,
+        this is where it is determined the HttpClient service that is required.
+    </strong>
+</p>
+<p>
+    For example, if an <span class="mark">
+        <strong>
+            action is protected with an [Authorize] attribute,
+        </strong>
+    </span> then we need to <span class="mark">
+        <strong>
+            build an HttpClient request that includes JWTs.
+        </strong>
+    </span> If the
+    <span class="mark">
+        <strong>
+            action is decorated with an [AllowAnonymous] attribute,
+        </strong>
+    </span> then we need to <span class="mark">
+        <strong>
+            build an HttpClient request that does not include JWTs
+        </strong>
+    </span> to the requests/responses.
+</p>
+<p>
+    There are two main approaches to accomplish this authorization schema. The first one
+    is to decorate each endpoint with the appropriate authorization attribute. The second
+    approach is to declare an [Authorize] attribute at the controller level and then
+    override this behaviour with an [AllowAnonymous] attribute on controller actions that
+    perform Get operations.
+</p>
+<p>
+    We will define authorization rules for each endpoint (first approach) because later
+    on, we will extend our API authorization schema with policies that permit more
+    fine-grained authorization rules.
+</p>
+<p>
+    You might recall from lesson <a href="05-api">05. Server-Api</a> that the application
+    architecture design makes use of interfaces, the repository pattern for CRUD operations,
+    and the unit of work pattern to coordinate the work of multiple repositories using a
+    single database context instance during a business transaction.
+</p>
+<p>
+    The Application/Client employs an abstract layer IApiService responsible for exposing
+    the available operations and for hiding the details of how to invoke
+    Application/Server-Api endpoints; i.e., how to build and send Http requests/responses.
+</p>
+<p>
+    The IApiService defines IEntity interfaces (e.g., IMovies, IGenres, and IPeople) which
+    are the entry point to the IUnitOfWork responsible for exposing the business logic. Its
+    implementation (ApiService class) uses an <span class="mark">
+        <strong>
+            ApiConnector
+        </strong>
+    </span> responsible for communicating with the Application/Server-Api; i.e., it <span class="mark">
+        <strong>
+            builds (serializes/deserializes) the Http requests/responses:
+        </strong>
+    </span>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/00-application-diagram.svg"
+         alt="Application diagram." />
+</div>
+<p>
+    The IEntity interfaces implement a single IRepository&lt;TEntity&gt; interface
+    which establishes the contract for the required <strong>general</strong> functionality
+    <strong>applicable to all</strong> data entities. IEntity interfaces not only implement
+    IRepository&lt;TEntity&gt;, they also extend its functionality with operations (code
+    logic) that are specific to the entity type they represent.
+</p>
+<p>
+    As mentioned in the <a href="08-api-controllers">Api Controllers</a> lesson, in a web API
+    controller, each method is considered an <dfn>action</dfn> and each action is decorated
+    with an Http verb attribute which defines the action to perform.
+</p>
+<p>
+    The Http verb that decorates an <dfn>action</dfn> tells the Application/Server-Api the
+    type of operation that will be performed with the resource and
+    <span class="mark">
+        <strong>
+            each controller <dfn>action</dfn> is directly related to a CRUD operation
+            (method) defined in the Application/Client/ApiServices/ApiManager ApiRepository
+            for general functionality applicable to all data entities and by the ApiEntity
+            classes with data entity specific functionality:
+        </strong>
+    </span>
+</p>
+<ul>
+    <li><code>[Post]</code> &asymp; Create</li>
+    <li><code>[Get]</code> &asymp; Read </li>
+    <li><code>[Put]</code> &asymp; Update (full)</li>
+    <li><code>[Patch]</code> &asymp; Update (partial)</li>
+    <li><code>[Delete]</code> &asymp; Delete</li>
+</ul>
+<p>
+    Take the Application/Client/Pages/FlixManager routable component for example. The
+    Application/Client uses the IApiService to make a request, its implementation,
+    ApiService class, employs the ApiConnector to build the request and target the
+    required endpoint by building the corresponding route template including the
+    relative path (flix-manager).
+</p>
+<p>
+    The functionality is specific to the data entity of type Movie. For this reason,
+    the IMovies interface defines the protocol for this functionality as opposed to
+    being defined by the IRepository which contains methods for general functionality
+    applicable to all data entities.
+</p>
+<p>
+    ApiMovies implements the IMovies interface and contains the code logic with the
+    functionality to build the request including the route template for the required
+    controller action (flix-manager):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/43-api-movies-get-flix-manager.png"
+         alt="ApiMovies GetFlixManagerDtoAsync method." />
+</div>
+<p>
+    The target endpoint (GetFlixManagerDtoTask) employs the unit of work to invoke
+    business logic functionality represented by the GetFlixManagerDtoAsync method
+    of the EfMovies repository:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/44-movies-controller-get-flix-manager.png"
+         alt="GetFlixManagerDtoTask action in the Movies controller." />
+</div>
+<p>
+    The code logic for the GetFlixManagerDtoAsync method is defined in the EfMovies
+    repository which also implements IMovies interface because it contains
+    functionality to perform operations on the database that are specific to the
+    data entity of type Movie:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/17-protect-api/45-ef-movies-get-flix-manager.png"
+         alt="EfMovies repository with GetFlixManagerDtoAsync method." />
+</div>
+<p>
+    Simply put, we need to add a formal input parameter of type JwtOptions (enum) to
+    the <a href="09-api-connector-service">resource methods</a> defined by the IApiConnector
+    interface and its implementation (ApiConnector class) to build Http requests/responses. <strong>
+        These resource methods are consumed by the ApiRepository and ApiEntity classes to
+        map Application/Client requests (Create, Read, Update, Delete) to
+        Application/Server-Api/Controllers endpoints (Post, Get, Put, Delete).
+    </strong> This is a two step process:
+</p>
+<ol>
+    <li>
+        Decorate controller actions that simply retrieve data with an <code>[AllowAnonymous]</code>
+        attribute and pass a JwtOptions.OmitJwts value to any <a href="09-api-connector-service">
+            resource method
+        </a> that targets these endpoints.
+    </li>
+    <li>
+        Decorate controller actions that modify the data store with an <code>[Authorize]</code>
+        attribute and pass a JwtOptions.IncludeJwts value to any resource method that targets
+        these enpoints.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Decorate each controller action with the appropriate authorization attribute
+    dependent on whether it simply requests Read operations (<code>[HttpGet]</code> verb)
+    or whether it requests Post, Update, and or Delete operations on the data store.
+</p>
+<p>Movies Controller:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/40-movies-controller-one.png"
+         alt="MoviesController with authorization rules part one." />
+    <img src="Images/17-protect-api/41-movies-controller-two.png"
+         alt="MoviesController with authorization rules part two." />
+    <img src="Images/17-protect-api/42-movies-controller-three.png"
+         alt="MoviesController with authorization rules part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Eventhough the ultimate purpose of the FilterPaginateMoviesTask endpoint is to
+    get-retrieve-read data, it defines an <code>[HttpPost]</code> Http verb because
+    "a payload within a GET request message has no defined semantics; sending a payload
+    on a GET request might cause some existing implementations to reject the request".
+</p>
+<p>
+    The FilterPaginateMoviesTask sends a payload with the request; therefore, it is
+    advisable to employ an [HttpPost] HttpVerb. For more info visit
+    <a href="https://stackoverflow.com/questions/978061/http-get-with-request-body">
+        Http Get with request body
+    </a>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The Genres and People controllers are
+    not shown for simplicity but you should follow the same procedure to secure any
+    other controller that handles access to Application/Server-Api resources.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4</span>
+    Add a formal input parameter of type Application/Shared/Helpers/Enums JwtOptions
+    to each resource method defined in the Application/Client/ApiServices/ApiManager
+    IApiConnector interface. Make the formal input paramter optional; i.e., provide a
+    default value for the parameter.
+</p>
+<p>
+    You can pass any of the options provided by the JwtOptions enum but it is <strong>
+        strongly suggested to pass the same value for all the resource methods
+    </strong> and later override the optional value at a lower level layer where the
+    actual functionality is invoked. In our example, we chose the JwtOptions.IncludeJWTs
+    as the default value:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/30-iapi-connector-input-parameter-one.png"
+         alt="IApiConnector interface with extra formal input parameter part one." />
+    <img src="Images/17-protect-api/30-iapi-connector-input-parameter-two.png"
+         alt="IApiConnector interface with extra formal input parameter part two." />
+</div>
+<p>
+    The IApiConnector interface defines the contract or protocol for the
+    resource methods that build the Http requests/responses. They are responsible for
+    building the URI to the target endpoint and they also serialize/deserialize the
+    messages between the Application/Client and the Application/Server-Api.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.5</span>
+    The implementation of the IApiConnector interface must be modified to match the
+    protocol defined by the interface; i.e., add a formal input parameter of type
+    Application/Shared/Helpers/Enums JwtOptions to each resource method of the
+    ApiConnector class.
+</p>
+<p>
+    Declare a call to the local helper method AllocateHttpClient and use the formal
+    input parameter in the ApiConnector resource methods as arguments to satisfy the
+    value expected by the AllocateHttpClient local helper method declared
+    <strong>in each and every</strong> resource method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/31-api-connector-input-parameter.png"
+         alt="ApiConnector with formal input parameter and calls to AllocateHttpClient." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The image above only contains one resource method as an example but make sure to
+    do the same for each and every resource method in the ApiConnector class.
+</p>
+<p>
+    The ApiConnector class implements the actual functionality for the
+    resource methods that build the Http requests/responses. These methods are employed
+    by the Application/Client/ApiServices/ApiManager ApiRepository and the ApiEntity
+    types (e.g., ApiMovies, ApiGeneres, ApiPeople) to target the appropriate endpoints.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.6</span>
+    Satisfy the formal input parameter of type Application/Shared/Helpers/Enums JwtOptions
+    on each resource method consumed in the Application/Client/ApiServices/ApiManager
+    ApiRepository:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/32-api-repository-jwt-one.png"
+         alt="ApiRepository consumes resource methods to build Http request part one." />
+    <img src="Images/17-protect-api/33-api-repository-jwt-two.png"
+         alt="ApiRepository consumes resource methods to build Http request part two." />
+    <img src="Images/17-protect-api/34-api-repository-jwt-three.png"
+         alt="ApiRepository consumes resource methods to build Http request part three." />
+</div>
+<p>
+    <span class="mark"><strong>ApiRepository</strong></span> contains methods that are
+    applicable to all data entities because they define general functionality. <span class="mark">
+        <strong>
+            This is where we can override the default value for the JwtOptions parameter
+        </strong>
+    </span> dependent on the type of authorization rules applied to the
+    Application/Server-Api/Controllers/Controller action that we are targeting.
+</p>
+<p>
+    If the target endpoint is decorated with an [AllowAnonymous] attribute, then it is
+    not required to include security JWTs in the Http request. If the action has an
+    authorization rule, then it is required to include JWTs in the request.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.7</span>
+    Satisfy the formal input paramter of type Application/Shared/Helpers/Enums JwtOptions
+    on each resource method consumed in the Application/Client/ApiServices/ApiManager
+    ApiMovies, ApiGenres, and ApiPeople classes.
+</p>
+<p>
+    <span class="mark"><strong>ApiEntity</strong></span> types contain methods that are
+    specific to a data entity because they contain specific functionality. <span class="mark">
+        <strong>
+            This is where we can override the default value for the JwtOptions parameter
+        </strong>
+    </span> dependent on the type of authorization rules applied to the
+    Application/Server-Api/Controllers/Controller action that we are targeting.
+</p>
+<p>ApiMovies class:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/36-api-movies-one.png"
+         alt="ApiMovies consumes resource methods to build Http request part one." />
+    <img src="Images/17-protect-api/37-api-movies-two.png"
+         alt="ApiMovies consumes resource methods to build Http request part two." />
+    <img src="Images/17-protect-api/38-api-movies-three.png"
+         alt="ApiMovies consumes resource methods to build Http request part three." />
+    <img src="Images/17-protect-api/39-api-movies-four.png"
+         alt="ApiMovies consumes resource methods to build Http request part four." />
+</div>
+<p>
+    Follow the same procedure for the ApiGenres and ApiPeople classes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four</span>
+    Test the authenticated and unauthenticated state of the application.
+</p>
+<p>
+    Unauthenticated State:
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Run the app, go to the Network tab of the browser's dev tools and disable
+    cache. Clear the Console and the Network tab.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Navigate to the Flix Manager component to ensure that its content is available
+    to unauthenticated Users and check the Console's stack trace for the HttpClient
+    request/response.
+</p>
+<p>
+    It should report that the HttpClient request is built with the HttpClientNoJwt
+    service because the GetFlixManagerDtoTask endpoint is decorated with an
+    <code>[AllowAnonymous]</code> authorizationn attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/46-console-flix-manager.png"
+         alt="Console reports HttpClientNoJwt used to build Http request." />
+</div>
+<p>
+    The Network tab should report that the Http Request Headers do not include
+    the Authorization Header with the Bearer JWT. In fact, the IdentityServer engine
+    does not even create security tokens for the current User because it is on an
+    unauthenticated state. The Request Headers don't include the cookie header for
+    the current session either:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/47-network-flix-manager.png"
+         alt="Network tab reports no Authorization Header with request." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3</span>
+    From Flix Manager, click on any Movie item to be redirected to the MovieBulletin
+    routable component.
+</p>
+<p>
+    The current User should have full access eventhough it is not
+    authenticated. Console tab should also report an HttpClientNoJwt service and
+    the HttpClient request in the Network tab should not include and authorzation
+    header.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4</span>
+    From MovieBulletin, clean Console and Network tab. Click on any Genre item to
+    navigate to the MoviesSearch routable component.
+</p>
+<p>
+    Recall that clicking on a Genre item from the MovieBulleting routable component
+    redirects the User to the MovieSearch component to display the Movie items
+    registered with a Genre category like the one that raised the onclick event.
+</p>
+<p>
+    The current User should have full access to the MoviesSearch routable component.
+    The Console tab should also report an HttpClientNoJwt service consumed and the
+    HttpClient requests (for genre items and for movie items) in the Network tab
+    should not include and authorzation header.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.5</span>
+    Navigate back to the MovieBulletin component, click on any Person item (actor)
+    at the bottom of the screen to be redirected to the PersonDetails routable
+    component with full access to its content eventhough the current user is not
+    authenticated.
+</p>
+<p>
+    The Console tab should report an HttpClientNoJwt service consumed and the
+    HttpClient requests (for genre items and for movie items) in the Network tab
+    should not include and authorzation header.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.6</span>
+    Try to "manually" navigate to routable components that consume resources
+    that have been protected with an <code>[Authorize]</code> attribute. E.g.,
+    type https://localhost:7077/people/create directly into the address bar in
+    the web browser to navigate to the PersonCreate routable component.
+</p>
+<p>
+    The current User should not be granted access to the content of the
+    PersonCreate routable component and should be redirected to the Login page.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The User is redirected to the Login
+    page because the PersonCreate routable component has been secured with an
+    <code>@@attribute [Authorize]</code> directive (Client-side). The AuthZ operation
+    takes places during initialization of the component and the request does not even
+    get the opportunity to try to access API resources.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.7</span>
+    Still in an unauthenticated state, navigate back to the Flix Manager routable
+    component.
+</p>
+<p>
+    Navigation menu should only display the Flix Manager and Search Movie links; i.e.,
+    the Genres and People links should not be available because they have been placed
+    inside an <code>&lt;AuthorizeView&gt;</code> block in the NavMenu component.
+</p>
+<p>
+    What's more, the IndexGenres and IndexPeople routable components have been secured
+    with an <code>@@atribute[Authorize]</code> directive.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/35-main-menu-unauthN.png"
+         alt="Main menu unauthenticated user." />
+</div>
+<p>
+    Authenticated State:
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.8</span>
+    Ensure that the "disable cache" option is still active in the Network tab of the
+    dev tools in the browser.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.9</span>
+    Clean the Console and the Network tabs, navigate to the Flix Manager routable
+    component and check the Console's stack trace for the HttpClient request/response.
+</p>
+<p>
+    It should still report that the HttpClient request is built with with the
+    HttpClientNoJwt service because the GetFlixManagerDtoTask endpoint is decorated with
+    an <code>[AllowAnonymous]</code> authorizationn attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/15-security/46-console-flix-manager.png"
+         alt="Console reports HttpClientNoJwt used to build Http request." />
+</div>
+<p>
+    The Network tab has a small change because this time <strong>
+        the User is authenticated and the IdentityServer engine has created a "session"
+        cookie.
+    </strong> The Http Request Headers include the cookie header for the current session
+    but they still <strong>do not include</strong> the Authorization Header with the
+    Bearer JWT because the endpoint is decorated with an <code>[AllowAnonymous]</code>
+    authorization attribute that consumes the HttpClientNoJwt service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/48-network-flix-manager.png"
+         alt="Network tab no Authz header but includes Cookie header with request." />
+</div>
+<p>
+    Furthermore, this time the Application/Server-Api <strong>
+        IdentityServer engine has created the security tokens for the current User
+        because it has been authenticated.
+    </strong> They can be found in the "Session
+    Storage" of the Applicaton tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/49-security-tokens.png"
+         alt="Security tokens." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.10</span>
+    Navigate to the IndexPeople routable component. Its content should be available because
+    the current User is authenticated which means it has valid credentials to satisfy the
+    <code>@@attribute [Authorize]</code> authorization attribute used to limit access to the
+    IndexPeople component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.11</span>
+    Clean the Console and Network tabs, click the "Create Person" button element and
+    check the Console's stack trace for the HttpClient request/response. What do you think
+    you should find?
+</p>
+<p>
+    Neither the Console tab nor the Network tab report any activity because the
+    PersonCreate routable component does not attempt to access secured
+    Application/Server-Api/Controllers resources.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.11</span>
+    Create a new Person item and study the Console and Network tabs after saving changes;
+    after persisting the new Person into the data store.
+</p>
+<p>
+    The Console tab logs an HttpClient request that is built with the HttpClientWithJwt
+    service because the  Application/Server-Api/Controllers/PeopleController Add endpoint
+    is decorated with an <code>[Authorize]</code> authorization attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/50-console-create-person.png"
+         alt="Console logs Http request with HttpClientWithJwt service." />
+</div>
+<p>
+    The Network tab logs an Http 201 Created success status response that indicates that
+    the request has succeeded and a new resource was created. The Request Headers include
+    the authorization header with the JWT Bearer token and the cookie header with the
+    cookie created for the current session:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/17-protect-api/51-network-create-person-one.png"
+         alt="Network tab logs authorization and cookie request headers." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.12</span>
+    Create, Edit and Delete Movies, Genres, and Person objects to test various scenarios.
+    This is a good time to update the database with any missing images, biographies, summaries,
+    etc.
+</p>
+<p>
+    The  basic configuration for securing the Application/Server-Api resources
+    is complete but we are not done yet. In next lesson, we will go through the
+    authorization types provided by ASP.Net Core and we will implement a
+    policy-based authorization system.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401">
+            Mozilla Development Network
+        </a>
+    </li>
+    <li>
+        End of Episode 100 and Episode 102 of
+        <a href="https://www.udemy.com/share/102l0i3@ZpS_qhnLlWgYd1OZR-6be_MQjMX8yhr9dUGbuzlBMg5C8Xz2IsxdjWV1Nykn40rt/">
+            Udemy
+        </a> course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+    <li>
+        End of Episode 128 and Episode 129 of
+        <a href="https://www.udemy.com/share/104giU3@Ku6-nnYpkSb35uetVj3M5W3KVTbIM5bkVrm-Owm5ugfjhM4yGdW6qba22LVF9_em/">
+            Udemy
+        </a> course "Complete Guide to ASP.Net Core RESTful API with Blazor WASM" by
+        Frank Liu.
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/security-tokens">
+            Security tokens
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/hosted-with-identity-server?view=aspnetcore-6.0&tabs=visual-studio#httpclient-configuration ">
+            HttpClient configuration
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/additional-scenarios?view=aspnetcore-6.0#attach-tokens-to-outgoing-requests">
+            Attach tokens to outgoing requests
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/additional-scenarios?view=aspnetcore-6.0#typed-httpclient">
+            Typed HttpClient
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.httpclientfactoryservicecollectionextensions.addhttpclient?view=dotnet-plat-ext-6.0">
+            HttpClientFactoryServiceCollectionExtensions.AddHttpClient Method
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.ihttpclientfactory?view=dotnet-plat-ext-6.0">
+            IHttpClientFactory Interface
+        </a>
+    </li>
+    <li>
+        <a href="https://chrissainty.com/avoiding-accesstokennotavailableexception-when-using-blazor-webassembly-hosted-template-with-individual-user-accounts/">
+            Avoiding AccessTokenNotAvailableException when using the Blazor WebAssembly
+            Hosted template with individual user accounts
+        </a>
+    </li>
+    <li>
+        <a href="https://stackoverflow.com/questions/61872050/blazor-webassembly-blocks-webapi-allowanonymous">
+            Blazor WebAssembly blocks WebApi AllowAnonymous
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authorization/simple?view=aspnetcore-6.0">
+            Simple authorization in ASP.Net core
+        </a>
+    </li>
+</ul>

@@ -1,0 +1,52 @@
+﻿@using BlazorMovies.Client.ApiServices.ApiManager
+<!-- MoviesCatalog component replaced the MoviesList component.             -->
+<!-- Its DeleteMovieAsync handler produces a window.Confirm() dialog box instead -->
+<!-- of a bootstrap modal. -->
+@inject IJSRuntime _jsRuntime
+@inject IApiService apiService
+
+<div class="form-control">
+
+    <h5 class="mb-3">Movies Catalog Component</h5>
+
+    <div class="d-flex flex-wrap justify-content-evenly">
+
+        <TestCollectionNullOrEmpty ItemsList="Movies">
+
+            <!-- RenderFragment parameter renders dynamic UI content if     -->
+            <!-- collection is null.                                        -->
+            <NullLoadingTemplate>
+                <div class="mt-4">
+                    <p class="text-center"><strong>Loading content...</strong></p>
+
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border"
+                             style="color: #1b6ec2; width: 3rem;
+                                    height: 3rem;" role="status">
+                        </div>
+                    </div>
+                </div>
+            </NullLoadingTemplate>
+
+            <!-- RenderFragment parameter renders dynamic UI content if     -->
+            <!-- collection empty.                                          -->
+            <EmptyTemplate>
+                <p class="text-center"><strong>No records to show.</strong></p>
+            </EmptyTemplate>
+
+            <!-- Generic RenderFragment<T> parameter. Renders dynamic UI    -->
+            <!-- content if collection is neither null nor empty. Consumes  -->
+            <!-- another component that represents a segment of UI content. -->
+            <RenderItemTemplate Context="movie">
+                <!-- UI template. RenderMovie replaced SingleMovie component.-->
+                <!-- Episode 82 of Programming in Blazor-ASP.NET Core 5 uses -->
+                <!-- an @@key directive for the diffing algorithm.           -->
+                <RenderMovie Movie="movie"
+                             DeleteMovie="DeleteMovieAsync">
+                </RenderMovie>
+            </RenderItemTemplate>
+
+        </TestCollectionNullOrEmpty>
+
+    </div>
+</div>

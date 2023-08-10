@@ -1,0 +1,43 @@
+﻿
+@using BlazorMovies.Shared.Helpers
+
+<!-- This form uses an EditContext to be bound to a Genre   -->
+<!-- instance because it implements custom validation with  -->
+<!-- CSS class attributes. Otherwise it could instead define-->
+<!-- a "Model" attribute for the EditForm component.        -->
+<EditForm EditContext="editContext" OnValidSubmit="OnValidSubmit">
+    <!-- ChildContent element of 'AuthorizeView' uses the same parameter-->
+    <!-- name: "context" as its enclosing ChildContent element of       -->
+    <!-- 'EditForm'. Conflict resolved with new 'Context name'.         -->
+    <ChildContent Context="editFormContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div class="col-form-label-sm col-md-6">
+                <label class="form-label mb-0">Name:</label>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <InputText @bind-Value="@Genre.Name"
+                           class="form-control" />
+                <ValidationMessage For="@( () => Genre.Name )" />
+            </div>
+        </div>
+
+        <AuthorizeView Policy="@_authorizationPolicy">
+            <Authorized>
+                <button type="submit"
+                        class="btn btn-success">
+                    Save Changes
+                </button>
+            </Authorized>
+        </AuthorizeView>
+    </ChildContent>    
+</EditForm>
+
+<!-- For demonstration only. Renders the authorization policy applied.  -->
+<!-- Dependent on whether the component was called to "Create" or "Edit"-->
+<p>Authorization policy required: <strong>@_authorizationPolicy</strong></p>
+
+

@@ -1,0 +1,717 @@
+﻿@page "/01-deployment-fundamentals"
+<PageTitle>Deployment Fundamentals</PageTitle>
+
+<h2>Deployment - Fundamentals</h2>
+<p>
+    It is <strong>strongly suggested</strong> that you view the following video series
+    before going through this module. They provide a very good foundation on "Cloud"
+    concepts and Azure services:
+</p>
+<ul>
+    <li>
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhXEgpNSDbKBLvaYets30KQF">
+            Cloud computing tutorial for beginners
+        </a> by kudventakt.
+    </li>
+    <li>
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVIhqTz-LBfwgz_Amz7rRLp">
+            Azure tutorial for beginners
+        </a> by kudvenkat.
+    </li>
+</ul>
+<p>
+    The deployment module is designed to demonstrate how to publish a personal portfolio
+    website with different features such as domain delegation, custom domains and subdomains,
+    Content Delivery Networks, static and dynamic websites with dependencies to
+    different assets (e.g., SQL database), SSL/TLS certificates, Key Vault, etc.
+</p>
+<p>
+    As you know, with the <a href="05-api">Blazor WebAssembly</a> hosting model, the
+    Blazor app, its dependencies, and the .Net runtime are downloaded to the web browser
+    in parallel and the app is executed directly on the browser UI thread.
+</p>
+<p>
+    Microsoft Azure provides multiple options to host and deploy Blazor WebAssembly
+    applications. These options can be further categorized into two main branches:
+</p>
+<ul>
+    <li>
+        Hosted deployment with ASP.Net Core where the Blazor app is served to browsers
+        from an ASP.Net Core app that runs on a web server.
+    </li>
+    <li>
+        Standalone deployment with a static hosting web server or service where the
+        .Net runtime is not required to serve the Blazor application.
+    </li>
+</ul>
+<h3>Standalone Deployment with a Static Hosting Web Server</h3>
+<p>
+    A <a href="05-api">standalone deployment</a> (without a backend) serves the Blazor
+    WASM app as a set of static files that are requested directly by clients. Any static
+    file server is able to serve the Blazor app; e.g., Azure Storage service.
+</p>
+<p>
+    Standalone deployment assets are published into the
+    Application/Client/bin/TargetFramework/publish wwwroot folder.
+</p>
+<p>
+    Available options for this approach include Azure Static Web Apps and
+    <a href="02-data-storage-options">Azure Storage</a>.
+</p>
+<h3>Hosted Deployment with ASP.Net Core</h3>
+<p>
+    A <a href="05-api">hosted deployment</a> (with a backend) serves the Blazor WASM
+    app to browsers from an ASP.Net Core app that runs on a web server. The <strong>
+        client
+    </strong> Blazor WebAssembly app is published into the
+    Application/Client/bin/TargetFramework/publish wwwroot folder of the <strong>
+        server
+    </strong> app along with any other static web assets of the server app.
+</p>
+<p>
+    The two apps or projects (Application/Client and Application/Server) are deployed 
+    together. This means that the web server must be capable of hosting ASP.Net Core apps.
+    For instance, the Microsoft Internet Information Service (IIS) web server can host the
+    app in a Windows operating system.
+</p>
+<h4>Additional Features</h4>
+<p>
+    Blazor deployment provides a wide arrange of configurable features that will not
+    be covered here because Microsoft's documentation is clear and concise. Nevertheless,
+    it is worth mentioning that some of these features are:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#ahead-of-time-aot-compilation-1">
+            Ahead-of-time Compilation (AOT)
+        </a> which involves compiling the .Net code directly into WebAssembly language
+        to achieve runtime performance improvements at the expense of a larger app size.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#runtime-relinking-1">
+            Runtime relinking
+        </a> to trim unusued runtime code and improve download speed.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#compression-1">
+            Compression
+        </a> during the publish process to reduce the app's size and remove the overhead for
+        runtime.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0#prior-deployment-corruption-1">
+            Diagnosing
+        </a> deployment corruption.
+    </li>
+</ul>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0">
+            Host and deploy ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/overview">
+            App Service overview
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/static-web-apps/overview">
+            What is Azure Static Web Apps?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/">
+            Azure Storage
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#invariant-globalization">
+            ASP.Net Core Blazor globalization and localization
+        </a>
+    </li>
+</ul>
+<h3>SSL/TLS Certificates</h3>
+<p>
+    It is <strong>strongly suggested</strong> that you watch, at least, the first 6 minutes of the
+    Youtube video <a href="https://youtu.be/rIwszDULXvc">
+        ACME: Certificate management has never been easier
+    </a> - DevConf.CZ 2021.
+</p>
+<p>
+    Transport Layer Security (TLS) certificates, most commonly known as Security
+    Sockets Layer (SSL) or digital certificates, are the foundation of a safe and
+    secure internet.
+</p>
+<p>
+    An SSL/TLS certificate is a digital object that allows systems to verify the
+    identity and subsequently establish an encrypted network connection to
+    another system using the Secure Sockets Layer/Transport Layer Security (SSL/TLS)
+    protocol.
+</p>
+<p>
+    Certificates are used within a cryptographic system known as <dfn>
+        public key infrastructure
+    </dfn> (PKI). PKI provides a way for one party to establish the identity of
+    another party using certificates if they both thrust a third party, known as
+    a certificate authority (CA). SSL/TLS certificates thus act as digital identity
+    cards to secure network communications, establish the identity of websites over
+    the internet as well as resources on private networks.
+</p>
+<p>
+    Some of the characteristics and benefits of an SSL/TLS certificate are:
+</p>
+<ul>
+    <li>
+        Generate a padlock icon on the web browser.
+    </li>
+    <li>
+        Include an https prefix on the website address on the browser.
+    </li>
+    <li>
+        The padlock contains information regarding the state of the certificate.
+    </li>
+    <li>
+        Ensure the encryption of all communication between the browser and the
+        website.
+    </li>
+    <li>
+        Strenghten customer confidence.
+    </li>
+    <li>
+        Improve Search Engine Optimization (SEO).
+    </li>
+</ul>
+<p>
+    A certificate authority (CA) is an organization that sells SSL/TLS certificates
+    to web owners, web hosting companies, or businesses. The CA validates the domain
+    and owner details before issuing the SSL/TLS certificate.
+</p>
+<p>
+    An SSL/TLS certificate has a maximum validity period of 13 months and it contains
+    the domain name, the CA, the CA's digital signature, issuance date, expiration
+    date, the public key, and the SSL/TLS version:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/05-ssl-tls-certificate-info.png"
+         alt="SSL/TLS certificate." />
+</div>
+<p>
+    Modern SSL/TLS certificates use the TLS protocol instead of the SSL/TLS but
+    SSL/TLS remains a popular acronym amongst security individuals. The terms SSL
+    and TLS are commonly used to mean the same thing.
+</p>
+<p>
+    Types of SSL/TLS certificates:
+</p>
+<dl>
+    <dt>Self-Signed certificate</dt>
+    <dd>
+        Digital certificate that is not signed by a publicly trusted Certificate
+        Authority (CA).
+    </dd>
+    <dd>
+        They are created, issued, and signed by the company or developer who is
+        responsible for the website or software associated with the certificate,
+        rather than a CA.
+    </dd>
+    <dd>
+        They are considered unsafe for public-facing websited and applications but
+        they are often used for internal testing environments or web servers that
+        are locked down to external users.
+    </dd>
+    <dd>
+        Whenever a user visits a site that is using a self-signed certificate, a
+        prompt immediately appears with a security warning that required the user
+        to confirm that they would like to proceed. These warnings create fear and
+        uneasiness for visitors.
+    </dd>
+    <dt>Domain Validated certificate (DV)</dt>
+    <dd>
+        Digital certificates tha have the lowest validation level.
+    </dd>
+    <dd>
+        They cost the least to apply for.
+    </dd>
+    <dd>
+        Applicants to through a less stringent vetting process. Prove of domain
+        ownership is by responding to a verification email or phone call.
+    </dd>
+    <dt>Organization Validated certificate (OV)</dt>
+    <dd>
+        Intermediate level in terms of validation and trust.
+    </dd>
+    <dd>
+        Companies go through a verification process when applying for the OV SSL/TLS
+        certificate.
+    </dd>
+    <dt>Extended Validation certificate (EV)</dt>
+    <dd>
+        Has the highest level of encryption, validation and trust.
+    </dd>
+    <dd>
+        The organization or web owner applying for an EV SSL/TLS certificate is
+        subjected to stringent checks by Certificate Authorities (CAs) such as
+        verifying the physical business address and exclusive rights to use the
+        domain.
+    </dd>
+</dl>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://aws.amazon.com/what-is/ssl-certificate/">
+            What Is An SSL/TLS Certificate?
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Glossary/TLS">
+            Transport Layer Security (TLS)
+        </a>
+    </li>
+    <li>
+        <a href="https://www.digicert.com/tls-ssl/tls-ssl-certificates">
+            Digicert TLS/SSL Certificates Overview
+        </a>
+    </li>
+    <li>
+        <a href="https://sectigo.com/resource-library/what-is-a-self-signed-certificate">
+            What is a Self-Signed Certificate and How to Create One
+        </a>
+    </li>
+</ul>
+<h4>Creation and Installation of Self-signed certificates</h4>
+<p>
+    For testing, you can use a self-signed public certificate instead of a Certificate -
+    Authority (CA) signed certificate. However, you should keep in mind that Self-signed
+    certificates are not trusted by default and may use outdated hash and cipher suites
+    that may not be robust enough.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/active-directory/develop/howto-create-self-signed-certificate">
+            Create a self-signed public certificate to authenticate your application.
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@NRDFqFChefAsoxtmSF06PDcH7CR7FOv0-qVFZnYySSlg2J2jHRi-IClnL_hUFVUm/">
+            Episode 107.
+        </a>Deploying to Azure App Service - Identity Server 4
+    </li>
+</ul>
+<h4>Adding a Digital Certificate in Azure</h4>
+<p>
+    You can add digital security certificates to use in your application code or to
+    secure custom DNS names in Azure App Service. As meentioned earlier, currently called
+    Transport Layer Security (TLS) certificates are also known as Secure Socket Layer (SSL)
+    certificates.
+</p>
+<p>
+    The following table lists the options for adding a digital certificate in App Service:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/26-deployment/03-tls-certificate-options.png"
+         alt="Options to add certificates to App Service in Azure." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#prerequisites">
+            Microsoft App Service - Web Apps
+        </a>
+    </figcaption>
+</figure>
+<p>
+    In the coming lessons, we will demonstrate how to create a free App Service managed
+    certificate. As its name indicates, it is free of charge and easy to use if you just
+    need to secure a custom domain in the Azure App Service.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In Azure, after you upload a certificate to an app, the certificate is stored in a
+        deployment unit that is bound to the App Service plan's Resource Group, region and
+        operating system combination, internally called <dfn>webspace</dfn>. This way, <span>
+            <mark>the certificate is accessible to other apps in the same resource group</mark>
+        </span> and region combination.
+    </p>
+</div>
+<p>
+    For more info in SSL/TLS digital certificates you can refer to:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?tabs=apex%2Cportal#prerequisites">
+            Secure connections by adding and managing TLS/SSL certificates in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-bindings">
+            Secure a custom DNS name with an SSL/TLS binding in Azure App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/W2UF1WMPg7o">
+            Azure App service managed certificates | Free SSL for App Service | Configure SSL for
+            App Service
+        </a>
+    </li>
+    <li>
+        <a href="https://www.youtube.com/watch?v=BrJtpCV_foU">
+            How to Setup Azure App Service Custom Domains with Certificates
+        </a>
+    </li>
+    <li>
+        <a href="https://www.sslforfree.com/">
+            SSL For Free
+        </a>
+    </li>
+    <li>
+        <a href="https://letsencrypt.org/getting-started/">
+            Let's Encrypt
+        </a>
+    </li>
+    <li>
+        <a href="https://community.letsencrypt.org/t/new-client-implementations-azure-web-apps/50668">
+            New Client Implementations (Azure Web Apps)
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/C6V_mBo-gnE">
+            Add HTTPS with Let's Encrypt to an Azure App Service
+        </a>
+    </li>
+</ul>
+<h3>Hosting Domain Names in Azure</h3>
+<p>
+    You first need to understand a few key concepts before deciding whether you should use
+    Azure to host your domain names as opposed to use the domain name registrar where you
+    purchased your domain.
+</p>
+<dl>
+    <dt>Domain</dt>
+    <dd>
+        A domain is an authority within the internet that controls its own resources. Its
+        domain name is a way to address this authority as part of the hierarchy in a URL;
+        i.e., its brand name.
+    </dd>
+    <dt>Domain Name</dt>
+    <dd>
+        Domain names are a key part of the internet infrastructure. They provide a human
+        readable address for any web server available on the internet.
+    </dd>
+    <dd>
+        Any internet connected computer can be reached through a public IP address, either
+        an IPv4 (e.g., 173.194.121.32) or an IPv6 address (e.g., 2027:0da8:8b73:0000:0000:8a2e:0370:1337).
+    </dd>
+    <dd>
+        Computers can handle such addresses easily but people have a hard time finding out
+        who is running the server or what service the website offers. IP addresses are hard to
+        remember and might change over time.
+    </dd>
+    <dd>
+        Domain names solve all these problems because they are human-readable addresses that
+        represent an IP address. A domain name is therefore a human-readable website's address
+        on the internet.
+    </dd>
+    <dd>
+        Domain names are used in URLs to identify which server a specific webpage belongs to.
+        The domain name consists of a hierarchical sequence of names (labels) separated by
+        periods (dots) and ending with an extension; e.g., google.com or oficina.org.mx
+    </dd>
+    <dt>Fully Qualified Domain Name (FQDN)</dt>
+    <dd>
+        A fully qualified domain name contains all necessary parts to look up this authority
+        by name unambiguously using the DNS system of the internet. For example, in the
+        fully qualified domain <code><strong>developer.mozilla.org</strong></code>:
+        <ul>
+            <li>
+                <code><strong>org</strong></code> is called a top-level domain. Top level
+                domains are registered as an internet standard by the
+                <a href="https://en.wikipedia.org/wiki/Internet_Assigned_Numbers_Authority">IANA</a>.
+                In our example, "org" means organization which is defined in a top level
+                <dfn>domain registry</dfn>.
+            </li>
+            <li>
+                <code><strong>mozilla</strong></code> is the domain name. If you want to own
+                a domain, you have to register it with one of the many registrars who are
+                allowed to do so with a top-level domain registry.
+            </li>
+            <li>
+                <code><strong>developer</strong></code> is a <dfn>sub-domain</dfn>; i.e.,
+                something that <strong>you as an owner of a domain may define yourself.</strong>
+            </li>
+            <li>
+                The most common <dfn>subdomain</dfn> is when an owner chooses to have a
+                <code><strong>www</strong></code> to point to their world wide web resource
+                but that is not required for the domain to work properly.
+            </li>
+        </ul>
+    </dd>
+    <dt>Domain Name System</dt>
+    <dd>
+        The Domain Name System (DNS) is a hierarchical and decentralized naming system for
+        Internet connected resources. DNS maintains a list of domain names along with the
+        resources, such as IP addresses, that are associated with them.
+    </dd>
+    <dd>
+        The most prominent function of DNS is the translation of human-friendly domain names
+        (e.g., mozilla.org) to a numeric IP address (such as 151.106.5.172). This process of
+        mapping a domain name to the appropriate IP address is known as <dfn>DNS lookup</dfn>.
+    </dd>
+    <dd>
+        By contrast, a <dfn>reverse DNS lookup</dfn> (rDNS) is used to determine the domain
+        name associated with an IP address.
+    </dd>
+</dl>
+<h4>DNS records</h4>
+<p>
+    For websites, the network is the entire internet. In DNS, an individual mapping that
+    links an IP address to a resource is called a <strong>resource record</strong>. Resource
+    records are collected into zones which are stored on nameservers (a server inside a
+    data center also known as DNS server).
+</p>
+<p>
+    Once you own a domain name, your <strong>web host</strong> must store its information
+    within the <strong>DNS records</strong> to serve it up when the domain is entered. A
+    <strong>Resource Record</strong> is a one-line text description that defines a particular
+    resource. It is the base unit of the DNS system.
+</p>
+<p>
+    A resource record consists of multiple fields separated by whitespace or tabs in the
+    following generic form: <strong><code>name ttl class type data</code>.</strong> Take
+    for example the following records for the FQDN <strong><code>rafaelsanchez.ws</code>:</strong>
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/26-deployment/04-zone-records.png"
+         style="max-width: 110%"
+         alt="Zone Records for 'rafaelsanchez.ws'." />
+</div>
+<p>
+    As you can see in the image above, currently the domain registrar's zone editor manager
+    handles the zone records for the <strong><code>rafaelsanchez.ws</code></strong> FQDN.
+</p>
+<dl>
+    <dt>Record Name</dt>
+    <dd>
+        The host name for the record. In Azure DNS, records are specified by using the
+        relative names. A <dfn>fully qualified domain name</dfn> (FQDN) includes the
+        zone name, whereas a <dfn>relative</dfn> name does not.
+    </dd>
+    <dd>
+        For example, the relative record name <strong><code>www</code></strong> in the
+        zone <strong><code>contoso.com</code></strong> gives the fully qualified record
+        name <strong><code>www.contoso.com</code></strong>
+    </dd>
+    <dd>
+        An <strong><dfn>appex record</dfn></strong> is a DNS record at the root (or apex)
+        of a DNS zone. For example, in the DNS zone <strong><code>contoso.com</code></strong>,
+        an apex record also has the fully qualified name <strong><code>constoso.com</code></strong>
+        (this is sometimes called a <dfn>naked domain</dfn>). By convention, the <strong>
+            relative name <code>@@</code> is used to represent apex records.
+        </strong>
+    </dd>
+    <dt>Time-to-live</dt>
+    <dd>
+        The time to live, or TTL specifies how long each record is cached by clients
+        before being required.
+    </dd>
+    <dd>
+        In Azure DNS, the TTL gets specified for the record set, not for each record.
+    </dd>
+    <dt>Record Class</dt>
+    <dd>
+        A value that describes the protocol family being used. Most often, this is set to
+        IN which means "internet protocol".
+    </dd>
+    <dt>Record Type</dt>
+    <dd>
+        DNS records are organized into various types according to the data they contain.
+        The type is an abbreviation for the type of data stored in the subsequent data
+        field. For example, "A" (address) and "MX" (mail exchange).
+    </dd>
+    <dt>Data</dt>
+    <dd>
+        The data payload needed for the particular type of record. This part may contain one
+        or more elements separated by white spaces.
+    </dd>
+</dl>
+<h4>Azure DNS</h4>
+<p>
+    AS mentioned earlier, a domain name registrar is an organization that allows you to
+    purchase a domain name, such as <strong><code>contoso.com</code></strong>. Purchasing
+    a domain name gives you the right to control the DNS hierarchy under that name.
+</p>
+<p>
+    For example, allowing you to direct the name <strong><code>www.contoso.com</code></strong>
+    to your company web site. The registrar may host the domain in its own name servers
+    on your behalf or allow you to specify alternative name servers.
+</p>
+
+<p>
+    Azure DNS provides a globally distributed and high-availability name server
+    infrastructure that you can use to host your domain. By hosting your domains in
+    Azure DNS, you can manage your DNS records with the same credentials, APIs, tools,
+    billing, and support as your other Azure services.
+</p>
+<p>
+    Azure DNS is a hosted DNS management and name resolution service. You can use it
+    to create public DNS names (records) for multiple applications and services that you
+    deploy in Azure. Creating a name for an Azure service in your custom domain is simple,
+    you just add a record of the correct type for your service.
+</p>
+<h4>DNS zones</h4>
+<p>
+    A DNS zone is used to host the DNS records for a particular domain. To start
+    hosting your domain in Azure DNS, you need to create a DNS zone for that domain
+    name. Each DNS record for your domain is then created inside this DNS zone.
+</p>
+<dd>
+    For example, the domain 'contoso.com' may contain several DNS records such as
+    'mail.contoso.com' (for mail server) and 'www.contoso.com' for a web site.
+</dd>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://youtu.be/dAsC1XHmNC4">
+            How to Configure Public DNS Zone for Hosting your Domain in Azure
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/dns/dns-zones-records">
+            Overview of DNS zones and records
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Glossary/Domain_name">
+            Domain name
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Glossary/DNS">
+            DNS
+        </a>
+    </li>
+</ul>
+<h4>Setting up the Azure Platform</h4>
+<p>
+    So far, we have been working with a free Azure service plan. However, it is required
+    to upgrade our Azure app service hosting plan to enable some of the features that will
+    be implemented throughout the deployment module; e.g., custom domains, SSL/TLS
+    certificates, DNS zone, CDN, etc.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Log in to the Azure portal to create the required Azure services for the personal
+    portfolio project. If you have any doubts, you can leave the default values
+    for now.
+</p>
+<p>
+    You can refer to the <a href="02-data-storage-options">Data Storage Options</a>
+    lesson in the Consuming the Api module for a basic introduction of the Azure
+    structure and services.
+</p>
+<p>
+    In the <a href="02-data-storage-options">Azure</a> world, we need to create:
+</p>
+<ul>
+    <li>
+        A <a href="02-data-storage-options">Subscription</a> (e.g., RS-Portfolio); i.e.,
+        a container used to provision resources in Azure. It holds the details of all your
+        resources like databases, app services, virtual machines, etc., for billing and
+        management purposes.
+    </li>
+    <li>
+        A <a href="02-data-storage-options">Resource Group</a> (e.g., RSLanding-RG) with:
+        <ul>
+            <li>
+                A <a href="02-data-storage-options">Storage Account</a> for hosting the
+                landing page (e.g., rslandingsite). The "Account Kind" or version should
+                be "StorageV2 (general purpose v2)".
+            </li>
+        </ul>
+    </li>
+    <li>
+        A <a href="02-data-storage-options">Resource Group</a> (e.g., FlixMngr-RG) with:
+        <ul>
+            <li>
+                An <a href="https://learn.microsoft.com/en-us/azure/app-service/overview">
+                    App Service
+                </a>
+                for the BlazorMovies app (e.g., Flix-Manager). The hosting operating system
+                should be Windows because we will eventually use the ASP.Net Core Module
+                (ANCM) for Https redirect operations with the Microsoft Internet Information 
+                Services (IIS) web server.
+            </li>
+            <li>
+                A <a href="02-data-storage-options">Storage Account</a> for hosting the
+                static assets of the BlazorMovies app such as person and movie images
+                (e.g., blazormoviesstg). An identical service with a different name
+                (blazormoview0) was created in the <a href="02-data-storage-options">
+                    Data Storage Options
+                </a>
+                section of the Consuming the Api module.
+            </li>
+            <li>
+                An <a href="https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans">
+                    App Service Plan
+                </a> to define the set of compute resources for our App Service to run. To create
+                custom TLS/SSL bindings or enable client ceritificates for an App Service, the
+                app service plan <a href="https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-bindings#prepare-your-web-app">
+                    must have a pricing tier
+                </a> of <a href="https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans#what-if-my-app-needs-more-capabilities-or-features">
+                    at least B1
+                </a>.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    When done, you should have something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/01-azure-resources.png"
+         alt="Azure resources available." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that the Application/Server-Api/FileStorageManager AzureStorageService
+    has the correct Azure Storage Account connection string in the
+    Application/Server-Api/appsettings.json resource file.
+</p>
+<p>
+    You can refer to the <a href="02-data-storage-options">Data Storage Options</a>
+    lesson of the Consuming the Api module for directions on how to obtain the connection
+    string of the Azure Storage Account named "blazormoviesstg" to upload the images
+    for Movie and Person objects:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/26-deployment/02-stg-account-connection-string.png"
+         alt="blazormoviesstg account access keys and connection string." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-6.0">
+            Host and deploy ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/app-service/overview">
+            App Service overview
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/">
+            Azure Storage
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/4BwyqmRTrx8">
+            Azure App Service (Web Apps) Tutorial
+        </a> by Adam Marczak
+    </li>
+    <li>
+        <a href="https://youtu.be/vfLN-P8H0KA">
+            What Are Azure App Services?
+        </a>
+    </li>
+</ul>

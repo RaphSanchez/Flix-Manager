@@ -1,0 +1,261 @@
+﻿@page "/"
+@inject IStringLocalizer<IndexResources> Localizer
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+<HeadContent>
+    <meta name="description"
+          content="@Description " />
+    <meta name="author"
+          content="@Author" />
+</HeadContent>
+
+<h2 class="mb-3">@Localizer["MainHeader"]</h2>
+<h4>@Localizer["Preface"]</h4>
+
+<!-- Localizer Index1   -->
+<p>
+    @Localizer["Index1.1"] <a href="https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor">
+        Blazor
+    </a> @Localizer["Index1.2"]
+</p>
+<!-- Localizer Index2   -->
+<p>
+    @Localizer["Index2.1"]
+</p>
+<!-- Localizer Index3   -->
+<p>
+    @Localizer["Index3.1"] <a href="https://learn.microsoft.com/en-us/">Microsoft</a>
+    @Localizer["Index3.2"] <a href="https://learn.microsoft.com/en-us/dotnet/csharp/tour-of-csharp/">
+        CSharp
+    </a>), <a href="https://stackoverflow.com/">StackOverflow</a>, <a href="https://github.com/">
+        GitHub
+    </a> @Localizer["Index3.3"] <a href="https://www.youtube.com/?reload=9">YouTube</a>.
+    @Localizer["Index3.4"]
+</p>
+<!-- Localizer Index4   -->
+<p>
+    @Localizer["Index4.1"] <em>"Programming in Blazor - ASP.Net Core 5"</em>
+    @Localizer["Index4.2"] <strong>@Localizer["Index4.3"]</strong>
+    @Localizer["Index4.4"] <a href="https://www.udemy.com/share/102l0i3@qPfFeIAI72jmyuTTU5ubq0Q_5VvN9_xBVIhEy0eqTcycB1CT8_zHkXA2WZCh320z/">
+        Udemy
+    </a>.
+</p>
+<!-- Localizer Index5   -->
+<h4>@Localizer["Index5.0"]</h4>
+<!-- Localizer Index6   -->
+<p>
+    @Localizer["Index6.0"]
+</p>
+<dl>
+    <!-- Localizer Index7   -->
+    <dt><p>@Localizer["Index7.1"]</p></dt>
+    <dd>
+        @Localizer["Index7.2"]
+    </dd>
+    <dd>
+        <div class="image-lesson mb-3">
+            <img src="Images/48-compliance/02-horizontal-nav-bar.png"
+                 alt="Horizontal nav bar on top." />
+        </div>
+    </dd>
+    <dd>
+        <p>@Localizer["Index7.3"]</p>
+        <ul>
+            <li>
+                <p>
+                    @Localizer["Index7.4"] <a href="01-push-notifications-intro">
+                        @Localizer["Index7.5"]
+                    </a>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    @Localizer["Index7.6"] <a href="05-internationalization">
+                        @Localizer["Index7.7"]
+                    </a> @Localizer["Index7.8"]
+                </p>
+                <p>
+                    @Localizer["Index7.9"]
+                </p>
+            </li>
+            <li>
+                <p>
+                    @Localizer["Index7.10"] <a href="01-security-fundamentals">
+                        @Localizer["Index7.11"]
+                    </a> @Localizer["Index7.12"] <a href="08-account-confirmation">
+                        @Localizer["Index7.13"]
+                    </a>,
+                    <a href="04-security-config-client">
+                        @Localizer["Index7.14"]
+                    </a>,
+                    @Localizer["Index7.15"]
+                </p>
+                <p>
+                    @Localizer["Index7.16"] <a href="08-account-confirmation">
+                        @Localizer["Index7.17"]
+                    </a> @Localizer["Index7.18"]
+                </p>
+                <ul>
+                    <li>
+                        <p>
+                            @Localizer["Index7.19"] <a href="09-mfa">@Localizer["Index7.20"]</a>
+                            @Localizer["Index7.21"]
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            @Localizer["Index7.22"] <a href="10-external-id-providers">
+                                @Localizer["Index7.23"]
+                            </a> @Localizer["Index7.24"]
+                        </p>
+                    </li>
+                </ul>
+                <p>
+                    @Localizer["Index7.25"] <a href="authentication/profile">
+                        @Localizer["Index7.26"]
+                    </a> @Localizer["Index7.27"]
+                </p>
+            </li>
+        </ul>
+    </dd>
+    <!-- Localizer Index8   -->
+    <dt><p>@Localizer["Index8.1"]</p></dt>
+    <dd>
+        @Localizer["Index8.2"]
+    </dd>
+    <dd>
+        <div class="image-lesson mb-3">
+            <img src="Images/48-compliance/01-flix-manager-menu.png"
+                 alt="Flix Manager top level menu." />
+        </div>
+    </dd>
+    <dd>
+        @Localizer["Index8.3"]
+    </dd>
+    <dd>
+        <p>@Localizer["Index8.4"]</p>
+        <ul>
+            <li>
+                <p>
+                    @Localizer["Index8.5"] <a href="05-filters">@Localizer["Index8.12"]</a>
+                    @Localizer["Index8.13"]
+                    <a href="08-pagination">
+                        @Localizer["Index8.6"]
+                    </a>,
+                    <a href="03-create-complex-data">
+                        @Localizer["Index8.7"]
+                    </a>,
+                    <a href="06-update-complex-data">
+                        @Localizer["Index8.8"]
+                    </a>, @Localizer["Index8.9"]
+                    <a href="07-delete-data">
+                        @Localizer["Index8.10"]
+                    </a> @Localizer["Index8.11"]
+                </p>
+            </li>
+            <li>
+                <p>
+                    @Localizer["Index8.14"] <a href="07-policy-based-authz">
+                        @Localizer["Index8.15"]
+                    </a> @Localizer["Index8.16"]
+                    <a href="01-extend-identity-user">
+                        @Localizer["Index8.17"]
+                    </a>:
+                </p>
+                <ul>
+                    <li>
+                        <p>
+                            <span class="text-muted"><strong>@Localizer["Index8.18"]</strong>.</span>
+                            @Localizer["Index8.19"]
+                        </p>
+                        <p>
+                            @Localizer["Index8.20"]:
+                        </p>
+                        <ul>
+                            <li>@Localizer["Index8.21"]: guest@@mail.com</li>
+                            <li>@Localizer["Index8.22"]: Pass123$</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <p>
+                            <span class="text-muted"><strong>@Localizer["Index8.23"]</strong>.</span>
+                            @Localizer["Index8.24"]
+                        </p>
+                        <p>
+                            @Localizer["Index8.25"]:
+                        </p>
+                        <ul>
+                            <li>@Localizer["Index8.21"]: creator@@email.com</li>
+                            <li>@Localizer["Index8.22"]: Pass123$</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <p>
+                            <span class="text-muted"><strong>@Localizer["Index8.26"]</strong>.</span>
+                            @Localizer["Index8.27"]
+                        </p>
+                        <p>
+                            @Localizer["Index8.28"]
+                            <a href="04-secure-user-manager">@Localizer["Index8.26"]</a>:
+                        </p>
+                        <ul>
+                            <li>@Localizer["Index8.21"]: admin@@email.com</li>
+                            <li>@Localizer["Index8.22"]: Pass123$</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </dd>
+    <!-- Localizer Index9   -->
+    <dt><p>@Localizer["Index9.1"]</p></dt>
+    <dd>
+        @Localizer["Index9.2"]
+    </dd>
+    <dd>
+        <div class="image-lesson mb-3">
+            <img src="Images/48-compliance/03-instructional-menu-items.png"
+                 alt="Instructional menu items." />
+        </div>
+    </dd>
+    <dd>
+        @Localizer["Index9.3"]
+    </dd>
+    <dd>
+        @Localizer["Index9.4"]
+    </dd>
+    <dt><p>@Localizer["Index9.5"]</p></dt>
+    <dd>
+        <p>
+            Flix Manager @Localizer["Index9.6"] <a href="01-pwa-fundamentals">
+                @Localizer["Index9.7"]
+            </a> @Localizer["Index9.8"]
+        </p>
+        <ul>
+            <li>
+                <p>
+                    @Localizer["Index9.9"] <a href="01-pwa-fundamentals">
+                        @Localizer["Index9.10"]
+                    </a> @Localizer["Index9.11"]
+                </p>
+                <p>
+                    @Localizer["Index9.12"]
+                </p>
+            </li>
+            <li>
+                <p>
+                    @Localizer["Index9.13"]
+                </p>
+            </li>
+        </ul>
+    </dd>
+    <dd>
+        @Localizer["Index9.14"] <strong><code>Reset Data</code></strong> @Localizer["Index9.15"]
+        <a href="movies/flix-manager">Flix Manager</a> @Localizer["Index9.16"]
+    </dd>
+    <dd>
+        @Localizer["Index9.17"]
+        Flix Manager
+        @Localizer["Index9.18"]
+    </dd>
+</dl>

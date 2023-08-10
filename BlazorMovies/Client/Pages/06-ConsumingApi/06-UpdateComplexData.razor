@@ -1,0 +1,704 @@
+﻿@page "/06-update-complex-data"
+<PageTitle>Update Complex Data</PageTitle>
+
+<h2>Consuming the Api - Update Complex Data</h2>
+<p>
+    Recall from lesson <a href="07-api-repository">Tracking vs. No Tracking Queries</a>,
+    that a DbContext is designed to represent a short-lived unit of work or business
+    transaction with the database. Each DbContext instance tracks changes made to
+    entities and these tracked entities in turn drive the changes to the database
+    when the DbContext.SaveChangesAsync() method is called.
+</p>
+<p>
+    Entity instances become tracked when they are:
+</p>
+<ul>
+    <li>
+        Returned from a query executed against the database.
+    </li>
+    <li>
+        Explicitly attached to the <dfn>DbContext</dfn> by <code>Add</code>,
+        <code>Attach</code>, <code>Update</code>, or similar methods.
+    </li>
+    <li>
+        Detected as new entities connected to existing tracked entities.
+    </li>
+</ul>
+<p>
+    Entity instances are no longer tracked when:
+</p>
+<ul>
+    <li>The DbContext is disposed.</li>
+    <li>The change tracker is cleared (EF Core 5.0 and later).</li>
+    <li>The entities are explicitly detached.</li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Keep in mind that when working in the back-end of our application, we are
+        most likely within the scope of the <dfn>change tracker</dfn> because we
+        must employ a unique <a href="07-api-repository">unit of work</a>, which
+        creates a unique instance of a <dfn>DbContext</dfn>, to perform operations
+        on the database. Passing a query result to the Application/Client (front-end)
+        requires that these data is serialized/deserialized into the Http response
+        body. By the time the response body is deserialized, a business transaction
+        (unit of work) is completed and the entities are no longer being tracked.
+    </p>
+</div>
+<p>
+    However, making modifications to a data entity outside of the scope of a DbContext
+    is rarely done because whenever possible, business logic operations should be
+    executed away from the Application/Client.
+</p>
+<h4>Batching</h4>
+<p>
+    In a computer, a batch job is a program that is assigned to the computer to run
+    without further user interaction. Examples of batch jobs are a printing request
+    or an analysis of a web site log.
+</p>
+<p>
+    The term originated with mainframe computers when punched cards were the usual
+    form of computer input and you put a batch of cards (one batch per program) in
+    a box in the sequence that they were to be fed into the computer by the computer
+    operator.
+</p>
+<p>
+    EF Core helps minimize roundtrips (communicating with the database) by automatically
+    batching together all updates in a single roundtrip. Consider the following:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/01-update-example.png"
+         alt="Example EF Core update code." />
+</div>
+<p>
+    The code above loads a blog from the database, changes its URL, and then adds
+    two new blogs. To apply this, two SQL INSERT statements and one UPDATE statement
+    are sent to the database. Rather than sending them one by one, as Blog instances
+    are added, EF Core tracks these changes internally, and executes them in a single
+    roundtrip when <dfn>DbContext.SaveChangesAsync()</dfn> is called.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-updating">
+        Efficient Updating
+    </a>,
+    <a href="https://www.learnentityframeworkcore.com/dbcontext/modifying-data">
+        Modifying data via the DbContext
+    </a>,
+    <a href="https://stackoverflow.com/questions/46657813/how-to-update-record-using-entity-framework-core">
+        How to update record using Entity Framework Core?
+    </a>
+</p>
+<h4>Updating Data</h4>
+<p>
+    In lesson <a href="04-forms-part-one">04. Forms</a>, we created an Index routable
+    component for the Genre (IndexGenre) and People (IndexPeople) sections:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/01-indexes-folder-tree.png"
+         alt="Application folder tree with Index components." />
+</div>
+<p>
+    In lesson <a href="04-load-complex-data">Load Complex Data</a>, the <a href="genres">
+        Genres Index
+    </a> and the <a href="people">People Index</a> routable components were improved
+    to show available data in a table that includes an "Edit" and a "Delete" button
+    element for each item displayed.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    application so the client can go the IndexGenres routable component, click the
+    Edit button and modify (or update) the corresonding "Genre" item. If successful,
+    redirect the user back to the IndexGenres routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Take a look to the markup section of
+    the IndexGenres routable component to refresh our memory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/02-index-genres-component-markup.png"
+         alt="IndexGenres routable component." />
+</div>
+<p>
+    As you can see, the "Edit" button element redirects the client to the GenreEdit
+    routable component which has a relative route template: "genres/edit/{id:int}":
+</p>
+<p>
+    Updating a type Genre is very straight forward because the EditGenre component
+    only modifies the Genre.Name property value. It does not include any related data
+    in its modifications:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/03-edit-genre-component-ui.png"
+         alt="EditGenre component UI." />
+</div>
+<p>
+    This means we can employ the generic
+    Application/Server-Api/Repositories/EfRepository UpdatAsync method to modify a Genre
+    item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/04-ef-repository-update-one.png"
+         alt="EfRepository UpdateAsync method part one." />
+    <img src="Images/12-update-complex-data/05-ef-repository-update-two.png"
+         alt="EfRepository UpdateAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the GenreEdit routable
+    component and make the necessary modifications to update a Genre object using
+    the Id property value passed by its consumer as a parameter of its relative
+    route template:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/06-genre-edit-component.png"
+         alt="GenreEdit routable component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Test the recently added functionality.
+    The GenreEdit component should redirect the user back to the IndexGenres component to
+    confirm that the modifications took place.
+</p>
+<p>
+    The functionality to update Genre objects is completed and working fine. Let's focus
+    on editing Person objects.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to the
+    application so the client can go to the IndexPeople routable component, click the
+    Edit button and modify (update) the corresponding "Person" item. If successful,
+    redirect the user back to the IndexPeople routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Take a look to the markup section of
+    the IndexPeople routable component to refresh our memory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/07-index-people-rendering-logic.png"
+         alt="IndexPeople component rendering logic." />
+</div>
+<p>
+    As you can see, the "Edit" element redirects the client to the PersonEdit routable
+    component which has a relative route template: "people/edit/{PersonId:int}".
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Now let's take a look to the UI of
+    the PersonEdit routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/08-person-edit-ui.png"
+         alt="UI of the PersonEdit routable component." />
+</div>
+<p>
+    Updating a type Person is almost as straight forward as to update a type Genre
+    because the PersonEdit component does not modify any related data (entities); i.e.,
+    it does not include any related data in its modifications.
+</p>
+<p>
+    Nevertheless, you should <strong>
+        be aware that it does perform specific operations with the Person.PictureUrl
+    </strong> property. Recall that in the lesson on <a href="02-data-storage-options">
+        Data Storage Options
+    </a>, we created an IFileStorageService responsible for storing images in a local
+    directory or in an Azure storage account.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the
+    Application/Server-Api/Controllers/PeopleController Update <dfn>action</dfn> and
+    declare the required functionality to intercept the image selected by the user,
+    convert it from Base64 to bytes, store it using the filestorage service, and
+    overwrite the Person.PictureUrl proprerty value with the URL that points to the
+    location of the stored image:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/09-people-controller-one.png"
+         alt="PeopleController part one." />
+    <img src="Images/12-update-complex-data/10-people-controller-two.png"
+         alt="PeopleController part two." />
+    <img src="Images/12-update-complex-data/11-people-controller-three.png"
+         alt="PeopleController part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the PersonEdit routable
+    component and make the necessary modifications to update a Person object using
+    the Id property value passed by its consumer as a parameter of its relative
+    route template:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/12-person-edit-update-logic.png"
+         alt="PersonEdit routable component." />
+</div>
+<p>
+    That's it... We have successfully implemented the required code logic for the
+    PersonEdit routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Test the recently added functionality.
+    The PersonEdit component should redirect the user back to the IndexPeople component to
+    confirm that the modifications took place.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments so the
+    client can go to the Flix Manager routable component, click an Edit button and be
+    redirected to the MovieEdit component. Ensure that the data presented for the Movie
+    object is retrieved from the database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Take a look to the MovieEdit
+    routable component to refresh our memory on its current state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/15-movie-edit-component-one.png"
+         alt="MovieEdit routable component markup part one." />
+    <img src="Images/12-update-complex-data/16-movie-edit-component-two.png"
+         alt="MovieEdit routable component markup part two." />
+</div>
+<p>
+    The MovieEdit routable component is consuming hard-coded in-memory objects
+    to populate the fields for the MovieForm used to render the Movie object
+    data.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Take a look to the UI of the
+    MovieEdit routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/13-movie-edit-ui-one.png"
+         alt="UI of the MovieEdit routable component part one." />
+    <img src="Images/12-update-complex-data/14-movie-edit-ui-two.png"
+         alt="UI of the MovieEdit routable component part two." />
+</div>
+<p>
+    The MovieEdit component will consume all the available details of a given
+    Movie object. We need to be able to retrieve (or load) the Movie object from
+    the database including its related data (entities). Let's provide the required
+    functionality for the back-end (business logic and data connect) to serve the
+    MovieEdit component with the required data.
+</p>
+<p>
+    Recall from the lesson to <a href="03-create-complex-data">Create Complex Data</a>
+    that the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data entity
+            type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>MovieEditDto</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to serve.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to expose
+        the specific functionality (method) to the Application/Client and establish a
+        contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement 
+        the newly exposed functionality. This is the applicaion's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions (e.g., updating a Movie object) it is also required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its implementation
+        (ApiConnector class).
+    </p>
+</div>
+<p>
+    As usual, let's create a special purpose DTO to optimize data transfer and prevent
+    serving sensitive or unwanted information to the MovieEdit routable component.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Create an
+    Application/Shared/EntityDtos/MovieEditDto to encapsulate the property values that can
+    be directly mapped to one or more properties of the Movie class.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/17-movie-edit-dto.png"
+         alt="MovieEdit DTO." />
+</div>
+<p>
+    The flattening process improves data transfer and makes it easier for its consumer
+    to access the Movie object data.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Cient/ApiServices/IRepositories/IMovies interface to expose the specific
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/18-imovies-get-movie-edit-dto.png"
+         alt="IMovies interface exposes new functionality." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Server-Api/Repositories/EfMovies class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore) and the RESTful 
+    API service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/19-efmovies-implementation-one.png"
+         alt="EfMovies implementation part one." />
+    <img src="Images/12-update-complex-data/20-efmovies-implementation-two.png"
+         alt="EfMovies implementation part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiMovies class to implement the newly 
+    exposed functionality. This is the application's layer responsible for creating
+    the Http request/response that serializes/deserializes the data and builds the 
+    route to match the endpoint's route template (relative URL to the appropriate 
+    controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/21-api-movies-implementation-one.png"
+         alt="ApiMovies implementation part one." />
+    <img src="Images/12-update-complex-data/22-api-movies-implementation-two.png"
+         alt="ApiMovies implementation part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Use the
+    Application/Server-Api/Controllers/MoviesController to create the <dfn>action</dfn>
+    (controller endpoint) responsible for responding to the Http request produced in
+    the last step. It mediates between the client layer (Application/Client) and the
+    back-end layer (Application/Server-Api/Repositories and
+    Application/Server-Api/DataStore):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/23-movies-controller-one.png"
+         alt="MoviesController part one." />
+    <img src="Images/12-update-complex-data/24-movies-controller-two.png"
+         alt="MoviesController part two." />
+</div>
+<p>
+    At this point, the back-end should be able to produce a MovieEditDto to serve
+    an Http request from the MovieEdit routable component with a given Movie object
+    Id. It is time to focus on consuming the added functionality from the MovieEdit
+    component.
+</p>
+
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Inject an instance of the IApiService
+    to the MovieEdit routable component and configure it to consume database data as
+    opposed to consuming hard coded in-memory data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/25-movie-edit-one.png"
+         alt="MovieEdit routable component part one." />
+    <img src="Images/12-update-complex-data/26-movie-edit-two.png"
+         alt="MovieEdit routable component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Nine:</span> Go to the Flix Manager and raise the
+    <dfn>@@onclick</dfn> event of any of the Edit button elements to test that the
+    MovieEdit routable component loads the data for the Movie object from the database.
+</p>
+<p>
+    We have provided the required functionality to serve the MovieEdit component with
+    the required data from the database. Let's work on adding the required functionality
+    to update a Movie object using the data input passed by the user to the MovieEdit fields.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments so the client
+    can go to the Flix Manager routable component, click an Edit button and modify the Movie
+    object property values.
+</p>
+<p>
+    Updating a type Movie is not as straight forward as updating a type Genre or
+    type Person because <strong>the MovieEdit component</strong> includes related
+    data (entities); i.e., it does <strong>include modifications to its related data</strong>
+    (Genre and Person entities). This means we will need to add new functionality
+    which is specific for updating Movie objects.
+</p>
+<p>
+    Editing the Movie.PosterPath property is very similar to the Person.PictureUrl property
+    demonstrated earlier.
+    <strong>
+        It should perform specific operations with the
+        Movie.PosterPath.
+    </strong> Recall that in lesson <a href="02-data-storage-options">Data Storage Options</a>
+    we created an IFileStorageService responsible for storing images in a local
+    directory or in an Azure storage account.
+</p>
+<p>
+    Since we are adding new and specific functionality for a data entity, we need to
+    follow along the same procedure outlined earlier. We already have a special purpose
+    DTO named MovieEditDto to serve the MovieEdit component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/ApiServices/IRepositories/IMovies interface to expose a new
+    UpdateMovieAsync() method.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The EfRepository/UpdateAsync method and
+    this EfMovies/UpdateMovieAsync method must be named differently. Otherwise, the
+    UpdateMovieAsync method takes precedence and hides the other method when trying
+    to access it from the public interface of a Movie entity:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/27-imovies-update-movie.png"
+         alt="IMovies interface exposes UpdateMovieAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define the implementation of the
+    new method in the
+    Application/Server-Api/Repositories/EfMovies class. This is the specific functionality
+    with the business logic responsible for building the Linq queries and operations
+    that act on the model (data entity). It mediates between the data source layer
+    (Application/Server-Api/DataStore) and the RESTful API service 
+    (Application/Server-Api/Controllers):
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Be careful with the <code><strong>.AsNoTracking()</strong></code> method because it
+        can cause issues during a create or an update operation. For example, the code shown 
+        below will throw an exception with Person objects because Entity Framework's tracker 
+        duplicates Person items during the updating process and duplicate primary keys throw 
+        an exception. The code was left as is for illustrative purposes.
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/28-ef-movies-update-movie-one.png"
+         alt="EfMovies UpdateMovieAsync part one." />
+    <img src="Images/12-update-complex-data/29-ef-movies-update-movie-two.png"
+         alt="EfMovies UpdateMovieAsync part two." />
+    <img src="Images/12-update-complex-data/30-ef-movies-update-movie-three.png"
+         alt="EfMovies UpdateMovieAsync part three." />
+    <img src="Images/12-update-complex-data/31-ef-movies-update-movie-four.png"
+         alt="EfMovies UpdateMovieAsync part four." />
+</div>
+<p>
+    Always strive for creating as <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-querying">
+        efficient queries
+    </a> as possible because they can add up to a significant impact on appliation
+    performance.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Be careful with the <code><strong>.AsNoTracking()</strong></code> method because it
+        can cause issues during an update operation. For example, the code shown above will
+        throw an exception with Person objects because Entity Framework's tracker duplicates
+        Person items during the updating process and duplicate primary keys throw an exception.
+        The code was left as is for illustrative purposes.
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> As you can see, <span class="mark"><strong>
+        updating property values is a two step process:
+    </strong></span> 
+</p>
+<ol>
+    <li>
+        The EfRepository/UpdateAsync <strong>generic</strong> method executes 
+        an update on the primary members (properties) of the Movie object; i.e., the generic
+        method does not include related data on the updating process.
+    </li>
+    <li>
+        Load into memory (start tracking) any related data (entities) you want to modify and
+        update them by targeting each navigation property individually.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-info">Notice:</span> There is a .Net library named
+    <a href="https://automapper.org/">AutoMapper</a> built to map one object to
+    another. For the most part, it makes things much simpler because it handles
+    the mapping automatically. Nevertheless, in this course, we will do our
+    mapping manually to have an exact control of what goes where. "Episode 76.
+    Updating People" of the Programming in Blazor - ASP.Net Core 5 course in
+    <a href="https://www.udemy.com/share/102l0i3@vvD3iCwvDBzUqrFpZILkPYAUbCLeMg6JJFb7ppSQbTmXv2K0y0Ham4u3FaGAmdR9/">
+        Udemy
+    </a>, and Episodes "39. What is AutoMapper and using it in ASP Net Core"
+    and "40. Edit and Update in Blazor" of the <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        Blazor tutorial for beginners
+    </a> by Kudvenkat, have an example on how to download and implement.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiMovies class to implement the newly 
+    exposed functionality. This is the application's layer responsible for creating
+    the Http requests/responses that serialize-deserialize the data and build the 
+    endpoint's route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/32-api-movies-error.png"
+         alt="ApiMovies UpdateMovieAsync method with error." />
+</div>
+<p>
+    The compiler is showing an error. Recall that the <a href="09-api-connector-service">
+        IApiService
+    </a> connects the Application/Client with the Application/Server-Api. The class
+    that implements the IApiService interface (ApiService) has a constructor dependency
+    injection to the IApiConnector interface which establishes a protocol that defines
+    generic methods that can be used to reach any resource type and receive any response
+    (data entity type and status code):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/33-iapi-connector-one.png"
+         alt="IApiConnector interface part one." />
+    <img src="Images/12-update-complex-data/34-iapi-connector-two.png"
+         alt="IApiConnector interface part two." />
+</div>
+<p>
+    The Application/Client/ApiServices/ApiManager/IApiConnector interface establishes a
+    contract for the InvokePutAsync&lt;T&gt;() method with <strong>
+        only one type parameter (T).
+    </strong> This means that it expects a type parameter <span class="fs-5"><code>T</code></span>
+    and has a return type <span class="fs-5"><code>T</code></span>; i.e., same type.
+    However, the IMovies.UpdateMovieAsync method we implemented in last step expects 
+    a formal input parameter of type MovieEssentialsDto and has a return type 
+    MovieEditDto; i.e., different types:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/35-ef-movies-update-movie-async.png"
+         alt="UpdateMovieAsync method." />
+</div>
+<p>
+    The issue/solution is very similar to the scenario we encountered in step six of
+    the <a href="03-create-complex-data">Create Complex Data</a> where we demonstrated
+    how to implement the functionality to "Add" a Movie object including its related
+    data. In fact, the image of the IApiConnector interface above has an example of the
+    answer to our problem in the Post-Create <dfn>region</dfn>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Define an overload for the
+    InvokePutAsync method capable of handling two different type parameters. One type as
+    a formal input parameter and a different type for its return type:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/36-iapi-connector-put-overload-one.png"
+         alt="IApiConnector with InvokePutAsync method overload." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Define the implementation of the
+    new method overload in the Application/Client/ApiServices/ApiManager/ApiConnector 
+    class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/37-api-connector-put-overload-one.png"
+         alt="ApiConnector class part one." />
+    <img src="Images/12-update-complex-data/38-api-connector-put-overload-two.png"
+         alt="ApiConnector class part two." />
+</div>
+<p>
+    At this point, the compiler does not show the ApiMovies error anymore because we
+    have configured the IApiConnector interface and its implementation (ApiConnector class)
+    with an InvokePutAsync method overload capable of handling two type parameters.
+</p>
+<p>
+    Thus far, we:
+</p>
+<ol>
+    <li>
+        Created an Application/Shared/EntityDtos/MovieEditDto to encapsulate the property
+        values that can be directly related to one or more properties of the Movie entity.
+    </li>
+    <li>
+        Used the Application/Client/ApiServices/IRepositories/IMovies interface to expose
+        the specific functionality (UpdateMovieAsync method) to the Application/Client
+        and establish a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Used the Application/Server-Api/Repositories/EfMovies class to implement the newly
+        exposed functionality.
+    </li>
+    <li>
+        Used the Application/Client/ApiServices/IApiManager/IApiConnector interface to
+        expose to the IApiService a <dfn>resource method</dfn> capable of handling two 
+        different type parameter during serialization/deserialization of Http requests/responses
+        for editing (PUT) a data entity.
+    </li>
+    <li>
+        Used the Application/Client/ApiServices/ApiManager/ApiConnector class to implement 
+        the newly exposed functionality.
+    </li>
+    <li>
+        Used the Application/Client/ApiServices/ApiManager/ApiMovies class to implement the
+        functionality exposed by the IMovies interface (UpdateMovieAsync method).
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Use the
+    Application/Server-Api/Controllers/MoviesController to create an <dfn>action</dfn>
+    (controller method) responsible for responding to the Http request produced in
+    last steps. The MoviesController mediates between the client layer (Application/Client)
+    and the business logic layer (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/39-movies-controller-update-movie-one.png"
+         alt="MoviesController with UpdateMovieTask action method part one." />
+    <img src="Images/12-update-complex-data/40-movies-controller-update-movie-two.png"
+         alt="MoviesController with UpdateMovieTask action method part two." />
+    <img src="Images/12-update-complex-data/41-movies-controller-update-movie-three.png"
+         alt="MoviesController with UpdateMovieTask action method part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Go to the MovieEdit routable
+    component and inject an instance of the IApiService to consume the rencently added
+    functionality. Make sure it redirects the user to the MovieBulletin routable
+    component if the updating operation is successful:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/12-update-complex-data/42-movie-edit-one.png"
+         alt="MovieEdit routable component consumes UpdateMovieAsync method part one. " />
+    <img src="Images/12-update-complex-data/43-movie-edit-two.png"
+         alt="MovieEdit routable component consumes UpdateMovieAsync method part two. " />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Test the MovieEdit routable component
+    to ensure that property values for a given Movie object are updated appropriately.
+</p>
+

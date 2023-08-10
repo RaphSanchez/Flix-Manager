@@ -1,0 +1,649 @@
+﻿@page "/02-security-building-blocks"
+<PageTitle>Security Building Blocks</PageTitle>
+
+<h2>Security - Building Blocks</h2>
+<p>
+    In last lesson, we discussed that ASP.Net Core is a framework for building web
+    applications, Entity Framework Core is a data access technology, and ASP.Net
+    Core Identity is a membership system that provides a framework for managing
+    and storing user accounts in ASP.Net Core applications.
+</p>
+<p>
+    ASP.Net Core Identity can easily integrate with Entity Framework; i.e., it can
+    complement its Entity Data Model (EDM) to persist account and user data among
+    other things. We also mentioned that single page application (SPA) frameworks
+    such as Blazor should implement an authentication process where users are
+    redirected to an external provider (identity provider) and returned to the app.
+</p>
+<p>
+    For this reason, the engineering design of Blazor WASM is settled on the Open
+    Authorization (OAuth) standard for AuthZ operations and on the OpenId Connect
+    (OIDC) protocol for AuthN operations. Token-based AuthN based on JSON Web Tokens
+    (JWTs) was chosen over cookie-based authentication for functional and security
+    reasons.
+</p>
+<p>
+    Blazor and ASP.Net Core Identity are designed to fully integrate these standars
+    by working together with the Duende Identity Server framework via the
+    <dfn>Microsoft.AspNetCore.Components.WebAssembly.Authentication</dfn> library.
+    This library integrates ASP.Net Core Identity with API AuthZ support built on
+    top of Duende Identity Server.
+</p>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#authorization">
+            ASP.Net Core Blazor authentication and authorization
+        </a>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#authentication-library">
+            Secure ASP.Net Core Blazor WebAssembly
+
+        </a>
+    </li>
+</ul>
+<h3>Open Authorization Standard (OAuth)</h3>
+<p>
+    OAuth 2.0 is a standard designed to allow a website or application to access resources
+    hosted by other web apps on behalf of a user. It replaced OAuth 1.0 in 2012 and is now
+    the de facto industry standard for online AuthZ.
+</p>
+<p>
+    OAuth provides consented access and restricts actions of what the client app can perform
+    on resources on behalf of the user without ever sharing the user's credentials (e.g.,
+    their password). The specification describes how to handle this kind of delegated access
+    to client types such as browser-based applications, server-side web applications,
+    native/mobile apps, connected devices (e.g., TVs), etc.
+</p>
+<p>
+    OAuth is an AuthZ protocol, it is <strong>not</strong> an AuthN protocol. It is designed
+    primarily as a means of granting access to a set of resources such as a remote API or
+    to user's data (user's profile).
+</p>
+<h4>Terms and Definitions</h4>
+<dl>
+    <dt>Actors</dt>
+    <dd>
+        <p>The essential components of an OAuth system are:</p>
+        <figure class="figure d-flex flex-column justify-content-center">
+            <img class="image-lesson" style="max-width: 600px; margin:auto;"
+                 src="Images/15-security/05-oauth-roles.png"
+                 alt="OAuth Roles." />
+            <figcaption class="figure-caption text-center">
+                <a href="https://developer.okta.com/blog/2017/06/21/what-the-heck-is-oauth">
+                    okta Developer
+                </a>
+            </figcaption>
+        </figure>
+        <dl>
+            <dt class="subtitle">Resource Owner</dt>
+            <dd>
+                The user or system that owns the protected resources and can grant access
+                to them.
+            </dd>
+            <dd>
+                In our scenario, the Resource Owner is the end-user that owns his or her
+                own personal data (profile data such as name, picture, email, date of birth,
+                phone number, etc).
+            </dd>
+            <dd>
+                The Resource Owner is a role that can change with different credentials. It
+                can be an end user or it can be a company (data owned by a company and stored
+                in a database that resides in a server and is handled by an API).
+            </dd>
+            <dt class="subtitle">Client</dt>
+            <dd>
+                The system (or application) that requires access to the protected resources.
+                To access resources, the Client must hold the appropriate Access Token.
+            </dd>
+            <dd>
+                In our scenario, the Client is the BlazorMovies/Client project which requires
+                AuthZ for accessing BlazorMovies/Server-Api endpoints.
+            </dd>
+            <dd>
+                Clients can be <strong>public</strong> or <strong>confidential</strong> and
+                there is a significant distinction between the two in OAuth nomenclature.
+            </dd>
+            <dd>
+                Confidential Clients can be trusted to store a secret. They are not running
+                on a desktop or distributed through an app store which means that they cannot
+                be reverse engineered to get the secret key because they are running in a
+                protected area where end-users cannot access them. For example, our
+                Blazor/Server-Api project will be a protected area.
+            </dd>
+            <dd>
+                Public Clients are browsers, mobile apps, and IoT devices. They cannot be
+                trusted to store a secret because they are exposed to malicious users. For
+                example, a Blazor/Client project is a public Client which cannot be trusted
+                to store secrets.
+                <figure class="figure d-flex flex-column justify-content-center">
+                    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+                         src="Images/15-security/06-client-types.png"
+                         alt="Client Types." />
+                    <figcaption class="figure-caption text-center">
+                        <a href="https://developer.okta.com/blog/2017/06/21/what-the-heck-is-oauth">
+                            okta Developer
+                        </a>
+                    </figcaption>
+                </figure>
+            </dd>
+            <dt class="subtitle">Authorization Server</dt>
+            <dd>
+                Receives requests from the Client for Access Tokens and issues them upon
+                successful AuthN and consent by the Resource Owner.
+            </dd>
+            <dd>
+                The authorization server exposes two main endpoints: The AuthZ endpoint
+                handles consent and AuthZ from the user (Resource Owner). It returns an
+                AuthZ grant that says the user has consented to it and this AuthZ is
+                passed to the Token endpoint which is involved in a machine to machine
+                (backend channel) interaction.
+            </dd>
+            <dt class="subtitle">Resource Server</dt>
+            <dd>
+                A server that protects the user's resources and receives access requests
+                from the Client. It accepts and validates an Access Token from the Client
+                and returns the appropriate resources to it.
+            </dd>
+            <dd>
+                In our use case, the Resource Server holds the end-user's information or
+                profile (e.g., name, email, picture, date of birth, address, etc) or it
+                can also be the Application/Server-Api.
+            </dd>
+        </dl>
+    </dd>
+    <dt>Scopes</dt>
+    <dd>
+        Provide a way for a Resource Server to govern access to its protected resources.
+        Scopes are used to implement <dfn>scoped-based</dfn> access control for a Client
+        application that has been given delegated access to the resource by its owner.
+    </dd>
+    <dd>
+        Scopes are resource-defined strings (e.g., "Mail.Read"). A best practice <strong>
+            naming convention is to use a "resource.operation.constraint"
+        </strong> format.
+    </dd>
+    <dt>Security Token</dt>
+    <dd>
+        <p>
+            Security Tokens allow a Client application to access protected resources on a
+            Resource Server. It is a signed document containing <dfn>claims</dfn>.
+        </p>
+        <dl>
+            <dt class="subtitle">Access Token</dt>
+            <dd>
+                An access token is a security token that is issued by an authorization server
+                as part of an OAuth 2.0 flow. It contains info about the user and the resource
+                for which the token is intended. The information can be used to access web APIs
+                and other protected resources.
+            </dd>
+            <dt class="subtitle">Refresh Token</dt>
+            <dd>
+                Unlike Access Tokens, Refresh Tokens normally have long expiry times and may
+                be exchanged for new Access Tokens when the latter expires. Because of its
+                properties, Refresh Tokens have to be stored securely by Clients.
+            </dd>
+        </dl>
+    </dd>
+    <dt>OAuth Flows (Grant Types)</dt>
+    <dd>
+        <p>
+            Grant type refers to the way an application gets an Access Token. Each Grant Type
+            is optimized for a particular use case, whether that is a web app, a device
+            without the ability to launch a web browser, or server-to-server applications.
+        </p>
+        <p>
+            At the most basic level, before OAuth 2.0 can be used, the Client (BlazorMovies/Client)
+            must acquire its own credentials, a <dfn>client id</dfn> and <dfn>client secret</dfn>,
+            from the <dfn>Authorization Server</dfn> in order to identify and authenticate itself
+            when requesting an <dfn>access token</dfn>.
+        </p>
+        <p>
+            With OAuth, access requests are initiated by the Client e.g., a mobile app, website,
+            smart TV app, desktop app, BlazorMovies/Client project, etc. The token request,
+            exchange, and response follow this general flow:
+        </p>
+        <ol>
+            <li>
+                The Client requests AuthZ (authorization request) from the Authorization Server
+                supplying its <dfn>client id</dfn> and <dfn>secret</dfn> as identification. It
+                also provides the requested <dfn>scopes</dfn> and an endpoint URI (<dfn>
+                    redirect
+                    URI
+                </dfn>) where the Client expects back the Access Token or the Authorization
+                Code.
+            </li>
+            <li>
+                The Authorization Server authenticates the Client and verifies that the requested
+                scopes are permitted.
+            </li>
+            <li>
+                The Resource Owner interacts with the Authorization Server to grant access to its
+                owned resources.
+            </li>
+            <li>
+                The Authorization Server redirects back to the Client with either an AuthZ code
+                or an Access Token, depending on the <dfn>grant type</dfn>. A Refresh Token
+                might also be included.
+            </li>
+            <li>
+                With the Access Token, the Client requests access to the resource from the
+                Resource Server.
+            </li>
+        </ol>
+        <dl>
+            <dt class="subtitle">Implicit Flow</dt>
+            <dd>
+                It is called the <dfn>implicit flow</dfn> because all the communication is
+                happening through the browser. There is no backend server redeeming the
+                AuthZ grant for an Access Token. A Single Page Application (SPA) is a good
+                example for this use case. The implicit flow is also known as the
+                <dfn>2 Legged OAuth.</dfn>
+            </dd>
+            <dd>
+                Implicit Flow is optimized for browser-only public Clients. An Access Token
+                is returned directly from the AuthZ request (front channel only) as a
+                response to form a POST. It typically does not support refresh tokens. Since
+                everything happens on the browser, it is the most vulnerable to security
+                threats.
+            </dd>
+            <dt class="subtitle">Authorization Code Flow</dt>
+            <dd>
+                This is the gold standard and is also known as the <dfn>3 Legged OAuth</dfn>.
+                It uses both the front channel and the back channel. The front channel flow
+                is used by the Client application to obtain an single-use Authorization Code
+                grant which is then exchanged for an Access Token.
+            </dd>
+            <dd>
+                The back channel is used by the Client Application to exchange the Authorization
+                Code grant for an Access Token (and optionally a Refresh Token). It assumes
+                that the Resource Owner and the Client Application are on separate devices.
+            </dd>
+            <dd>
+                It is the most secure flow because the Client can be authenticated to reedem
+                the Authorization Code grant through the front channel and tokens are never
+                passed through a user-agent. <strong>
+                    This is the OAuth flow we will implement in our application.
+                </strong>
+            </dd>
+            <dt class="subtitle">Authorization Code Flow with Proof Key for Code Exchange (PKCE)</dt>
+            <dd>
+                This flow is very similar to Authorization Code grant except that it has an
+                additional step to make it more secure for mobile/native apps and SPAs that
+                lack a server.
+            </dd>
+            <dd>
+
+            </dd>
+            <dt class="subtitle">Client Credentials Flow</dt>
+            <dd>
+                Used for server-to-server (non-interactive applications) scenarios where
+                the Client application is a confidential Client that is acting on its own;
+                i.e., not on behalf of the end-user.
+            </dd>
+            <dd>
+                All that is needed is the Client's credentials (client id and secret) because
+                it is a back channel only flow to obtain an Access Token using the Client's
+                credentials.
+            </dd>
+        </dl>
+    </dd>
+</dl>
+<h4>Summary</h4>
+<p>
+    Open Authorization 2.0 (OAuth) is not an authentication protocol and it is not backwards
+    compatible with OAuth 1.0. It is a <dfn>delegation authorization</dfn> standard that
+    allows applications to request tokens from a security token service and use them to
+    communicate with APIs. It decouples AuthZ policy decisions from AuthN by replacing signatures
+    with HTTPS for all communication.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        OAuth by itself has no notion of the identity of the end-user. It is an access
+        granting protocol also known as <dfn>delegation</dfn> that simply provides
+        AuthZ in the form of an Access Token to get access to a resource.
+    </p>
+</div>
+<p>
+    This delegation reduces complexity in both the Client applications as well as the APIs since
+    AuthN and AuthZ can be centralized (e.g., into an ASP.Net Core web app that implements
+    Duende Identity Server).
+</p>
+<p>
+    OpenID Connect and OAuth 2.0 are very similar - in fact OIDC was created as an extension on
+    top of OAuth 2.0 to solve the authentication portion of the security system. The two
+    fundamental concerns, AuthN and API access (AuthZ), are combined into a single protocol
+    often with a single round trip to the security token service.
+</p>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://developer.okta.com/blog/2017/06/21/what-the-heck-is-oauth">
+            What the Heck is OAuth?
+        </a>
+    </li>
+    <li>
+        <a href="https://auth0.com/intro-to-iam/what-is-oauth-2/">
+            What is OAuth 2.0?
+        </a>
+    </li>
+</ul>
+<h3>OpenId Connect (OIDC)</h3>
+<p>
+    As an end-user, OIDC allows you to use an existing account to sign in to multiple
+    websites without the need to create new users, passwords, and the related need to
+    fill out user data. You can choose what data is shared (scope) with the websites
+    you visit such as a name, email address, phone number, etc.
+</p>
+<p>
+    With OIDC the end-user <strong>
+        only has to provide the password to the
+        <dfn>identity provider</dfn>
+    </strong> and that provider then confirms the identity of the
+    user to the websites that he or she visits. Other than the identity provider, no website
+    orapplication (Client) ever gets access to the password. This means there is no need to
+    worry about an unscrupulous or insecure website compromising the identity of the user.
+</p>
+<p>
+    OIDC is the last generation of the OpenId authentication protocol which is based
+    on the OAuth 2.0 standard. It is an identity layer build on top of OAuth and uses
+    straightforward REST/JSON message flows to provide Identity services. It is also known
+    as an interoperable <dfn>Identity Protocol</dfn> because it allows developers to
+    authenticate their users accross websites and applications without having to own and
+    take the responsibility to store and manage passwords.
+</p>
+<p>
+    For the application builder, it provides a secure and verifiable answer to the question:
+    "What is the <dfn>identity</dfn> of the person (end-user) currently using my native app
+    or the browser that is connected to my application?" In the context of OIDC, AuthN is the
+    process of establishing and communicating that the person operating a browser or native
+    app is who they claim to be.
+</p>
+<p>
+    OIDC allows clients of all types (e.g., SPAs, native apps, mobile apps, or websites) to
+    launch sign-in flows and receive verifiable <dfn>assertions</dfn> about the <dfn>identity</dfn>
+    of signed-in users.
+</p>
+<p>
+    In other words, OIDC extends OAuth 2.0 with a new signed <dfn>id_token</dfn> for the
+    Client and a <dfn>UserInfo</dfn> endpoint to fetch user attributes. The Id Token works
+    with multiple identity providers and adheres to a standard set of <dfn>scopes</dfn> and
+    <dfn>claims</dfn> for <dfn>identities</dfn>. For example: <dfn>profile, email, address</dfn>,
+    and <dfn>phone</dfn>.
+</p>
+<p>
+    In essence, OpenId Connect provides to the Client information on:
+</p>
+<ul>
+    <li>Who is the user that got authenticated?</li>
+    <li>Where was the user authenticated?</li>
+    <li>When was the user authenticated?</li>
+    <li>How was the user authenticated?</li>
+    <li>What attributes does the User (end-user) consent to provide to the Client (application).</li>
+    <li>Why the user is providing them.</li>
+</ul>
+<p>
+    The <dfn>identity provider</dfn> (IDP) can be as simple as your local server or it can
+    be an <dfn>external identity provider</dfn> such as Google, Microsoft, eBay, AOL, etc.
+    Identity providers are also known as security token service or authorization server.
+    Nevertheless, they are all the same, <strong>
+        a piece of software that issues security tokens to clients
+    </strong> (to applications).
+</p>
+<p>
+    Sources:
+</p>
+<ul>
+    <li>
+        <a href="https://developer.okta.com/blog/2017/06/21/what-the-heck-is-oauth">
+            What the Heck is OAuth?
+        </a>
+    </li>
+    <li>
+        <a href="https://openid.net/connect/">
+            Welcome to OpenId Connect
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/Kb56GzQ2pSk">
+            Identity, Authentication + Oauth = OpenId Connect
+        </a>
+    </li>
+</ul>
+<h3>Duende IdentityServer</h3>
+<p>
+    Duende IdentityServer is a flexible and standards compliant OpenId Connect and
+    OAuth 2.0 framework for ASP.Net Core. It is <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        middleware
+    </a> that adds OpenId Connect and OAuth 2.0 endpoints to an arbitrary ASP.Net
+    Core host.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Initially, the IdentityServer engine was hosted in an ASP.Net Core web app on
+        its own but redirects and callbacks between the Client and IdentityServer are
+        very tricky. For simplicity, we decided to follow Microsoft's approach and
+        host the IdentityServer engine in the Application/Server-Api project and
+        consume the built-in <code>IdentityServerBuilder.AddApiAuthorization</code>
+        extension method that sets up the default conventions on top of IdentityServer.
+    </p>
+</div>
+<p>
+    The idea is that you build (or re-use) an application (ASP.Net Core Web app project)
+    that contains login - logout pages (views) and then add the IdentityServer middleware
+    to that application. The middleware adds the necessary protocol overhead to the
+    application so that Clients (applications such as Application/Client) can talk to it
+    using those standard protocols.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/15-security/07-duende-diagram.png"
+         alt="Duende Diagram." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://docs.duendesoftware.com/identityserver/v6/overview/big_picture/">
+            Duende Identity Server
+        </a>
+    </figcaption>
+</figure>
+<p>
+    Duende IdentityServer enables the application (ASP.Net Core web app project - host) to
+    be either the identity provider (also known as the authorization server or security
+    token service) and/or to perform authentication through an external identity provider
+    (e.g., Google, Microsoft, Twitter or Facebook).
+</p>
+<p>
+    The authorization server (e.g., Duende Identity Server) has different responsibilities
+    such as:
+</p>
+<ul>
+    <li>
+        Authenticate users using a local account store or via an external identity
+        provider.
+    </li>
+    <li>
+        Provide session management and single sign-on.
+    </li>
+    <li>
+        Manage and authenticate clients.
+    </li>
+    <li>
+        Issue identity and access tokens to clients.
+    </li>
+    <li>Manage access to resources.</li>
+</ul>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/15-security/08-duende-actors.png"
+         alt="Duende Actors." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://docs.duendesoftware.com/identityserver/v6/overview/terminology/">
+            Duende Identity Server
+        </a>
+    </figcaption>
+</figure>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Duende IdentityServer has a <a href="https://duendesoftware.com/products/communityedition">
+            Community Edition License
+        </a> which is free for profit companies/individuals with less than 1M USD projected
+        annual gross revenue. The Community Edition License key is valid for one year. <strong>
+            A license is not needed for evaluation, development, test environments, or
+            personal projects.
+        </strong>
+    </p>
+</div>
+<h4>Terms and Definitions</h4>
+<dl>
+    <dt>User</dt>
+    <dd>
+        A User is a human that is using a registered Client to access resources.
+    </dd>
+    <dt>Client</dt>
+    <dd>
+        A Client represents an application that can request tokens from your IdentityServer
+        either for authenticating a User (requesting an Identity Token) or for accessing a
+        resource (requesting an Access Token). A Client must first be registered with the
+        Identity Server before it can request tokens.
+    </dd>
+    <dd>
+        Common settings for a Client are a unique client Id, a secret if needed, the
+        allowed interactions with the token service (a grant type), a network location
+        where identity and/or access token gets sent to (called a redirect URI), and a
+        list of Scopes (aka resources) that the Client is allowed to access (e.g., name,
+        emial, phone, etc).
+    </dd>
+    <dd>
+        <p>
+            Examples of Client types can be web applications, native mobile or desktop apps,
+            SPAs, server processes, etc. Nevertheless, they can all be put into two hihg-level
+            categories:
+        </p>
+        <dl>
+            <dt class="subtitle">Machine to Machine Communication</dt>
+            <dd>
+                In this scenario, two machines talk to each other (e.g., background processes,
+                batch jobs, or server-to-server communication) and there is no interactive
+                User present.
+            </dd>
+            <dd>
+                To AuthZ this communication, your IdentityServer issues a token to the caller.
+                The process was described earlier in the Client Crendentials Flow of the OAuth
+                section.
+            </dd>
+            <dt class="subtitle">Interactive Applications</dt>
+            <dd>
+                This is the most common type of Client scenario: web applications, SPAs, and/or
+                native/mobile apps with interactive Users. It typically involves a browser
+                for User interaction (e.g., for AuthN consent).
+            </dd>
+            <dd>
+                The process was described previously in the Authorization Code Flow of the OAuth
+                section.
+            </dd>
+            <dd>
+                A Client application can potentially have many instances; e.g., your web app
+                might be physically deployed on multiple servers for load-balancing purposes
+                or your mobile application might be deployed to thousands of different phones.
+                However, <span class="mark">
+                    <strong>
+                        logically these instances are still a single Client.
+                    </strong>
+                </span>
+            </dd>
+        </dl>
+    </dd>
+    <dt>Resources</dt>
+    <dd>
+        Resources are something that you want to protect with your Identity Server - either
+        identity data of your Users or API resources.
+    </dd>
+    <dd>
+        Every Resource has a unique name and Clients use this name to specify to which
+        Resources they want to get access to.
+    </dd>
+    <dd>
+        <dl>
+            <dt class="subtitle">Identity data</dt>
+            <dd>
+                Identity information (also known as Claims) about a User; e.g., name or
+                email address.
+            </dd>
+            <dt class="subtitle">APIs</dt>
+            <dd>
+                APIs Resources represent functionality a Client wants to invoke - typically
+                modelled as Web APIs but not necessarily.
+            </dd>
+        </dl>
+    </dd>
+    <dt>Identity Token</dt>
+    <dd>
+        An Identity Token represents the outcome of an AuthN process. It contains, at a bare
+        minimum, an identifier for the User (called the <dfn>sub</dfn> and also known as the
+        <dfn>subject claim</dfn>) and information about how and when the user authenticated.
+    </dd>
+    <dt>Access Token</dt>
+    <dd>
+        An Access Token allows access to an API Resource. Clients request Access Tokens and
+        forward them to the API. Access Tokens contain information about the Client and the
+        User (if present). APIs use that information to AuthZ access to their data and
+        functionality.
+    </dd>
+</dl>
+<p>
+    As we mentioned earlier, OpenID Connect and OAuth 2.0 are very similar - in fact
+    OIDC was created as an extension on top of OAuth 2.0 to solve the authentication portion
+    of the security system. The two fundamental concerns, AuthN and API access (AuthZ), are
+    combined into a single protocol often with a single round trip to the security token
+    service.
+</p>
+<p>
+    Duende Identity Server is an implementation of these two protocols and is highly
+    optimized to solve the typical security problems of today's mobile, native, and web
+    applications.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        For the following sections where we implement our security system, it is
+        <strong>strongly advised</strong> that you visit the following links that
+        explain into a greater detail what we have discussed here.
+    </p>
+</div>
+<p>
+    Additional sources of information:
+</p>
+<ul>
+    <li>
+        <a href="https://developer.okta.com/blog/2017/06/21/what-the-heck-is-oauth">
+            What the Heck is OAuth?
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/identity-videos#authentication-fundamentals">
+            Authentication fundamentals
+        </a>
+    </li>
+    <li>
+        <a href="https://youtu.be/996OiexHze0">
+            OAuth 2.0 and OpenId Connect (in plain English)
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/webassembly/?view=aspnetcore-6.0#authentication-library">
+            Secure ASP.Net Core Blazor WebAssembly
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@JpvIezI4jSqBjp1FJodGWLkStQqDiP5E7WRf2749w5plS3s_PoYtRLwqS8FOIS0A/">
+            Section 7: Security
+        </a> of Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/104giU3@Hnt-SUMtJfIUW63Q4uEO-MPawVXU51ZWYPpw1-spsHT5QWk5n6a02AvRgCe6Wzzs/">
+            Section 14: Security with Identity Server 4
+        </a> of Udemy course "Complete Guide to ASP.Net Core RESTful API With Blazor WASM" by
+        Frank Liu.
+    </li>
+</ul>

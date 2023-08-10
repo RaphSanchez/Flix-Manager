@@ -1,0 +1,410 @@
+﻿@page "/01-push-notifications-intro"
+
+<PageTitle>Push Notifications - Fundamentals</PageTitle>
+
+<h2>Web Push Notifications - Fundamentals</h2>
+<p>
+    It is strongly suggested to view Episodes "28. Introduction to Web Push &
+    Notifications" to "31. Use VAPID to secure push messages" of YouTube course
+    <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+        Progressive Web App Training
+    </a> by Google Chrome Developers.
+</p>
+<p>
+    As mentioned in the <a href="https://datatracker.ietf.org/doc/html/draft-ietf-webpush-protocol-02">
+        Generic Event Delivery Using Http Push
+    </a> draft, many applications on mobile and embedded devices require continuous
+    access to network communications so that real-time events such as incoming calls
+    or messages can be delivered (or "pushed") in a timely fashion.
+</p>
+<p>
+    These devices typically have limited power reserves so finding more efficient
+    ways to serve application requirements greatly benefits the application ecosystem.
+    One significant contributor to power usage is the radio. Radio communications
+    consume a significant portion of the energy budget on a wireless device.
+</p>
+<p>
+    Uncoordinated use of persistent connections or sessions from multiple applications
+    can contribute to unnecessary use of the device radio. Consolidating all real-time
+    events into a single session ensures more efficient use of network and radio
+    resources. A single service consolidates all events, distributing those events to
+    applications as they arrive. This requires just one session, avoiding duplicated
+    overhead costs.
+</p>
+<p>
+    Before jumping in to the in and outs of web push notifications, it is important
+    to understand a few basic concepts.
+</p>
+<dl>
+    <dt>Pull Coding (Client Pull)</dt>
+    <dd>
+        Client pull is a style of network communication where the initial request for
+        data originates from the client and then it is responded to by the server.
+    </dd>
+    <dd>
+        This is the kind of interaction that we implemented in the <a href="08-api-controllers">
+            Api Controllers
+        </a> lesson of the Server-Api module and in the
+        <a href="01-consuming-api">
+            06. Consuming the Api
+        </a> module.
+    </dd>
+    <dt>Push Technology</dt>
+    <dd>
+        Push technology is the reverse process of pull coding where the Application/Server-Api
+        pushes data to clients.
+    </dd>
+    <dt>Push Messages</dt>
+    <dd>
+        Push messages enable web site or web application administrators to bring information
+        to the attention of the application users, in the form of <dfn>notifications</dfn>,
+        even when they are not using the web application or site.
+    </dd>
+    <dd>
+        They are called push messages because they "push" information to the application users
+        even when they are not active using the application.
+    </dd>
+    <dt>Notifications</dt>
+    <dd>
+        Notification is the technology for displaying the pushed information on the user's
+        device. It is possible to use notifications without push messaging.
+    </dd>
+    <dd>
+        <dfn>Push messages</dfn> and <dfn>notifications</dfn> are two separate but complementary
+        technologies. Push is the technology for sending messages from the Application/Server-Api
+        to application users even when they are not actively using the application.
+    </dd>
+    <dt>Push Notifications</dt>
+    <dd>
+        Push notifications refers to the combination of pushing a message followed by displaying
+        it as a notification.
+    </dd>
+    <dd>
+        Push messages refers to push technology on its own and notifications refers to
+        notification technology on its own.
+    </dd>
+    <dd>
+        Push notifications are a way to increase user engagement with the applications by
+        delivering timely, relevant, and precise information. Nevertheless, if you try to use
+        push notifications for content that your users do not find timely, relevant, and
+        precise, you will probably end up annoying them and reducing overall engagement.
+    </dd>
+    <dt>User Agent</dt>
+    <dd>
+        The user agent is a computer program representing a person, for example, a browser
+        in a web context.
+    </dd>
+    <dd>
+        Along with each request made to the server, browsers include a self-identifying
+        <code>User-Agent</code> HTTP header called a <a href="https://developer.mozilla.org/en-US/docs/Glossary/User_agent">
+            user agent (UA)
+        </a> string. This string
+        often identifies the browser, its version number, and its host operating system.
+    </dd>
+    <dd>
+        Spam bots, download managers, and some browsers often send a fake UA string to
+        announce themselves as a different client. This is known as <dfn>
+            user agent
+            spoofing
+        </dfn>.
+    </dd>
+</dl>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Apple supports web push as of Safari 16 on macOS Ventura by default. iOS supports
+        web push as of update 16.4 <strong>if and only if</strong> the web app is added to 
+        the home screen.
+    </p>
+</div>
+<h4>Push Notifications Flow</h4>
+<p>
+    A general model for push services includes <strong>three basic actors</strong>:
+</p>
+<ol>
+    <li>The Application/Server-Api.</li>
+    <li>A push service.</li>
+    <li>A user agent.</li>
+</ol>
+<p>
+    At a high level, these three basic actors interact as follows:
+</p>
+<ul>
+    <li>
+        <p><strong>Backend:</strong></p>
+        <ul>
+            <li>
+                <p>
+                    The Application/Server-Api is responsible for sending the push
+                    messages to the push service used by the web browser.
+                </p>
+                <p>
+                    Specifically, the IPushNotificationsService will construct the
+                    push message and send <strong>
+                        delivery requests for each application user subscribed
+                    </strong> to the push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The push service then forwards the push messages to the specific
+                    application user according to the push subscription details sent
+                    within the push message.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p><strong>Frontend (Application/Client):</strong></p>
+        <ul>
+            <li>
+                <p>
+                    The operating system notifies the user agent (web browser) when a
+                    push message is received.
+                </p>
+                <p>
+                    The client's browser decrypts the push message data and dispatches
+                    a <code>push</code> event to the <em>service worker</em>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The service worker has a <code>push</code> event handler (is listening
+                    for push events) that uses the Notifications API to display the
+                    information as a notification.
+                </p>
+            </li>
+        </ul>
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/46-push-intro/01-push-overview.svg"
+         alt="Push notifications flow." />
+</div>
+<p>
+    At the very beginning of the process, a new subscription to the web push service
+    must be created by the user agent and then distributed to the application server
+    (Application/Server-Api) which is responsible for persisting the subscription data
+    into a secure environment. <strong>
+        This subscription is the basis of all future interactions between the actors.
+    </strong>
+</p>
+<h4>Voluntary Application Server Identification (VAPID)</h4>
+<p>
+    An application server can voluntarily identify itself to a push service using
+    VAPID. The "vapid" authentication scheme allows a client to include its identity
+    in a signed token with requests that it makes. The signature can be used by
+    the push service to attribute requests that are made by the application server to
+    a single entity.
+</p>
+<p>
+    The identification information can allow the operator of a push service to contact
+    the operator of the application server. The signature can be used to restrict the
+    use of a push message subscription to a single application server.
+</p>
+<p>
+    Application servers that wish to self-identify must generate and securely maintain
+    a signing key pair. This key pair must be usable with the Elliptic Curve Digital
+    Signature Algorithm (ECDSA) over the P-256 curve. Use of this key when sending push
+    messages establishes an identity for the application server that is consistent
+    across multiple messages.
+</p>
+<p>
+    When requesting delivery of a push message, the web application must include a
+    <a href="07-policy-based-authorization">JSON web token</a> (JWT), signed using
+    its signing key. This JWT is included in an Authorization header field, using an
+    authentication scheme of "vapid". In order for the push service to validate the
+    JWT, it needs to learn the public key of the application server.
+</p>
+<h4>Procedure outline for implementing Web Push Notifications</h4>
+<p>
+    The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Push_API">
+        Push API
+    </a> and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API">
+        Notifications API
+    </a> are two separate JS APIs that are used together. Push API is used to deliver new
+    content from the Application/Server-Api to the Application/Client without any
+    client-side intervention and its operation is handled by the app's <dfn>
+        service worker.
+    </dfn> Notifications API allows web pages to control the display of system notifications
+    to the end user.
+</p>
+<p>
+    Having said this, the steps that we will follow in the next lessons to implement a web
+    push notification system in our application are:
+</p>
+<ol>
+    <li>
+        <p>
+            <a href="https://vapidkeys.com/">Generate</a> the secure VAPID keys
+            required to send and receive web push notifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Store the VAPID keys in a secure location; e.g., in the application
+                    secrets with the help of the application secret manager.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Prepare the Application/Server-Api for PushNotifications.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Modify the database schema to incorporate a PushSubscriptionDetails
+                    data entity that represents the details of a unique web push
+                    subscription for a specific end user (e.g., PushEndpointUrl, elliptic
+                    curve public key, and the authentication secret).
+                </p>
+            </li>
+            <li>
+                <p>
+                    Add the required functionality to manage PushSubscriptionDetails database
+                    records.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Use <a href="02-components-part-three">JSInterop</a> to subscribe/unsubscribe
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Create a JavaScript file to define functions responsible for getting
+                    the status of the permission for notifications granted by the user,
+                    subscribing, and unsubscribing a user to/from the push service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Create the methods responsible for invoking these functions using
+                    CSharp.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a PushNotifications component responsible for subscribing/unsubscribing
+            an application user to the web push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    The component employs the CSharp methods created in last step to invoke
+                    the JS functions to subscribe/unsubscribe a user.
+                </p>
+            </li>
+            <li>
+                <p>
+                    It should handle errors when a connection to the web server is not
+                    available. We do not intend to provide offline support to
+                    subscribe/unsubscribe from the push notifications service.
+                </p>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Create a push notifications service.
+        </p>
+        <ul>
+            <li>
+                <p>
+                    Include a method to send a push message to all users subscribed
+                    to the web push notifications service.
+                </p>
+            </li>
+            <li>
+                <p>
+                    The method must be capable of including a Movie object as its payload
+                    if and when the Movie is marked with an "InTheaters" flag.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Call the method from the Add and the Update actions of the Movies
+                    controller to send a push notification when a Movie object is either
+                    added or updated. The Movie must be included in its payload.
+                </p>
+            </li>
+            <li>
+                Use the <dfn>service worker</dfn> to handle push notifications sent by the
+                Application/Server-Api to the web browser's push notifications service which
+                in turn sends the push notification to the application user(s).
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>
+            Test and <a href="07-dynamic-website">deploy</a> the application to Azure app service.
+        </p>
+        <p>
+            Use Azure key vault to store the VAPID details of our application. Recall that we
+            explained how to use Azure key vault to centralize app secrets in the
+            <a href="07-dynamic-website">Dynamic Website</a> lesson of the Deployment module.
+        </p>
+    </li>
+</ol>
+<p>
+    Examine the diagram that illustrates our push notification system:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/46-push-intro/03-push-notif-system.embedded.svg"
+         alt="Push notification system diagram." />
+</div>
+<p>
+    We will build our push notification system section by section in our coming lessons. 
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://en.wikipedia.org/wiki/Pull_technology">
+            Wikipedia
+        </a>
+    </li>
+    <li>
+        <a href="https://web.dev/push-notifications-overview/?continue=https%3A%2F%2Fdevelopers.google.com%2Flearn%2Fpathways%2Fpwa-push-notifications%23article-https%3A%2F%2Fweb.dev%2Fpush-notifications-overview">
+            Push notifications overview
+        </a>
+    </li>
+    <li>
+        Episodes "28. Introduction to Web Push &
+        Notifications" to "31. Use VAPID to secure push messages" of YouTube course
+        <a href="https://youtube.com/playlist?list=PLNYkxOF6rcIB2xHBZ7opgc2Mv009X87Hh">
+            Progressive Web App Training
+        </a> by Google Chrome Developers.
+    </li>
+    <li>
+        Episode "153. Introducción a las Notificaciones" of Udemy course
+        <a href="https://www.udemy.com/share/101ZK23@AL0IlkXU1vngPdMmPVfWQZDbQCPwZRPdC8ozm8Lo0J3bnuqhNafJiOjLjrL9xUEa/">
+            Programando en Blazor - ASP.Net Core 7
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://datatracker.ietf.org/doc/html/draft-ietf-webpush-protocol-02">
+            Generic Event Delivery Using Http Push draft
+        </a>
+    </li>
+    <li>
+        <a href="https://datatracker.ietf.org/doc/html/rfc8292">
+            Voluntary Application Server Identification for Web Push draft
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Tutorials/js13kGames/Re-engageable_Notifications_Push">
+            How to make PWAs re-engageable using Notifications and Push
+        </a>
+    </li>
+    <li>
+        <a href="https://vapidkeys.com/">
+            VAPID.KEYS.COM
+        </a>
+    </li>
+</ul>

@@ -1,0 +1,65 @@
+﻿<!-- #region Comments -->
+<!-- Dependency injection of a service using Razor mark-up                  -->
+<!-- @@inject Razor directive injects (requests) services into the component-->
+<!-- #endregion -->
+@inject SingletonService _mySingletonService
+
+<div class="form-control mb-3">
+    <h5>DataBindCounter Component:</h5>
+
+    <!-- Renders value of _currentCount variable using an implicit expression. -->
+    <p>Current count: @_currentCount</p>
+
+    <!-- Renders property value of the corresponding custom service            -->
+    <p>Singleton service count: @_mySingletonService.Value</p>
+    <p>Transient service count: @MyTransientService.Value</p>
+
+    <!-- #region Comments -->
+    <!-- Calls IncrementCountAsync() to increment value of _currentCount variable    -->
+    <!-- by one when its @@onclick DOM event is raised.                         -->
+    <!-- #endregion -->
+    <button @onclick="IncrementCountAsync"
+            class="btn btn-success btn-sm">
+        Click me!
+    </button>
+    <br />
+
+    <form class="row g-3">
+        <div class="col-md-4">
+            <!-- #region Comments -->
+            <!-- _currentCount is type "int" -> input type must be "number"             -->
+            <!-- Displays value of _currentCount variable using an implicit expression  -->
+            <!-- NO two way data binding. If its value is changed, no effect on the     -->
+            <!-- _currentCount variable -->
+            <!-- #endregion -->
+            <label for="no-binding" class="col-form-label-sm">No data binding:</label>
+            <input type="number" value="@_currentCount" id="no-binding" 
+                   class="border rounded"/>
+        </div>
+        <div class="col-md-4">
+            <!-- #region Comments -->
+            <!-- Two way data binding implemented with the @@bind Razor directive       -->
+            <!-- If this element's value changed, the value of the variable it is bound -->
+            <!-- too is also changed                                                    -->
+            <!-- #endregion -->
+            <label for="data-binding" class="col-form-label-sm">Data binding:</label>
+            <input type="number" @bind="_currentCount" id="data-binding"/>
+        </div>
+        <div class="col-md-4">
+            <!-- #region Comments -->
+            <!-- Two way data binding implemented with the @@bind Razor directive -->
+            <!-- Overrides default onchange event with an oninput event attribute       -->
+            <!-- #endregion -->
+            <label for="on-input" class="col-form-label-sm">DB oninput:</label>
+            <input type="number" 
+                   @bind="_currentCount" 
+                   @bind:event="oninput" id="on-input"
+                   class="form-control"/>
+        </div>
+    </form>
+</div>
+
+    @code {
+        // CSharp logic moved to DataBindCounter.razor.cs related class
+    }
+

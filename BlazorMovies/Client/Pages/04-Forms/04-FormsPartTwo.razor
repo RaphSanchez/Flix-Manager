@@ -1,0 +1,2089 @@
+﻿@page "/04-forms-part-two"
+<PageTitle>Blazor Forms - II</PageTitle>
+
+<h2>Forms - Part Two</h2>
+
+<h3>Creating the MovieForm component</h3>
+<p>
+    As mentioned earlier in the <a href="04-forms-part-one">Editing Form Records</a>
+    section, the procedure to edit form records will be used extensively throughout
+    the application. It adheres to the DRY principle because it wraps the
+    functionality in a Blazor component (e.g., PersonForm, MovieForm) so it can be
+    re-used in different places such as a Create and an Edit form.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Replicate the procedure followed with
+    "Create Person" and "Edit Person" routable components but this time with a model
+    of type Movie. You can re-purpose any of the components used so far. The type
+    Movie should have the following properties:
+</p>
+<ul>
+    <li>Id:int</li>
+    <li>Title:string</li>
+    <li>Summary:string (will be represented as a markdown)</li>
+    <li>InTheaters:bool</li>
+    <li>TrailerUrl:string (will be a YouTube Id for the video trailer)</li>
+    <li>ReleaseDate:DateTime</li>
+    <li>PosterPath:string</li>
+    <li>TitleSummary:string</li>
+</ul>
+
+<p>
+    <span class="badge bg-dark">Step One:</span> Update the Movie model and include
+    any required data annotations for proper data validation:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/103-movie-model-updated.png" alt="Movie model updated." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the type Movie to create a
+    MovieForm component responsible for receiving input data from the user. Include
+    custom CSS classes (styling) for valid and invalid field states. The component
+    should reside inside the BlazorMovies/Client/Pages/Movies folder because it will
+    be consumed by the MovieCreate and MovieEdit components that we'll create
+    later:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/104-movie-form-front-end.png" alt="Front-end code for MovieForm." />
+    <img src="Images/07-forms/105-movie-form-back-end.png" alt="Back-end code for MovieForm." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Consume the MovieForm component from
+    the MovieCreate routable component to test its UI and its functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/106-movie-create-component.png" alt="MovieCreate component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/107-create-movie-UI.png" alt="CreateMovie user interface." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/108-create-movie-console.png" alt="Browser's console with CreateMovie result." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Consume the MovieForm component from
+    the MovieEdit routable component to test its UI and its functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/109-movie-edit-component.png" alt="MovieEdit component." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/110-movie-edit-UI.png" alt="MovieEdit UI." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/111-movie-edit-console.png" alt="MovieEdit console." />
+</div>
+
+<p>
+    The MovieForm is operating without any issues. However, it is not complete. We
+    can add a control to allow the user select the genres that a given movie belongs
+    to.
+</p>
+
+<h3>Multiple Selector Component</h3>
+<p>
+    In plain terms, a multiple selector component allows the user to select one or
+    more items from a collection of options. However, it does more than that. Its
+    ultimate purpose is to facilitate a relationship between two or more data entities.
+</p>
+<p>
+    For example, we can design a multiple selector component to relate one or more
+    Genre items to a Movie object. Our component (child) can be consumed by the
+    MoviesCreate (ancestor) and MoviesEdit (ancestor) routable components to select
+    or unselect (cancel a previous selection) Genre items for a Movie object.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a multiple selector component
+    that includes two controls stacked horizontally. The one on the left should display
+    the available options (in our example it will be fed items of type Genre) and the
+    one on the right should display the selected options that in turn are automatically
+    removed from the control on the left as soon as they are selected and viceversa.
+    Include two buttons, one to "Select All" and one to "Unselect All" items and make
+    sure you structure the component in a way that it can be re-used with different
+    object types.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> As usual, you can start with the UI
+    (front-end) of our MultipleSelector component to visualize the required coding
+    logic to make it function properly and work from there. Declare any members (or
+    variables) required to bind to the markup elements. Since we want our component to
+    be re-usable, we need to make it generic to postpone the specification of the type
+    it will work with. This way, we delegate that responsibility to its consumer (parent
+    componet).
+</p>
+<p>
+    We could work with Bootstrap's dropdowns but list groups are more flexible because
+    they support almost any content within:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/117-multiple-selector-front-end.png" alt="MultipleSelector UI." />
+</div>
+
+<p>
+    Since the MultipleSelector component is generic, we don't have access to the public
+    interface of TItem; i.e., we cannot access any of its members (e.g., Genre.Name) for
+    rendering because at this point the system does not know the type of TItem yet. The
+    solution is simple, make the MultipleSelector a <a href="02-components-part-one">
+        templated component
+    </a> implementing generic RenderFragment&lt;TValue&gt; parameters that represent a
+    segment of UI to render.
+</p>
+<p>
+    Later on, when the consumer satifies the "UnSelected" and "Selected" parameters, the
+    type will be inferred and you can use the RenderFragment's special variable named
+    <strong><code>Context</code></strong> to access context captured inside the generic
+    RenderFragment&lt;TValue&gt; parameters:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/118-multiple-selector-back-end-one.png" alt="MultipleSelector back-end." />
+    <img src="Images/07-forms/118-multiple-selector-back-end-two.png" alt="MultipleSelector back-end." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step two:</span> Go the MovieForm component to define the
+    "Genres" field which will consume the MultipleSelector templated component to allow the
+    user to select or unselect Movie genres for the current Movie object:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="images/07-forms/119-edit-form-multiple-selector-fe.png" alt="MovieForm consumes MultipleSelector component." />
+    <img src="images/07-forms/119-edit-form-multiple-selector-be.png" alt="MovieForm consumes MultipleSelector component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> The Genres field of the MovieForm
+    component is ready to deliver. Recall that the MovieForm component is consumed by
+    the MovieCreate and MovieEdit components. Go to the MovieCreate routable component
+    and satisfy the required arguments for the MovieForm component.
+</p>
+<p>
+    Since we are creating a Movie object, it should not have any previously selected
+    (or stored) Genre items; i.e., the List&lt;Genre&gt; named "SelectedGenres" should
+    be empty:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/120-movie-create-with-genres-field.png" alt="MovieCreate with Genres field." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the FlixVisualizer routable
+    component and navigate to the CreateMovie component. You should have something like
+    this after selecting a couple Genres:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/121-movie-create-genres-UI.png" alt="MovieCreate UI with Genres field." />
+</div>
+
+<p>
+    Do the same for the EditMovie routable component, except that this time you can (or not)
+    include a few items in the collection of selected items to simulate that the Movie object
+    was previously assigned some genre categories.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> The MultipleSelector templated component
+    should have a "Select All" and an "Unselect All" button element. Define the required
+    logic to complete the component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/122-select-all-buttons-fe.png" alt="MultipleSelector component with Select All buttons." />
+    <img src="Images/07-forms/122-select-all-buttons-be.png" alt="MultipleSelector component with Select All buttons." />
+</div>
+
+<p>
+    The Select All and Unselect All buttons should look something like this:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/123-select-all-buttons.png" alt="Select and Unselect All buttons." />
+</div>
+
+<p>
+    The MultipleSelector component is completed. However, with a couple simple changes we
+    can make it more robust in terms of functionality, security, and confidentiality. Suppose
+    that instead of a Genre, we were working with a Customer profile class. By providing the
+    user (UI) direct (and full) access to a Customer object, we could be exposing properties
+    that the client should not receive. Whether it be an in-memory object or a database entity.
+</p>
+<p>
+    For example, the Customer.Description might have a comment along the lines of "Very
+    annoying" which would obviously be a problem if exposed. Or maybe you are working
+    with an Order.Payment object and a malicious client "Over-posts" an Approved = True
+    property. The scenarios are endless and will become more evident in the next module
+    where we start working with Entity Framework (EF) and a database for which we will
+    have to implement a web server API.
+</p>
+
+<h3>Entities, Models, Data Transfer Objects (DTOs), and Mapping</h3>
+<p>
+    As mentioned above, in next module we'll start working with a database, EF, and a web
+    server API as opposed to in-memory objects. In any case, you should enforce good
+    programming practices whenever possible and this includes <strong>
+        implementing a security layer between user input and private data entity models
+        on back-end servers.
+    </strong> You can achieve this fairly easy with <dfn>mapping</dfn> and <dfn>
+        Data Transfer Objects
+    </dfn> (DTOs) or data models.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Usually, you will see the words "entity",
+    "model", and "view model" used indiscriminately. Before going any further, it is of
+    the utmost importance to have a clear understanding of their differences.
+</p>
+<ul>
+    <li>
+        <span class="mark"><strong>Entity</strong></span>: An <dfn>entity</dfn> is part
+        of the Entity Domain Model (EDM) and is commonly referred to as <dfn>root entity</dfn>.
+        A <dfn>data entity</dfn> is the .Net object that has a direct relationship with the
+        database. It is the .Net object representation of a table (class representing the
+        data in a table of the database).
+    </li>
+    <li>
+        <span class="mark"><strong>Model</strong></span>: The process of <dfn>flattening</dfn>
+        takes a combination of one or more data entities that have a relationship (e.g.,
+        Movie with multiple genres) and of one or more properties of each entity and
+        turns them into a single <dfn>model</dfn> (class) which can be used to serve a
+        request from the client.
+        <span class="mark"><strong><dfn>Data Transfer Objects</dfn> (DTOs)</strong></span>
+        and <dfn>Models</dfn> are fundamentally equivalent and <strong>
+            will be used interchangeably
+        </strong> throught this course because they both provide optimitization benefits
+        and prevent sending excessive and/or sensitive information to the client.
+    </li>
+</ul>
+<p>
+    In summary, <strong>
+        classes that communicate with the database are referred to as <dfn>entities</dfn>,
+        <dfn>data entities</dfn>, or <dfn>root entities</dfn>. Classes that represent a
+        model of one or more data entities, and their relationship, are called <dfn>models</dfn>
+        or <dfn>data transfer objects</dfn>.
+    </strong> So "models" for MVC (Model View
+    Controllers - Server API) and "entities" for EF (Entity Framework - database).
+</p>
+<p>
+    Some programmers like to refer to data entities (communicate with the database) as
+    models and the models (communicate with the client) as <dfn>view models</dfn>.
+    However, this is not entirely precise because there is a Model-View-ViewModel (MVVM)
+    pattern with a "view model". You can see why model for entities and view model for
+    models can cause confusion in an application using the MVVM pattern.
+</p>
+<p>
+    For more info visit <a href="https://youtu.be/6145Q1juVHI">
+        Coding Tutorials: Models vs. Entities
+    </a>
+</p>
+<p>
+    <span class="badge bg-danger">Danger:</span> A web API that exposes database entities
+    to the client is a great risk that can be avoided. The client must not receive data
+    that is mapped directly to the database tables. This is obviously not always a good
+    idea.
+</p>
+<p>
+    Risk aside, sometimes you may need to change the shape of the data that you send
+    to the client for convenience. Mapping allows you to:
+</p>
+<ul>
+    <li>
+        Remove <a href="03-create-complex-data">circular references</a>
+    </li>
+    <li>
+        Hide particular properties that clients are not supposed to view.
+    </li>
+    <li>
+        Omit some properties in order to reduce payload size.
+    </li>
+    <li>
+        Flatten object graphs that contain nested objects to make them more convenient
+        for clients.
+    </li>
+    <li>
+        Avoid " <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/formats-and-model-binding/model-validation-in-aspnet-web-api">
+            over-posting
+        </a>" vulnerabilities.
+    </li>
+    <li>
+        Decouple your service layer from your database layer.
+    </li>
+</ul>
+<p>
+    In programming, <strong><dfn>mapping</dfn></strong> refers to the action of matching
+    items from one set with items in another set. Sometimes the action of matching items
+    involves performing an operation on each item in one set (or collection) before mapping
+    it to a new corresponding set. For example, matching (mapping) tables (entities) in a
+    database with in-memory objects (instances of .Net classes) in code. A <dfn>mapper</dfn>
+    is a method or class which matches items in one set with items in another.
+</p>
+<p>
+    A very common scenario is <strong><dfn>object-to-object mapping</dfn></strong> which is
+    used mostly for copying properties of one object to another, typically for transforming
+    an object from one type to another. As mentioned earlier, use cases are endless but one
+    of the most <strong>
+        important reasons for implementing object transformation is to help prevent
+        "over-posting" attacks from succeeding by intermediating between API's (server side)
+        and UIs (client side) exposed to malicious users.
+    </strong> This creates a security (or validation) layer between user input and
+    private data models on back-end servers.
+</p>
+<p>
+    There are industry level mappers such as Auto Mapper but you can build your own
+    object-to-object mapper with CSharp and .Net.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> There is a .Net library named
+    <a href="https://automapper.org/">AutoMapper</a> built to map one object to
+    another. For the most part, it makes things much simpler because it handles
+    the mapping automatically. Nevertheless, in this course, we will do our
+    mapping manually to have an exact control of what goes where. "Episode 76.
+    Updating People" of the Programming in Blazor - ASP.Net Core 5 course in
+    <a href="https://www.udemy.com/share/102l0i3@vvD3iCwvDBzUqrFpZILkPYAUbCLeMg6JJFb7ppSQbTmXv2K0y0Ham4u3FaGAmdR9/">
+        Udemy
+    </a>, and Episodes "39. What is AutoMapper and using it in ASP Net Core"
+    and "40. Edit and Update in Blazor" of the <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        Blazor tutorial for beginners
+    </a> by Kudvenkat, have an example on how to download and implement it.
+</p>
+<p>
+    <strong><dfn>Data Transfer Objects</dfn></strong> (DTOs) and/or
+    <strong><dfn>Models</dfn></strong> are objects (instance of a
+    class) that define how the data will be sent over the network. A <strong>
+        DTO (or <dfn>model</dfn>) class includes some, all, or even more
+        properties than the class(es) it originates from.
+    </strong>
+</p>
+<p>
+    DTO's are typically consumed by web server API's to transform the data sent from
+    the database, through the network, to the client. Since we have not yet created
+    our web API, we cannot demonstrate how to implement mapping and DTOs for security
+    reasons. Nevertheless, we can still illustrate how to perform mapping for convenience
+    and performance.
+</p>
+<p>
+    Take our MultipleSelector component. Suppose that the Genre class has multiple
+    properties which make it load heavy and CPU intensive. We could create a new
+    collection of objects that originates from mapping Genre items (Selected and
+    Unselected) to a new collection that includes only the Genre.Id (Key) and the
+    Genre.Name (Value).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Implement object-to-object mapping
+    from the collections of Genre items (Selected and Unselected) to the collections
+    passed as arguments to satisfy the MultipleSelector component responsible for rendering
+    the collection items into the UI.
+</p>
+<p>
+    <span class="badge bg-dark">Step One: </span> Determine what properties should be
+    included in the resulting collection (mapped collection). As you know, <dfn>Keys</dfn>
+    and more precisely, <dfn>Primary Keys</dfn>; play a very important role in database
+    management systems (DBMs) because they identify records. <strong>
+        It is imperative to preserve each item's Key for proper identification.
+    </strong> For this reason, each resulting item in the new collections should be of
+    type &lt;Key, Value&gt; pair where Key is the Genre.Id and the Value is just one string
+    which represents the Genre.Name.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> The MovieForm component acts as an
+    intermediary between the ancestor components (MovieCreate and MovieEdit) that provide
+    the collections of type Genre and the MultipleSelector component which is reponsible
+    for rendering the resulting collections (mapped collections). This is where we can
+    implement our mapping functions:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/124-mapping-function.png" alt="Mapping function." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/125-passing-mapped-collections.png" alt="Passing mapped collections to MultipleSelector component." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Make any necessary adjustments to the
+    MultipleSelector component because right now, its parameter collections (Selected and
+    UnSelected) are generic (of type TItem). However, we are passing collections of type
+    Dictionary&lt;Key,TValue&gt;. This means that we no longer need our MultipleSelector
+    to be a generic component; i.e., we no longer need a TItem type parameter:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/126-multiple-selector-dictionary-fe.png" alt="MultipleSelector with Dictionary collections." />
+    <img src="Images/07-forms/126-multiple-selector-dictionary-be.png" alt="MultipleSelector with Dictionary collections." />
+</div>
+
+<p>
+    The MultipleSelector component is no longer generic because we know the type of
+    the collection that will be passed to render. The mapping function takes a collection of
+    Genre items and maps it to a collection of type Dictionary&lt;TKey,Value&gt; pairs where
+    TKey is Int32 and TValue is type string. We have successfully defined an object-to-object
+    mapping; however, the MultipleSelector component can still be improved.
+</p>
+<p>
+    Suppose that further down the road, there is a requirement for labeling each item in
+    the collection as "Selectable". Using a collection of type Dictionary for your
+    MultipleSelector is acceptable but ideally you should <span class="mark">
+        <strong>
+            use a custom DTO (class) that can be extended easily.
+        </strong>
+    </span> We can implement a Data Transfer Object (DTO) that represents an object of
+    any type of collection passed to the MultipleSelector component.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Replace the collection of type Dictionary
+    with a custom DTO (e.g., MultipleSelectorDto) that performs exactly the same function
+    except that it can be easily extended.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a MultipleSelectorDto class that
+    mimics the collection of type Dictionary&lt;int,string&gt;. Since the MultipleSelector
+    component resides in the BlazorMovies/Client/Shared folder to make it accessible
+    throughout the application, you should place the MultipleSelectorDto helper class inside
+    the Application/Client/Helpers folder:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/127-multiple-selector-dto.png" alt="MultipleSelector Data Transfer Object." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The MultipleSelectorDto is a
+    <strong><code>struct</code></strong> (not a class). As you know, a <dfn>structure type</dfn>
+    is a <dfn>value type</dfn> that can encapsulate data and related functionality. It
+    resides in the <dfn>stack</dfn> as opposed to <em>classes</em> that are reference
+    types that reside in the <dfn>heap</dfn>. This makes them performant focused.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> The MovieForm component acts as an
+    intermediary between the ancestor components (MovieCreate and MovieEdit) that provide
+    the collections of type Genre and the MultipleSelector component which is responsible
+    for rendering the resulting collections (mapped collections). Replace the mapping
+    functions (or methods) and type of the resulting collections from Dictionary to
+    MultipleSelectorDto:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/128-movie-form-mapping-to-dto.png" alt="MovieForm mapping from Genre collection to DTO collection." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/129-movie-form-fe-errors.png" alt="MovieForm front end errors." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Make any necessary adjustments to the
+    MultipleSelector component because right now, its collection parameters (Selected and
+    UnSelected) are of type Dictionary. However, we are passing collections of type
+    MultipleSelectorDto:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/130-multiple-selector-with-dto-fe.png" alt="MultipleSelector using DTO." />
+    <img src="Images/07-forms/130-multiple-selector-with-dto-be.png" alt="MultipleSelector using DTO." />
+</div>
+
+<p>
+    Success! We have implemented a custom Data Transfer Object (DTO) to control the data
+    that is exposed to the user by mapping the original collection of Genre items into a
+    resulting collection that contains <strong>only</strong> the data we need. This makes
+    it more efficient and convenient.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to the MovieCreate and/or MovieEdit
+    routable component and test the "Genres" field. It should be working as before.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/data/using-web-api-with-entity-framework/part-5">
+        Create Data Transfer Objects (DTOs),
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/formats-and-model-binding/model-validation-in-aspnet-web-api">
+        Model Validation in ASP.Net Web API,
+    </a>,
+    <a href="https://www.twilio.com/blog/building-blazing-fast-object-mapper-c-sharp-net-core">
+        Building a Blazing Fast Object-to-Object Mapper in C# with .Net Core 3.1
+    </a>, and
+    <a href="https://josef.codes/lets-talk-about-mapping-objects-in-c-sharp/">
+        Let's talk about mapping objects in C-Sharp (C#)
+    </a>
+</p>
+
+<h3>Autocomplete - Typeahead Component</h3>
+<p>
+    Typeahead input fields are becoming more and more common in web forms because
+    they improve the user experience by supplying hints (suggestions) in a list
+    of possible choices (dropdown) based on the text entered by the user. These
+    features save time and reduce the probabilities of the user making a spelling
+    mistake.
+</p>
+<p>
+    A typeahead implements auto-complete functionality which makes it ideal for
+    searching a value from a collection of options. Unlike a MultipleSelector,
+    <span class="mark">
+        <strong>
+            the Typeahead component does not need the complete collection of items.
+        </strong>
+    </span> It implements its auto-complete functionality
+    <span class="mark"><strong>invoking a function</strong></span> (a search method)
+    that resides in its consumer (parent) component. This function is responsible for
+    <span class="mark"><strong>returning</strong></span> any matching items as the
+    user types text in the HTML input element that resides in the Typeahead (child)
+    component.
+</p>
+<p>
+    So far, we have used <a href="02-components-part-one">event callbacks</a> to execute
+    a parent component's method when a child component (Typeahead) event occurs. In our
+    example, the event would be raised every time the user types a new character into
+    the HTML input element. However, <strong>
+        <em>event callbacks</em> don't return a value
+    </strong> and this time the child component needs the result of the search method
+    to provide suggestions to the user. So, how can we achieve that?
+</p>
+<p>
+    With the help of a
+    <em>System.Reflection.<strong><code>MethodBase.Invoke()</code></strong></em> method
+    capable of invoking a method (defined in the parent component) and <strong>
+        <span class="mark">
+            returning an object that contains the return value of the invoked method.
+        </span>
+    </strong>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> In this lesson, we will build a
+    typeahead component which is a simplified version of Chris Sainty's
+    <a href="https://chrissainty.com/getting-started-with-blazored-typeahead/">
+        Blazored Typeahead component
+    </a>. This means you can get the CSS styling from its GitHub repository
+    <a href="https://github.com/Blazored/Typeahead">Blazored/Typeahead</a>.
+    Nevertheless, we will create our own CSS styling.
+</p>
+<p>
+    Although there are fully functional and open source typeahead components
+    out there, MudBlazor's <a href="https://mudblazor.com/components/autocomplete#api">
+        Autocomplete
+    </a> being one of the best, it is a good exercise to build your own from
+    scratch to improve your Blazor skills.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Build a generic <em>TypeaheadDragSelect</em>
+    component that allows its consumer (e.g., MovieForm) to select items from a collection
+    of suggestions (e.g., actors) based on text typed by the user into an HMTL input
+    element. The collection of selected actors should permit altering its order by dragging
+    the selected items; i.e., it should have "draggable" items.
+</p>
+<p>
+    This task will be divided in three stages. The first stage is to create a generic
+    Typeahead component perse, that can postpone the type of items to work with. The
+    second stage is to build a generic TypeaheadDragSelect component that consumes
+    the generic Typeahead that provides the suggestions. The generic TypeaheadDragSelect
+    component displays the user selected suggestions and allows reordering the
+    collection by dragging the items around. Third and final stage is to provide
+    styling to our components' elements.
+</p>
+<p>
+    <span class="badge bg-primary bg-opacity-75">Stage One-Generic Typeahead component:</span>
+    Build a generic Typeahead component that provides the following functionality:
+</p>
+<ol>
+    <li>
+        Provides suggestions of available (matching) items as text is typed into the
+        control. The text is compared to a collection that resides in the parent (final
+        consumer) component.
+    </li>
+    <li>
+        Invokes the search functionality from a search method that also resides in the
+        final consumer of the Typeahead.
+    </li>
+    <li>
+        Notifies its final consumer when the user selects an item, by clicking on it,
+        to execute whatever action defined in the final consumer component (e.g.,
+        add it to a selected items collection).
+    </li>
+</ol>
+<p>
+    The Typeahead component should have 3 <em>states</em>:
+</p>
+<ol>
+    <li>
+        IsSearching: If retrieving data takes longer than a few milliseconds, it
+        should display a "Loading..." message to the user.
+    </li>
+    <li>
+        ShouldShowSuggestions: If one or more matches were found between the text
+        typed by the user and the content of a collection of source items.
+    </li>
+    <li>
+        ShouldShowNotFound: If no matches were found between the text typed by the
+        user and the content of a collection of source items.
+    </li>
+</ol>
+<p>
+    The Typeahead component should have the following <em>characteristics</em>:
+</p>
+<ol>
+    <li>
+        Hides suggestions when the user "clicks" outside the input element; i.e., when
+        the input element loses focus.
+    </li>
+    <li>
+        Improves browser efficiency by <a href="https://www.tutorialspoint.com/what-is-debouncing-in-javascript">
+            debouncing
+        </a>(ensuring a function is not called to frequently) the search function with:
+        <ul style="margin-top: .8rem;">
+            <li>
+                A holding time period of around 2 seconds after the user stopped typing
+                into the HTML input element and before initiating a search.
+            </li>
+            <li>
+                A minimum length on the search text of at least 2 characters before initiating
+                the operation.
+            </li>
+        </ul>
+    </li>
+</ol>
+
+<p>
+    <span class="badge bg-primary bg-opacity-75">
+        Stage Two-Generic TypeaheadDragSelect component:
+    </span> Create a generic TypeaheadDragSelect component that consumes the Typeahead
+    component to provide the following functionality:
+</p>
+<ol>
+    <li>
+        Displays the items that the user selected from previous suggestions provided by
+        the Typeahead component created earlier.
+    </li>
+    <li>
+        Provides an <span class="text-danger">"X"</span> option next to each selected
+        item to remove it from the SelectedItems collection.
+    </li>
+    <li>
+        Allows the user to determine the order in which the selected items (selected
+        suggestions) are ordered by dragging them.
+    </li>
+    <li>
+        Optimizes Blazor's diffing algorithm for the draggable list (selected items
+        collection) by defining a specific key to compare elements.
+    </li>
+    <li>
+        Include a robust comparing mechanism for the type (class) of the selected items
+        collection.
+    </li>
+
+</ol>
+<p>
+    <span class="badge bg-primary bg-opacity-75">Stage Three-Provide styling:</span>
+    Provide styling for ease of use of the generic Typeahead component and the generic
+    TypeaheadDrageSelect component such as:
+</p>
+<ol>
+    <li>
+        The Typeahead component renders a mini <em>loading spinner</em> during a search
+        operation.
+    </li>
+    <li>
+        The Typeahead component renders a mini picture on the left of each suggestion
+        item.
+    </li>
+</ol>
+
+<p>
+    <span class="badge bg-primary bg-opacity-75">Stage One-Generic Typeahead component:</span>
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to BlazorMovies/Client/Shared
+    folder and create a Typeahead component. Once more, we can start by defining
+    the UI (markup code) and declare any required variables or methods as we move
+    forward. In the interest of simplicity, we will not define any CSS styling until
+    the component is fully fuctional:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/131-typeahead-fe-basic.png" alt="Basic markup for Typeahead component." />
+    <img src="Images/07-forms/132-typeahead-be-basic-one.png" alt="Basic backend code for Typeahead component." />
+    <img src="Images/07-forms/132-typeahead-be-basic-two.png" alt="Basic backend code for Typeahead component." />
+    <img src="Images/07-forms/132-typeahead-be-basic-three.png" alt="Basic backend code for Typeahead component." />
+</div>
+
+<p>
+    Keep in mind that we are not including a fallback for the RenderFragment parameter
+    (ShowNotFoundTemplate); i.e., you <strong> must include a backup template</strong>
+    in case the consumer of this component omits passing the markup and data to render
+    ShowNotFoundTemplate parameter.
+</p>
+<p>
+    The Typeahead component binds the SearchText property to an "oninput" event; i.e.,
+    each time the user types a character into the HTML input element, the Search
+    method of the parent component should be executed to look for any matches
+    between the text passed by the user and the collection of items that resides in
+    the parent component.
+</p>
+
+
+<p>
+    <span class="badge bg-info">Notice:</span> We used a parameter (property named
+    SearchMethod) of type <code>Func&lt;string, Task&lt;IEnumerable&lt;TItem&gt;&gt;&gt;</code>
+    (delegate) and decorated it with a <strong><code>[Parameter]</code></strong>
+    attribute to encapsulate the parent component's search method functionality.
+    Then we used an instance of this parameter to
+    <em>System.Reflection.<strong><code>MethodBase.Invoke()</code></strong></em>
+    the parent component's search method functionality.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Unlike an <code>EnventCallback&lt;TValue&gt;</code>, the
+        <em>System.Reflection.<code>MethodBase.Invoke()</code></em> method allows you
+        to invoke a method (defined in the parent component) and <span class="mark">
+            <strong>
+                also to return (to the child component) an object that contains the return
+                value of the invoked method.
+            </strong>
+        </span> which resides in the parent component.
+    </p>
+</div>
+<p>
+    The reason we didn't use an <a href="02-components-part-one">event callback</a> is
+    that event callbacks don't return values. They can be used to execute a parent
+    component's method when a child component event occurs but they do not pass data
+    back to the child component. Study the following images to compare both approaches:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/133-func-and-callback.png" alt="Comparison between Func delegate and event callback." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> With the basic functionality of the
+    Typeahead component in place, we can try to consume it from a routable component.
+    For now, let's do it from the Index routable component. Create an instance of our
+    Typeahead component and satisfy its parameters with a local collection of items to
+    compare to the text that the user types into the HTML input element:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/134-consuming-typeahead.png" alt="Consuming the Typeahead component." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> The <em>ResultItemTemplate</em> is a
+    <em>RenderFragment&lt;TValue&gt;</em> parameter and <strong>
+        component <span class="mark">arguments</span> of type
+        <em>RenderFragment&lt;TValue&gt;</em> have an implicit parameter named
+        <code>context</code>
+    </strong> which can be used. You might recall from the lesson on
+    <a href="02-components-part-one">templated components</a> that when using a
+    templated component, component <span class="mark">arguments</span> of type
+    <code>RenderFragment&lt;T&gt;</code> have an implicit parameter named
+    <code>context</code> which allows you to access context captured inside the
+    RenderFragment parameter.
+</p>
+<p>
+    Also, that you can change the name of this parameter implementation (argument) using
+    the <code>Context</code> attribute on the component element. The following approach
+    for the <em>ResultItemTemplate</em> parameter provides exactly the same result as the
+    one in the image above:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/134-consuming-typeahead-two.png" alt="Custom name with Context attribute." />
+</div>
+
+<p>
+    You can also change the name of the parameter implementation (argument)
+    using the <code>Context</code> attribute on the child element itself. This
+    is specially useful when you have multiple RenderFragment parameters in
+    the templated component. The following approach for the <em>ResultItemTemplate</em>
+    parameter provides exactly the same result as both of the images above:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/134-consuming-typeahead-three.png" alt="Custom name with Context attribute." />
+</div>
+
+<p>
+    If you go to the Index, you should see something like this:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/135-typehead-ui.png" alt="UI of the Typeahead component." />
+</div>
+
+<p>
+    Let's test the three states of our component (IsSearching, ShouldShowSuggestions, and
+    ShouldShowNotFound). Type any letter that is part of any of the names used to populate
+    the "_dummyList" defined in the Index component (consumer); e.g., letter "j". The
+    suggestions array should contain all the options with that letter:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/136-typehead-suggestions.png" alt="ShouldShowSuggestions state." />
+</div>
+
+<p>
+    The ShouldShowSuggestions state seems to be working fine. Now type a letter that is
+    not part of any of the names used to populate the "_dummyList"; e.g., letter "z". The
+    ShowNotFoundTemplate should kick in:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/137-typeahead-not-found.png" alt="ShouldShowNotFound state." />
+</div>
+
+<p>
+    The ShouldShowNotFound state is also working properly. For the IsSearching state, we
+    need to simulate some latency while retrieving the data:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/138-simulated-latency.png" alt="Simulated latency from the DB." />
+</div>
+
+<p>
+    Now we can type in some text and the IsSearching state should respond because the data
+    is taking longer; i.e., the search operation is taking longer:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/139-typeahead-is-searching.png" alt="IsSearching state." />
+</div>
+
+<p>
+    At this point we have accomplished numeral 1 of the typeahead <em>functionality</em>
+    (provide suggestions from a collection in the parent component) and numerals 1 through
+    3 of the typeahead <em>states</em> (IsSearching, ShouwldShowSuggestions, and
+    ShouldShowNotFound). Let's work on numeral 1 of the Typeahead <em>characteristics</em>
+    (hide suggestions when user clicks outside the input element).
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define the code logic to toggle between
+    showing and hiding suggestions when the user clicks inside or outside the HTML input
+    element. Clicking inside of an HTML element corresponds to raising an <em>"onclick"</em>
+    event. Clicking outside of an HTML element corresponds to raising an <em>"onfocusout"</em>
+    event:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/140-typeahead-onclick-onfocusout-fe.png" alt="OnClick and OnFocusOut event markup." />
+    <img src="Images/07-forms/141-typeahead-onclick-onfocusout-be.png" alt="OnClick and OnFocusOut event handlers." />
+</div>
+
+<p>
+    We'll need to make a small modification later on but that's it for now. Test the
+    component by typing some text in the input element and clicking outside/inside of it.
+    The "suggestions" should toggle between hiding and being visible. Let's continue with
+    numeral 2 of the component's characteristics (improves browser efficiency by debouncing
+    the search function).
+</p>
+<p>
+    <span class="badge bg-dark">Step four:</span> Define a time interval of around 3 seconds
+    between each keystroke. If, and only if, the holding time period elapses, should the
+    component initiate a search. Also, define a MinimumTextLength parameter with a default
+    value of 3 characters and assign it to the "value.Length" expression in the "setter"
+    method of the SearchText property.
+</p>
+<p>
+    <span class="badge bg-success">Performance:</span> By limiting the number of times the
+    component atempts to communicate with the database (server web API), you are effectively
+    increasing the effciency of your application. Transfering data to and from the database
+    is costly and should be kept to a minimum whenever possible. Refactor your code to include
+    a <em>System.Timers.Timer</em> responsible of calling the SearchAsync() local method which
+    in turn invokes the SearchMethod functionality of the parent (consumer) component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/142-typeahead-debounce.png" alt="Debounce implementation in back-end code." />
+</div>
+
+<p>
+    <span class="badge bg-warning">Warning:</span> Recall that the
+    <a href="02-components-part-four">Timer</a> class implements the
+    <em>System.ComponentModel.Component</em> class which in turn implements the
+    <em>IDisposable</em> interface. You must <strong>implement</strong> IDisposable with
+    an <code>@@implements IDisposable</code> Blazor directive and the Dipose() method's
+    functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/143-idisposable-interface.png" alt="IDisposable interface implementation." />
+</div>
+
+<p>
+    If you try the Typeahead component one more time, the "suggestions" should not be displayed
+    unless the input text is at least 3 characters and 3 seconds have passed after the last
+    keystroke of the user.
+</p>
+<p>
+    We are getting closer to complete the Typeahead component's requirements cited earlier. In
+    fact, this is exactly what we have accomplished so far:
+</p>
+<p>
+    Typeahead <em>functionality</em>:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Provides suggestions of available (matching) items from a collection in the
+        parent (consumer) component as text is typed into the control.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Invokes the search functionality from a search method that resides in the final
+        consumer of the Typeahead.
+    </li>
+    <li>
+        <span class="oi oi-x btn-outline-danger" aria-hidden="true"></span>
+        Notifies its final consumer when the user selects an item, by clicking on it,
+        to execute whatever action defined in the final consumer component (e.g., add
+        it to a selected items collection). Ensure that suggestions are still hidden when
+        the user clicks outside the HTML input element (numeral 1 of the component's
+        <em>characteristics</em>).
+    </li>
+</ol>
+<p>
+    Typeahead <em>states</em>:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        IsSearching: If retrieving data takes longer than a few milliseconds, it
+        should display a "Loading..." message to the user.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        ShouldShowSuggestions: If one or more matches were found between the text
+        typed by the user and the content of a collection of source items.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        ShouldShowNotFound: If no matches were found between the text typed by the
+        user and the content of a collection of source items.
+    </li>
+</ol>
+<p>
+    Typeahead <em>characteristics</em>:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Hides suggestions when the user "clicks" outside the input element.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Improves browser efficiency by
+        <a href="https://www.tutorialspoint.com/what-is-debouncing-in-javascript">
+            debouncing
+        </a>(ensuring a function is not called to frequently) the search function with:
+        <ul style="margin-top: .8rem;">
+            <li>
+                A holding time period of around 2 seconds after the user stopped typing
+                into the HTML input element and before initiating a search.
+            </li>
+            <li>
+                A minimum length on the search text of 2 characters before initiating
+                a search.
+            </li>
+        </ul>
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Let's deal with the third numeral to
+    permit the user select an item by clicking on any of the available "suggestions" to
+    include that item into a collection of selected items. Don't forget to ensure that
+    suggestions are still hidden when the user clicks outside the HTML input element
+    (numeral 1 of the component's <em>characteristics</em>).
+</p>
+<p>
+    We need a dummy collection to store the items that the user selects from the data
+    source (collection of items-suggestions that reside in the parent component).
+    However, the markup for rendering the collection of items (suggestions) and its
+    back-end code reside in the child component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/144-suggestions-markup.png" alt="Rendering suggestions markup." />
+    <img src="Images/07-forms/144-suggestions-backend.png" alt="Rendering suggestions backend code." />
+</div>
+
+<p>
+    Define an "onclick" event for each suggestion item. Then, inform the parent
+    component when this event (in the child component) is raised. This time we don't
+    need a <code>Method.Invoke()</code> because we are not planning to return (to the
+    child component) an object that contains the return value of the invoked method.
+    Instead, we can declare a generic EventCallback&lt;TItem&gt;:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/145-on-item-selected-callback.png" alt="OnItemSelected callback." />
+</div>
+
+<p>
+    Update the Typeahead instance declared inside the Index (consumer) component; i.e.,
+    satisfy the OnItemSelected parameter (EventCallback) with a delegate handler (method):
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/146-on-item-selected-callback-fe.png" alt="OnItemSelected callback definition." />
+    <img src="Images/07-forms/146-on-item-selected-callback-be.png" alt="OnItemSelected callback definition." />
+</div>
+
+<p>
+    All the steps seem to be right. Nevertheless, the compiler is complaining about
+    the handler (AddSelectedItem) but why? If you hover the mouse pointer over the
+    red squiggle, Intellisense shows that:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/147-intellisense-error.png" alt="Intellisense error CS1503." />
+</div>
+
+<p>
+    It mentions something about not being able to convert from 'method group' to 'EventCallback'.
+    However, this is not entirely clear. Let's further investigate the issue by clicking on the
+    nomenclature (link) CS1503, which is the compiler error:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/148-compiler-error-cs1503.png" alt="CSharp compiler error CS1503" />
+</div>
+
+<p>
+    Now study compiler error message CS1502:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/149-compiler-error-cs1502.png" alt="CSharp compiler error CS1502" />
+</div>
+
+<p>
+    You know that components are (.razor files) that are transpiled into .Net classes.
+    Study the Index.razor.g.cs class (transpiled class):
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/155-index-transpiled-file.png" alt="Transpiled class of Index component." />
+</div>
+
+<p>
+    With the information gathered, one can conclude that the argument types being passed
+    to the method (handler) do not match the parameter types of that method
+    (EventCallback.InvokeAsync). Consider that the Typeahead component is generic and the
+    OnItemSelected.InvokeAsync(TItem) EventCallback is passed a type TItem. Nonetheless,
+    the handler being served to satisfy this formal input parameter is passed an argument
+    of type string:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/150-method-input-parameter.png" alt="Comparison of type of parameter vs argument." />
+</div>
+
+<p>
+    The compiler is having problems to infer the type of TItem when trying to build
+    a Typeahead component for its consumer (Index.razor). This problem is simple to
+    resolve. You might recall from lesson on <a href="02-components-part-one">
+        generic components
+    </a> that
+    <span class="mark">
+        <strong>
+            any generic type parameter can (and should) be specified using an attribute
+            that matches the name of the type parameter:
+        </strong>
+    </span>
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/151-type-parameter-specified.png" alt="Type parameter specified." />
+</div>
+
+<p>
+    That's it. Now the compiler knows the type for TItem and can therefore create the
+    Typeahead component.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> There is an <strong>
+        alternate way to explicitly define the type for generic type parameters.
+    </strong> The result in the image above can be achieved with an anonymous function
+    (lambda expression) that explicitly defines the type for the generic type parameter:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/154-lambda-explicit-type-for-typeparameter.png" alt="Specific type for type parameter using lambda expression." />
+</div>
+
+<p>
+    Without any other compiler error messages, if everything works out as planned, we should
+    see a message in the browser's Console when the user selects a suggestion (item) from the
+    Typeahead component. Go to the Index routable component and try selecting a suggestion.
+</p>
+<p>
+    You will find out that nothing happens. If the user clicks on a suggestion, the suggestions
+    disappear and nothing else seems to happen. The reason is pretty straight forward. Can you
+    figure out why?
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/156-input-element.png" alt="HTML input element separate from suggestions." />
+</div>
+
+<p>
+    Everytime the user employs the mouse pointer to click on a suggestion, the HTML input
+    element loses focus and the "onfocusout" event that we defined earlier is raised which
+    in turn hides the suggestions. It is invoked before the OnItemSelected event callback
+    is raised:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/152-on-focus-out.png" alt="On Focus Out event and On Click event." />
+    <img src="Images/07-forms/153-on-focus-out-be.png" alt="On Focus Out event and On Click event." />
+</div>
+
+<p>
+    We need a code structure that can differentiate between the user clicking outside the
+    HMTL input element and the user clicking outside the input element but over a suggestion.
+    We can accomplish this with the "onmouseover" event. Define a flag and bind it to the
+    "onmouseover" event so it can determine if and when the mouse pointer is over a
+    "suggestion" item:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/157-onmouseover-flag.png" alt="OnMouseOver suggestion flag." />
+</div>
+
+<p>
+    The markup for the suggestions collection shown above should work just fine but it starts
+    to look a bit congested. We can separate the code logic into a separate handler (method)
+    for <em>onmouseover</em> and another one for <em>onclick</em> event. They should have
+    exactly the same functionality:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/158-separate-handlers-fe.png" alt="Separate handlers for onmouse out and onclick events." />
+    <img src="Images/07-forms/159-separate-handlers-be.png" alt="Separate handlers for onmouse out and onclick events." />
+</div>
+
+<p>
+    Go to the Index component and test the Typeahead component. This time it should display
+    in the browser's console the items selected by the user and stored in the
+    _dummySelectedItems collection that resides in the parent (Index) component. Make sure
+    that suggestions are still hidden when the user clicks outside the HTML input element
+    (numeral 1 of the component's <em>characteristics</em>).
+</p>
+<p>
+    If you tested the component, you have realized that the suggestions are not disappearing
+    when the mouse pointer clicks outside the suggestions. This can be easily fixed with
+    the "onmouseout" event applied to the suggestions items. The process is very similar as
+    the one defined for the "onmouseover" event except that it represents an opposite action:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/160-on-mouse-out-handler.png" alt="OnMouseOut handler." />
+</div>
+
+<p>
+    Finally, <em>StageOne-Generic Typeahead component</em> is complete. The selected
+    suggestions are being stored in the _dummySelectedItems collection that resides
+    in the parent (consumer) component and they are being displayed into the browser's
+    console. Also, the suggestions and the search text are hidden when the user clicks
+    outside the input element and is not trying to select a suggestion item. This means
+    we can start working on <em>StageTwo-Generic TypeaheadDragSelect</em> component.
+</p>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-6.0#invoke-component-methods-externally-to-update-state">
+        Invoke component methods externally to update state
+    </a>,
+    <a href="https://chrissainty.com/getting-started-with-blazored-typeahead/">
+        Getting Started With Blazored Typeahead
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/event-handling?view=aspnetcore-6.0#eventcallback">
+        EventCallback
+    </a>
+</p>
+
+<p>
+    The generic TypeaheadDragSelect employs a Typeahead component that provides item
+    suggestions based on functionality defined in the final consumer (ancestor). It
+    also displays any selected items by the user from the suggestions shown. Since
+    we want to allow the user to reorder the collection of selected items, you first
+    need to fully understand how Blazor's <dfn>diffing</dfn> algorithm works because <strong>
+        dragging items means altering a collection between render cycles.
+    </strong>
+</p>
+
+<h4>Blazor <dfn>diffing</dfn> algorithm and the <strong><code>@@key</code></strong> directive</h4>
+<p>
+    You might remember from the lesson on <a href="01-blazor">Blazor architecture</a>,
+    that when Blazor renders a component, it keeps track of what changed in the rendered
+    output. This is possible because components don't render directly to the browser DOM
+    (Document Object Model). They instead render to an in-memory representation of the DOM
+    (virtual DOM) called the <code>RenderTree</code> so that Blazor can track changes. It
+    compares the newly rendered output with the previous output to calculate a UI
+    difference that it then applies efficiently to the browser DOM.
+</p>
+<p>
+    When you render a collection of elements or components, and this list subsequently
+    changes, the <strong><em>diffing algorithm</em></strong> must find the
+    additions/editions/deletions, and generate the right commands to update the
+    <em>view</em>. <strong>
+        By default, it uses the elements' index (position) to compare.
+    </strong> While this approach works perfectly fine in most cases, it is not always
+    optimal. For instance, if you insert an element in a collection, it will detect that
+    every element starting at the insertion index is different (has changed).
+</p>
+<p>
+    This means that Blazor has to rebuild all elements in the collection, starting at
+    the insertion index, every time an item is inserted. If you insert an item at the
+    start of the collection, the entire collection is rebuilt. The
+    <span class="mark">
+        <strong>
+            <code>@@key</code> directive attribute allows instructing Blazor to use a
+            specific <em>key</em> to compare elements
+        </strong> instead of using their index (position in the collection).
+    </span> Blazor will compare the existing items with the new ones
+    <span class="mark"><strong>using the value of the key.</strong></span> This way, it
+    better detects additions/modifications/deletions.
+</p>
+<p>
+    When using the <code>@@key</code> directive attribute, if a collection changes, the
+    diffing algorithm retains the association between instances. If a new item instance
+    is inserted at the beginning of the collection, other instances are left unchanged.
+    This guarantees preservation of elements or components based on that <em>key</em>.
+</p>
+<p>
+    In other words, if the <code>@@key</code> directive attribute is used when updating
+    collections:
+</p>
+<ul>
+    <li>
+        If an instance is deleted from the collection, only the corresponding component
+        instance is removed from the UI. Other instances are left unchanged.
+    </li>
+    <li>
+        If collection entries are re-ordered, the corresponding component instances
+        are preserved and re-ordered in the UI.
+    </li>
+</ul>
+<p>
+    The @@key attribute directive is <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-6.0#scope-of-key">
+        scoped
+    </a> to its own siblings within its parent.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Generally, it makes sense to <span>
+        <strong>
+            supply one of the following values for <code>@@key</code>:
+        </strong>
+    </span>
+</p>
+<ul>
+    <li>
+        Object instances of a Model (class). This ensures preservation based on object
+        reference equality.
+    </li>
+    <li>
+        <strong>Unique</strong> identifiers such as <em>Primary Key</em> values.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> Keep in mind that it is not advisable to
+    use an @@key directive every time you work with a collection, only when you will be
+    manipulating a <em>foreach source</em> (a looped collection) between renders. In
+    other words, <span class="mark">
+        <strong>
+            if you have a foreach loop and its source collection will change in some way
+            between render cycles, you should use the <code>@@key</code> directive.
+        </strong>
+    </span>
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-6.0#use-key-to-control-the-preservation-of-elements-and-components">
+        Use @@key to control the preservation of elements and components
+    </a>,
+    <a href="https://www.meziantou.net/optimizing-blazor-performance-using-the-key-directive.htm">
+        Optimizing Blazor performance using the @@key directive
+    </a>,
+    <a href="https://youtu.be/WpEPK3b6950">
+        Blazor @@key Attribute
+    </a>, and
+    <a href="https://www.udemy.com/share/102l0i3@yGQNUK1b9keVRcbbh8XuxR8rRR0DP7EYVKFwYMAsf4cItB7qrhm4UgPEwMLKMj6K/">
+        Episode 82. Key Attribute and the Diffing Algorithm
+    </a> of the "Programming in Blazor - ASP.NET Core 5" course in Udemy by Felipe Gavilan.
+</p>
+<p>
+    Again, since we want our TypeaheadDragSelect component to allow the user to reorder its
+    selected items, you first have to fully understand how CSharp performs <em>
+        equality comparisons
+    </em> to be able to <strong>
+        establish a robust (and efficient) equality comparing system for the
+        <span class="mark">type</span> of the selected items being dragged
+    </strong> to a different position (e.g., equality comparison based only on Primary Keys).
+</p>
+<h4>Equality Comparisons</h4>
+<p>
+    As you know, in .Net every type directly or indirectly inherits from the <code>Object</code>
+    class. So, the <code>Equals()</code> virtual method, which has a default implementation
+    within the object class, is also available in every type via inheritance.
+</p>
+<p>
+    It is sometimes necessary to compare two values for equality. In some cases, you are
+    testing for <dfn>reference equality</dfn>, also known as <dfn>identity</dfn>. In some
+    others you are testing for <dfn>value equality</dfn>, also known as <dfn>equivalence</dfn>:
+</p>
+<ul>
+    <li>
+        <strong><dfn>Reference equality</dfn> (identity):</strong> Determines whether two
+        object references (variables in the stack) refer (or reference) to the same
+        underlying object (in the heap).
+    </li>
+    <li>
+        <strong><dfn>Value equality</dfn> (equivalence):</strong> Values in the objects
+        that the variables point to, are equal (or equivalent).
+    </li>
+</ul>
+<p>
+    The concept of <dfn>reference equality</dfn> (identity) applies only to reference types.
+    Value type objects cannot have reference equality because when an instance of a value
+    type is assigned to a variable, a copy of the value is made. Therefore, you can never
+    have two unboxed structs that refer to the same location in memory. Furthermore, if you
+    use <code>Object.ReferenceEquals(Object)</code> method to compare two value types, the
+    result will always be false.
+</p>
+<p>
+    <span class="mark">
+        <strong>
+            On classes (reference types), the default implementation of
+            <code>Object.Equals(Object)</code> method performs a <dfn>reference equality</dfn>
+            comparison,
+        </strong>
+    </span>not a <dfn>value equality</dfn> check. Study the following example where we use
+    a Console application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/161-person-equality-comparison.png" alt="Equality comparison on Person objects." />
+</div>
+<p>
+    As you can see, the property values for all three Person objects (reference types)
+    are the same. Both equality comparisons (reference and value) compare person one
+    to person two and three objects. What do you think will be the result of all
+    comparisons? True for all?
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/162-equality-results.png" alt="Results of equality comparisons." />
+</div>
+<p>
+    In the example above, personOne and personTwo are two different object reference variables
+    but both are pointing to (reference) the same object. Since both personOne and personTwo
+    refer to the same object, the reference equality, and the value equality is true. The
+    actual object is only one, so obviously the values are equal. If two objects have reference
+    equality, then they also have value equality but value equality does not gurantee reference
+    equality.
+</p>
+<p>
+    On the other hand, personOne and personThree are two different object reference variables
+    and they are pointing to (reference) a different object. It makes sense that the "<strong>
+        <code>==</code>
+    </strong>" operator returns false. However, the <code>Object.Equals(Object)</code> method
+    returns false when comparing personOne with personThree eventhough their values are the
+    same. Recall that the default implementation of Object.Equals(Object) method for reference
+    types performs a <dfn>reference equality</dfn> comparison.
+</p>
+<p>
+    For this reason, <span class="mark">
+        <strong>
+            when comparing reference types for <dfn>value equality</dfn> (equivalence), it
+            makes sense to override their <code>Equals()</code> method
+        </strong>
+    </span> to return true when the values across the objects are the same.
+</p>
+<p>
+    For classes or structs that have multiple fields or properties, <dfn>value equality</dfn>
+    is often defined to mean that all fields or properties have the same value. However,
+    there is no requirement that <dfn>equivalence</dfn> be based on all the fields in a
+    type. It can be based on a subset.
+</p>
+<p>
+    When overriding the <code>Equals()</code> virtual method, the purpose is to give it
+    <dfn>value equality</dfn> semantics. To override the Equals() method, you have to:
+</p>
+<ol>
+    <li>
+        Implement the <strong><code>System.IEquatable&lt;T&gt;</code></strong> interface
+        by providing a type-specific <code>Equals</code> method. This is where the actual
+        equivalence comparison is performed.
+    </li>
+    <li>
+        Override the virtual Object.Equals(Object) method. In most cases, it is simply
+        a call into the type-specific <code>Equals</code> method that is the implementation
+        of the <dfn>System.IEquatable&lt;T&gt;</dfn> interface.
+    </li>
+    <li>
+        Override the <code>Object.GetHashCode</code> method so that two objects that have
+        <dfn>value equality</dfn> produce the same hash code.
+    </li>
+    <li>
+        Optional but recommended: Overload the "<code>==</code>" and "<code>!=</code>"
+        operators.
+    </li>
+</ol>
+<p>
+    Let's implement <dfn>value equality</dfn> for the reference type Person in our example.
+    The process becomes very simple with the help of Intellisense.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Simply declare the <code>IEquatable&lt;T&gt;</code>
+    interface, hover the mouse pointer over the red squiggly line and select the option to
+    generate equality members, generate equals method, or something along those lines:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/163-implement-IEquatable-interface.png" alt="Implementation of IEquatable<T> interface." />
+</div>
+<p>
+    That's it. The system performs the complete implementation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/164-iequatable-implementation.png" alt="Implementation of IEquatable<T> interface." />
+</div>
+<p>
+    Having implemented <dfn>value equality</dfn>, run the console application to see the results:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/165-equality-results-ok.png" alt="Equality value result is correct." />
+</div>
+<p>
+    This time, although personOne and personThree are two different object reference variables,
+    the <code>Equals</code> method returns true when comparing them because their values are
+    the same. We have successfully overridden the default implementation of the <code>Equals</code>
+    method to perform a <dfn>value equality</dfn> (equivalence) comparison instead of the
+    default <dfn>reference equality</dfn> (identity) comparison.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> As mentioned earlier, for classes or structs
+    that have multiple fields or properties, <dfn>value equality</dfn> is often defined to
+    mean that all fields or properties have the same value. However, there is no requirement
+    that <dfn>equivalence</dfn> be based on all the fields in a type. It can be based on a
+    subset. Perhaps we are interested in performing a <dfn>value equality</dfn> comparison
+    based only on the Person.Id property (Primary Keys are unique):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/166-iequatable-implementation-id.png" alt="IEquatable interface implementation with a single property." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/equality-comparisons#value-equality">
+        Equality comparisons (C# Programming Guide)
+    </a>,
+    <a href="https://dotnettutorials.net/lesson/why-we-should-override-equals-method/">
+        Override Equals Method in C#
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/how-to-define-value-equality-for-a-type">
+        How to define value equality for a class or struct (C# Programming Guide)
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/equality-operators">
+        Equality Operators
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/types/records">
+        Introduction to records
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.iequatable-1.equals?view=net-6.0">
+        IEquatable&lt;T&gt;.Equals(T) Method
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/visualstudio/ide/reference/generate-equals-gethashcode-methods?view=vs-2022">
+        Generate Equals and GetHashCode method overrides in Visual Studio
+    </a>
+</p>
+<p>
+    Now that you understand how Blazor's diffing algorithm works and how to implement robust
+    (and efficient) equality comparisons for reference types, we can move to
+    <em>Stage Two-Generic TypeaheadDragSelect component.</em>
+</p>
+<h3>TypeaheadDragSelect Component</h3>
+<p>
+    As its name implies, this component employs a Typeahead component and it also
+    defines code logic to render, select, deselect, and drag elements from a
+    SelectedItems collection. It will be utilized by the MovieForm component to
+    display and select actor suggestions (collection with items of type Person).
+</p>
+<p>
+    Both components Typeahead (child) and TypeaheadDragSelect (parent - consumer)
+    have to be generic because we might later encounter a scenario where we need
+    another TypeaheadDragSelect component for objects of a different type. Therefore,
+    we want our component to be compatible; i.e., the TypeaheaDragSelect component
+    must allow to postpone the definition of the type of objects it will manipulate.
+</p>
+<p>
+    The TypeaheadDragSelect component defines the handler for the OnItemSelected
+    event callback parameter of the Typeahead; i.e., it defines what action to take
+    when a user clicks on an item (suggestion) provided by the Typeahead component
+    such as adding that item to a SelectedItems collection. It also defines the code
+    logic to render the items in the SelectedItems collection and to allow dragging
+    those items to achieve the desired order of appearance.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> You should use a Data Transfer
+    Object (DTO) and <em>mapping</em> for the selected items exposed to the
+    user but for simplicity, we'll skip that step.
+</p>
+<p>
+    <span class="badge bg-primary bg-opacity-75">
+        Stage Two-Generic TypeaheadDragSelect component:
+    </span>
+    Create a TypeaheadDragSelect component that employs a Typeahead component to
+    provide the following functionality:
+</p>
+<ol>
+    <li>
+        Displays the items selected by the user from the suggestions provided by the
+        Typeahead based on the text that the user types into an HTML input element.
+    </li>
+    <li>
+        Provides an <span class="text-danger">"X"</span> option next to each selected item
+        to remove it from the SelectedItems collection.
+    </li>
+    <li>
+        Allows the user to determine the order in which the selected items (selected
+        suggestions) are ordered by dragging them.
+    </li>
+    <li>
+        Optimizes Blazor's diffing algorithm for the draggable list (SelectedItems
+        collection) by defining a specific key to compare elements.
+    </li>
+    <li>
+        Don't forget to include a robust comparing mechanism for the type (class)
+        of the collection of selected items (type Person in our example).
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a generic TypeaheadDragSelect
+    component that includes a Typeahead component. We first need the Typeahead
+    because it is the component responsible for providing suggestions. Later, we can
+    work on the code logic to <em>select</em> from the suggestions provided by the
+    Typeahead and make the items of the SelectedItems draggable.
+</p>
+<p>
+    If you think about it, the code we have defined in the Index component is very
+    similar to what we need because it consumes a Typeahead component except that
+    the Index component uses a hard coded type <em>string</em> for the items in the
+    collection (names). The generic TypeaheadDragSelect should replace the hard coded
+    type of the selected items collection (string) with a type parameter (e.g.,
+    TSelectedItem) to postpone the definition of the type for the SelectedItems
+    collection. Its consumer (MovieForm) will be responsible for defining the type;
+    e.g., type Person:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/168-typeahead-drag-selector-fe-attribute-type-param.png" alt="TypeaheadDragSelector front-end code with attribute type parameter." />
+</div>
+<p>
+    As explained earlier in Step Five of the Typeahead component lesson, and in lesson
+    on <a href="02-components-part-one">generic components</a>, <span class="mark">
+        <strong>
+            any generic type parameter can (and should) be specified using an attribute that
+            matches the name of the type parameter.
+        </strong>
+    </span>.
+</p>
+<p>
+    As you can see in the image above, TItem from Typeahead is type TSelectedItem.
+    We are simply passing the responsibility to define the type for the type parameter
+    to the final consumer (higher level component). The generic type parameters could
+    be named the same (TItem) but it is easier to debug with different identifiers.
+</p>
+<p>
+    An alternate way to define the type for generic type parameters is with a lambda
+    expression that explicitly defines the type for the generic type parameter:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/167-typeahead-drag-selector-fe-lambda.png" alt="TypeaheadDragSelector front-end code with lambda expression." />
+    <img src="Images/07-forms/169-typeahead-drag-selector-be.png" alt="TypeaheadDragSelector back-end code." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create an instance of the
+    TypeaheadDragSelect component in the MovieForm component. The TypeaheadDragSelect
+    component represents the "Actors" field of the MovieForm:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/170-movie-form-typeahead-drag-select-fe.png" alt="Instance of TypeaheadDragSelect in MovieForm." />
+    <img src="Images/07-forms/171-movie-form-typeahead-drag-select-be.png" alt="Instance of TypeaheadDragSelect in MovieForm." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Update the CreateMovie routable
+    component because it consumes the MovieForm component that was just modified; i.e.,
+    it expects a collection of type Person that contains any previously selected
+    Person items (actors) for the current Movie element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/172-movie-create-selected-actors.png" alt="MovieCreate defines empty SelectedActors collection." />
+</div>
+<p>
+    Go to the MovieCreate routable component and test the TypeaheadDragSelect component
+    by typing the first three letters of one of the actor names hard coded in the
+    _actorSuggestions collection that resides in the MovieForm component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/173-create-movie-typeahead-drag-select.png" alt="TypeaheadDragSelect component in action." />
+</div>
+<p>
+    It looks like we are on the right track. The TypeaheadDragSelect component is
+    rendering any actor item suggestions that match the actor name based on text
+    typed by the user in the HTML input element of the Typeahead component it
+    consumes. Since numeral 1 of Stage Two-Generic TypeaheadDragSelect component
+    is done (displays the items selected by the user from the suggestions provided
+    by the Typeahead based on the text that the user types into an HTML input
+    element), let's render any selected items to implement numerals 2 to 4 on the
+    collection of selected items.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Render the collection of
+    SelectedItems that the user selects from the collection of suggestions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/174-selected-items-loop.png" alt="Rendering loop for SelectedItems collection." />
+</div>
+<p>
+    The MovieForm component consumes the TypeaheadDragSelect component which now
+    has a new parameter. Go to the MovieForm and satisfy the parameter
+    SelectedItemTemplate&lt;TSelectedItem&gt; to determine what and how to render
+    each item in the SelectedItems collection. Recall that we are not styling
+    anything yet:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/175-movie-form-selected-item-template.png" alt="MovieForm with SelectedItemTemplate defined." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The SearchMethodFunc parameter
+    is satisfied with a lambada expression that explicitly defines the type of
+    the type parameter unlike the approach shown earlier. Both approaches are
+    valid because we defined the type for the TSelectedItem type parameter.
+    Otherwise, only the lambda expression would be valid to assign a method to
+    the SearchMethodFunc parameter.
+</p>
+<p>
+    Go to the MovieCreate routable component, type in some text to receive
+    suggestions and raise the click event to select a Person item (actor):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/176-selected-items.png" alt="TypeaheadDragSelect component rendering selected items." />
+</div>
+<p>
+    Once more, it looks like we are on the right track. Let's review the required
+    functionality for the TypeaheadDragSelect component and compare it with what
+    we have accomplished so far:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Displays the items selected by the user from the suggestions provided by the
+        Typeahead based on the text that the user types into an HTML input element.
+    </li>
+    <li>
+        <span class="oi oi-x btn-outline-danger" aria-hidden="true"></span>
+        Provides an <span class="text-danger">"X"</span> option next to each selected
+        item to remove it from the SelectedItems collection.
+    </li>
+    <li>
+        <span class="oi oi-x btn-outline-danger" aria-hidden="true"></span>
+        Allows the user to determine the order in which the selected items (selected
+        suggestions) are ordered by dragging them.
+    </li>
+    <li>
+        <span class="oi oi-x btn-outline-danger" aria-hidden="true"></span>
+        Optimizes Blazor's diffing algorithm for the draggable list (SelectedItems
+        collection) by defining a specific key to compare elements.
+    </li>
+    <li>
+        <span class="oi oi-x btn-outline-danger" aria-hidden="true"></span>
+        Don't forget to include a robust comparing mechanism for the type (class)
+        of the selected items collection (type Person in our example).
+    </li>bak
+</ol>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Provide an "x" option next to
+    each selected item to remove it from the SelectedItems collection:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/177-remove-selected-item-code-logic.png" alt="Remove SelectedItem code logic." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/178-remove-selected-item-control.png" alt="Remove SelectedItem control rendered." />
+</div>
+<p>
+    If you click on the "X" control, the current item should be removed from the
+    SelectedItems collection. It's time for numeral 3 of the required functionality
+    to allow the user to determine the order in which the selected items are
+    ordered by dragging them.
+</p>
+<h4>HTML 5 Drag and Drop API</h4>
+<p>
+    HTML drag and drop interfaces enable applications to use drag-and-drop features in
+    browsers. The user may select <em>draggable</em> elements with a mouse, drag those
+    elements to a <em>droppable</em> element, and drop them by releasing the mouse
+    button. A translucent representation of the <em>draggable</em> elements follows
+    the pointer during the drag operation.
+</p>
+<p>
+    For web pages, extensions, and XUL applications, you can customize which elements
+    can become <em>draggable</em>, the type of feedback the draggable elements produce,
+    and the <em>droppable</em> elements. During drag operations, serveral HTML event
+    types are raised, and some events might be raised many times, such as the <em>drag</em>
+    and <em>dragover</em> events.
+</p>
+<p>
+    As you know, Blazor framework has built-in UI events that are representations of
+    HTML event types. The Drag and Drop API is no exception, Blazor has baked-in the
+    following event handler delegates:
+</p>
+<ul>
+    <li>
+        <strong><code>@@ondragstart</code></strong>: When the user starts dragging an
+        element or text selection.
+    </li>
+    <li>
+        <strong><code>@@ondrag</code></strong>: When an element or text selection is
+        being dragged.
+    </li>
+    <li>
+        <strong><code>@@ondragenter</code></strong>: When a dragged element or text
+        selection enters a valid drop target.
+    </li>
+    <li>
+        <strong><code>@@ondragover</code></strong>: When a dragged item is being
+        dragged and the mouse pointer is over a valid drop target. During this time,
+        the dragover event is raised every few milliseconds (5-50).
+    </li>
+    <li>
+        <strong><code>@@ondragleave</code></strong>: When a dragged element or text
+        selection leaves a valid drop target.
+    </li>
+    <li>
+        <strong><code>@@ondrop</code></strong>: When an element or text selection
+        is dropped on a valid drop target.
+    </li>
+    <li>
+        <strong><code>@@ondragend</code></strong>: When a drag operation is being
+        ended (by releasing a mouse button or hitting the escape key).
+    </li>
+</ul>
+<p>
+    You can make an HTML element draggable with the <strong><code>draggable</code></strong>
+    <em>global attribute</em>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Implement drag and drop capability
+    for the SelectedItems collection. Keep in mind that in order to implement a robust
+    drag and drop capability, we need to:
+</p>
+<ul>
+    <li>
+        Define a proper <dfn>value equality</dfn> (equivalence) frame by implementing
+        the <code>IEquatable&lt;T&gt;</code> interface which overrides the default
+        <em>Object.Equals(Object)</em> method. This is necessary because on classes
+        (reference types), the default implementation of the Equals method performs
+        a <dfn>reference equality</dfn> comparison and we want to compare objects
+        (in our example Person objects) using their Primary Key.
+    </li>
+    <li>
+        Define a <dfn>draggable</dfn> attribute for each SelectedItem object of the
+        SelectedItems list rendered inside the TypeaheadDragSelect component.
+    </li>
+    <li>
+        Use the <code>@@ondragstart</code> event delegate and create its handler
+        responsible of capturing the selected item index when the drag event starts.
+    </li>
+    <li>
+        Use the <code>@@onmouseover</code> event delegate and create its handler
+        responsible of capturing the index of the valid drop target (another selected
+        item) when the mouse pointer is over the target and of exchanging index
+        (position) values when the mouse button is released.
+    </li>
+    <li>
+        Instruct Blazor to use a specific <em>key</em> to compare elements instead of
+        using the default elements' index. This is necessary because the collection
+        of SelectedItems is modified between render cycles when dragging-dropping its
+        items in a different position.
+    </li>
+</ul>
+<p>
+    Implementing the <code>IEquatable&lt;T&gt;</code> interface on the type Person used
+    to represent movie actors:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/179-person-model-iequatable-interface.png" alt="Person model implements IEquatable interface." />
+</div>
+<p>
+    Label each SelectedItem object as <dfn>draggable</dfn>, employ <em>@@ondragstart</em>
+    to capture the item's index. Then use the <em>@@onmouseover</em> to capture the index
+    of the item below the mouse pointer on the target position and exchange their index
+    (position) values:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/180-implementing-draggable-items.png" alt="Implementing draggable items on the SelectedItems collection." />
+</div>
+<p>
+    If you go to the MovieCreate component, select each one of the only 3 actors,
+    and drag any of them, you should see something like this while the <dfn>drag</dfn>
+    event is in effect:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/181-drag-event-UI.png" alt="Drag event visualization." />
+</div>
+<p>
+    <strong>Instruct Blazor to use a specific <em>key</em></strong> to compare elements
+    instead of using the default elements' index (position). For example, an object instance
+    of the class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/182-key-directive-attribute.png" alt="@@key directive attribute." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> We have previously implemented the
+    <code>IEquatable&lt;Person&gt;</code> interface on the Person model where we
+    explicitly use a Person's primary key to compare different instances. This ensures
+    a robust and efficient <dfn>value equality</dfn> comparison. <span class="mark">
+        <strong>
+            The use of the <code>@@key</code> directive attribute guarantees the preservation
+            of elements or components in a collection based on the key's value.
+        </strong>
+    </span>
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Go to the MovieEdit routable
+    component and pass any missing arguments to the instance of a MovieForm component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/183-movie-edit-selected-actors.png" alt="Previously selected actors for current movie." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/184-movie-edit-typeahead-ui.png" alt="MovieEdit TypeaheadDragSelect component UI." />
+</div>
+<p>
+    Let's review what we have completed at this point.
+</p>
+<p>
+    <span class="badge bg-primary bg-opacity-75">Stage One-generic Typeahead component:</span>
+    Build a generic Typeahed component that provides the following functionality:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Provides suggestions of available (matching) items from a collection in the
+        parent (final consumer) component as text is typed into the control.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Invokes the search functionality from a search method that resides in the
+        final consumer of the Typeahead.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Notifies its final consumer when the user selects an item, by clicking on it,
+        to execute whatever action defined in the final consumer component (e.g.,
+        add it to a selected items collection). Ensure that suggestions are still
+        hidden when the user clicks outside the HTML input element (numeral 1 of the
+        component's <em>characteristics</em>)
+    </li>
+</ol>
+<p>
+    The Typeahead component should have 3 <em>states</em>:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        IsSearching: If retrieving data takes longer than a few milliseconds, it
+        should display a "Loading..." message to the user.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        ShouldShowSuggestions: If one or more matches were found between the text
+        typed by the user and the content of a collection of source items.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        ShouldShowNotFound: If no matches were found between the text typed by the
+        user and the content of a collection of source items.
+    </li>
+</ol>
+<p>
+    The Typeahead component should have the following <em>characteristics</em>:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Hides suggestions when the user "clicks" outside the input element.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Improves browser efficiency by
+        <a href="https://www.tutorialspoint.com/what-is-debouncing-in-javascript">
+            debouncing
+        </a>(ensuring a function is not called to frequently) the search function with:
+        <ul style="margin-top: .8rem;">
+            <li>
+                A holding time period of around 2 seconds after the user stopped typing
+                into the HTML input element and before initiating a search.
+            </li>
+            <li>
+                A minimum length on the search text of at least 2 characters before initiating a search.
+            </li>
+        </ul>
+    </li>
+</ol>
+<p>
+    <span class="badge bg-primary bg-opacity-75">
+        Stage Two-generic TypeaheadDragSelect component:
+    </span>
+    Create a generic TypeaheadDragSelect component that consumes the Typeahead
+    component to provide the following functionality:
+</p>
+<ol>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Displays the items selected by the user from the suggestions provided by the
+        Typeahead based on the text that the user types into an HTML input element.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Provides an "x" option next to each selected item that when clicked, removes
+        the item from the SelectedItems collection.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Allows the user to determine the order in which the selected items (selected
+        suggestions) are ordered by dragging them.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Optimizes Blazor's diffing algorithm for the draggable list (selected items
+        collection) by defining a specific key to compare elements.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        Include a robust comparing mechanism for the type (class) of the selected items
+        collection.
+    </li>
+</ol>
+<p>
+    We can continue with:
+</p>
+<p>
+    <span class="badge bg-primary bg-opacity-75">Stage Three-Provide styling:</span>
+    Provide styling for ease of use of the generic Typeahead component and the generic
+    TypeaheadDragSelect component such as:
+</p>
+<ol>
+    <li>
+        The Typeahead component renders a mini <em>loading spinner</em> during a search
+        operation.
+    </li>
+    <li>
+        <span class="oi oi-check btn-outline-success" aria-hidden="true"></span>
+        The Typeahead component renders a mini picture on the left of each suggestion
+        item.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span> Define the appropriate styling for
+    the Typeahead component.
+</p>
+<p>
+    The "_isSearching" conditional resides inside the Typeahead component because this
+    is the component responsible for invoking the search method to produce any item
+    suggestions. Let's take care of the loading spinner and the styling for the
+    suggestions rendered. Keep in mind that you have to simulate a database latency
+    inside the MovieForm parent component because it contains the actual functionality for
+    the search operation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/185-typeahead-styling.png" alt="Styling the Typeahead component." />
+</div>
+<p>
+    We added a <em>row-column</em> structure to the Typeahead component and moved
+    the "_isSearching" conditional inside the &lt;div&gt; element <em>row</em>
+    that encompasses the HTML input element. Bootstrap's <em>input-group</em>
+    allowed us to hold together (in the same row) the HTML input element with
+    the spinner.
+</p>
+<p>
+    Then we used a <em>list-group</em> class to provide styling for the suggestions
+    and/or the ShowNotFoundTemplate. The UI for the 3 states of the Typeahead component
+    looks something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/186-typeahead-styled-ui.png" alt="Typeahead component with styled UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define the appropriate styling for
+    the TypeaheadDragSelect component. You can also use a <em>row-column</em> structure.
+    Place the Typeahead component in a left column and the items of the SelectedItems
+    collection in the right column. You can use Bootstrap's <em>toast</em> component
+    for the selected items:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/187-typeahead-drag-select-styling.png" alt="Styling TypeaheadDragSelect component." />
+</div>
+<p>
+    The styling for the Typeahead component consumed by the TypeaheadDragSelect component
+    was already completed so we didn't have to do anything in that respect. The styling
+    for the SelectedItems collection employs Bootstrap's <em>toast</em> component and
+    explicitly defines a <em>display: inline-block</em> to override Bootstrap's hidden
+    property value. The UI for the SelectedItemsCollection looks something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/188-typeahead-drag-select-UI.png" alt="TypeaheadDragSelect component with styled UI." />
+</div>
+<p>
+    The SelectedItems collections looks OK but we can still improve it. Why not render
+    the actor's picture to the left of the name just like the suggestions collection?
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/190-typeahead-drag-select-styling-picture.png" alt="Styling TypeaheadDragSelect component with picture." />
+</div>
+<p>
+    The SelectedItems collection now includes actors' picture:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/189-typeahead-drag-select-UI-picture.png" alt="TypeaheadDragSelect component with actor's picture.' " />
+</div>
+<p>
+    We have worked our way up from styling the Typeahead component to the
+    TypeaheadDragSelect component and finally to the MovieForm component. We are
+    still missing the field's name:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/191-typeahead-drag-selector-field-name.png"
+         alt="Field name markup for the TypeaheadDragSelect component." />
+</div>
+<p>
+    The last step is to provide our "Actors" field similar markup as the other fields
+    in the MovieForm component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/192-actors-field-markup.png" alt="Actors field markup in the MovieForm component." />
+</div>
+<p>
+    We have completed the "Actors" field for the MovieForm component by creating
+    a TypeaheadDragSelect component that in turn consumes a Typeahead component.
+    The UI of the MovieEdit routable component looks like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/07-forms/193-edit-movie-routable-component.png" alt="Full UI of EditMovie routable component." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/event-handling?view=aspnetcore-6.0#event-arguments">
+        Event arguments
+    </a>,
+    <a href="https://chrissainty.com/investigating-drag-and-drop-with-blazor/">
+        Investigating Drag and Drop with Blazor
+    </a>, and
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API">
+        HTML Drag and Drop API
+    </a>
+</p>
+<p>
+    Success!! We have completed the module on receiving input data from the
+    user (or client) and passing that data along to do something with it.
+    However, up to this point we have been working with in-memory collections.
+    In next module, you will learn how to build a Server-Api and how to use it
+    to execute operations in the application's database with Entity Framework
+    (EF).
+</p>

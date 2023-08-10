@@ -1,0 +1,485 @@
+﻿@page "/01-api-documentation"
+<PageTitle>API Documentation</PageTitle>
+
+<h2>Robustifying the API - Documentation</h2>
+<p>
+    API documentation is essentially an instruction manual that explains how to
+    use an API and its services. This manual might contain tutorials, code examples,
+    screenshots, and anything else that helps users better understand how to work
+    with the API.
+</p>
+<h4>OpenAPI</h4>
+<p>
+    The <a href="https://www.openapis.org/">
+        OpenAPI Specification
+    </a> (OAS) defines a standard, programming language-agnostic interface description
+    for HTTP APIs, which allows both humans and computers to discover and understand
+    the capabilities of a service without requiring access to source code, additional
+    documentation, or inspection of network traffic.
+</p>
+<p>
+    When an API is properly defined via the OpenAPI Specification, a consumer can understand
+    and interact with the remote service with a minimal amount of implementation logic. An
+    <strong>
+        OpenAPI definition
+    </strong> can then be used by documentation generation tools to <strong>
+        represent the API with a UI,
+    </strong> code
+    generation tools to generate servers and clients in various programming languages,
+    testing tools, and many other use cases.
+</p>
+<p>
+    An <strong><dfn>OpenAPI Document</dfn></strong> is a self-contained or composite resource
+    which <strong>defines</strong> or describes an API or elements of an API. The OpenAPI
+    document <strong>must</strong> contain at least one:
+</p>
+<ul>
+    <li>
+        <strong>path</strong>: Holds the relative paths to the individual endpoints and
+        their operations. The path is appended to the URL from the <dfn>Server Object</dfn>
+        in order to construct the full URL.
+    </li>
+    <li>
+        <strong>components</strong> field: Holds a set of reusable objects for different
+        aspects of the OpenAPI Specification (OAS). E.g., schemas, responses, input/output
+        parameters, examples, requestBodies, headers, securitySchemes, links, callbacks,
+        pathItems.
+    </li>
+    <li style="list-style: none">
+        or a
+    </li>
+    <li>
+        <p>
+            <strong>webhooks</strong> field: Describes the incoming webhooks that may be
+            received as part of the API and that the API consumer may choose to implement.
+            Closely related to the <dfn>callbacks</dfn> feature.
+        </p>
+        <p>
+            A <a href="https://www.mparticle.com/blog/apis-vs-webhooks/">webhook</a> is a
+            type of API that is driven by events rather than requests. Instead of one
+            application making a request to another to receive a response, a <dfn>webhook</dfn>
+            is a service that allows one program to send data to another as soon as a particular
+            event takes place.
+        </p>
+    </li>
+</ul>
+<p>
+    In other words, the <dfn>OpenAPI document</dfn> is an API description format for
+    REST APIs based on the XML and attribute annotations within the controllers and
+    models. An OpenAPI file is used to drive tooling such as SwaggerUI because it allows
+    to describe the entire API, including:
+</p>
+<ul>
+    <li>
+        Available endpoints (e.g., <code>/users</code>) and operations on each endpoint
+        (e.g., <code>GET /users</code>).
+    </li>
+    <li>
+        Input and output parameter for each action.
+    </li>
+    <li>
+        Contact information, license terms, terms of use, and related information.
+    </li>
+</ul>
+<p>
+    API specifications can be written in <a href="https://www.redhat.com/en/topics/automation/what-is-yaml">
+        YAML
+    </a> or JSON. The format is easy to learn and readable to both humans and machines. By
+    default, it is named <span class="fs-5">
+        <strong>
+            <code>
+                openapi.json
+            </code>
+        </strong>
+    </span>. Here is a reduced example of an OpenAPI specification:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/32-api-documentation/01-open-api-specification-document-one.png"
+         alt="OpenAPI specification document part one." />
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/32-api-documentation/02-open-api-specification-document-two.png"
+         alt="OpenAPI specification document part two." />
+    <figcaption class="figure-caption text-center">
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/web-api-help-pages-using-swagger?view=aspnetcore-7.0#openapi-specification-openapijson">
+            OpenAPI specification document.
+        </a>
+    </figcaption>
+</figure>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+
+<h4>Swagger</h4>
+<p>
+    Swagger is a set of open-source tools built around the OpenAPI Specification (OAS)
+    that can help in design, build, document, and consume REST APIs operations. It consists
+    of a mix of open source, free, and commercially available tools that allow documenting
+    APIs.
+</p>
+<p>
+    The Swagger project was donated to the OpenAPI Initiative in 2015 and has since
+    been referred to as OpenAPI. Both names are used interchangeably. However, OpenAPI
+    refers to the specification and Swagger refers to the family of open-source and
+    commercial products from SmartBear that work with OpenAPI Specification.
+</p>
+<p>
+    Swagger is a language-agnostic specification whose main goals are to:
+</p>
+<ul>
+    <li>
+        Minimize the amount of work needed to connect decoupled services (or applications).
+    </li>
+    <li>
+        Reduce the amount of time needed to accurately document a service.
+    </li>
+</ul>
+<p>
+    The two main OpenApi implementations for .Net are:
+</p>
+<ul>
+    <li>
+        <p>
+            <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-7.0&tabs=visual-studio">
+                Swashbuckle
+            </a> which has 3 main components:
+            <ul>
+                <li>
+                    <code>Swashbuckle.AspNetCore.Swagger</code>: A Swagger object model
+                    and middleware to expose <dfn>SwaggerDocument</dfn> objects as
+                    JSON endpoints.
+                </li>
+                <li>
+                    <code>Swashbuckle.AspNetCore.SwaggerGen</code>: A Swagger generator
+                    that builds <dfn>SwaggerDocument</dfn> objects directly from the
+                    app routes, controllers, and models. It is typically combined
+                    with the Swagger endpoint middleware to automatically expose
+                    Swagger JSON file.
+                </li>
+                <li>
+                    <code>Swashbuckle.AspNetCore.SwaggerUI</code>: An embedded version of
+                    the Swagger UI tool. It interprets Swagger JSON document (or file)
+                    to build a rich, customizable experience for describing the web
+                    API functionality. It includes built-in test harnesses for the
+                    public methods.
+                </li>
+                <li>
+                    <div class="image-lesson mb-3" style="overflow: scroll hidden">
+                        <img src="Images/32-api-documentation/03-nuget-swashbuckle.png"
+                             style="max-width: 105%"
+                             alt="Swashbuckle.ASPNetCore NuGet package." />
+                    </div>
+                </li>
+            </ul>
+        </p>
+    </li>
+    <li>
+        <p>
+            <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio">
+                NSwag
+            </a> which delivers the features mentioned above plus the
+            capability to <a href="https://github.com/dotnet/AspNetCore.Docs/issues/4258">
+                generate API client code
+            </a> for CSharp and TypeScript.
+        </p>
+        <p>
+            NSwag <a href="https://github.com/RicoSuter/NSwag#nswag-the-swaggeropenapi-toolchain-for-net-aspnet-core-and-typescript">
+                combines the functionality
+            </a> of Swashbuckle (OpenAPI/Swagger generation)
+            and AutoRest (client generation) in one toolchain. This way, many incompabilities
+            can be avoided and features which are not well described by the OpenAPI
+            specification or JSON schema are better supported. For example, inheritance, enum
+            and reference handling.
+        </p>
+        <div class="image-lesson mb-3" style="overflow: scroll hidden">
+            <img src="Images/32-api-documentation/04-nuget-nswag.png"
+                 style="max-width: 105%"
+                 alt="NSwag.AspNetCore NuGet package." />
+        </div>
+        <p>
+            You can refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio#code-generation">
+                Code generation
+            </a> for more info.
+        </p>
+    </li>
+</ul>
+<p>
+    In this lesson, we will demonstrate how to implement NSwag with OAuth 2.0 authorization
+    included.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure NSwag with OpenApi v3.0. Make sure that:
+</p>
+<ul>
+    <li>
+        The OpenAPI JSON document is generated and available at the relative path:
+        <code>/swagger/v1/swagger.json</code>.
+    </li>
+    <li>
+        The NSwag UI is generated and available at the relative path:
+        <code>/swagger</code>.
+    </li>
+    <li>
+        The NSwag configuration supports manual JWT authorization token authentication
+        to enable testing of secured Application/Server-Api endpoints.
+    </li>
+    <li>
+        The NSwag UI displays the XML comments from the source code (endpoints).
+    </li>
+    <li>
+        NSwag works both with a local host (in a local machine) and in the cloud
+        (Azure App Service web app).
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Follow the documentation to
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio#tabpanel_1_visual-studio">
+        install the NSwag NuGet package
+    </a> on the Application/Server-Api project which is the host for the app's API and for the
+    Duende IdentityServer engine.
+</p>
+<p>
+    This package contains the middleware to generate and serve the Swagger specification,
+    Swagger UI (v2 and/or v3), and ReDoc UI.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the dependency injection container of the Application/Server-Api project (e.g.,
+    to its Program class) to
+    <a href="https://github.com/RicoSuter/NSwag/wiki/AspNetCore-Middleware">
+        add and configure NSwag middleware
+    </a>. Follow NSwag documentation to enable <a href="https://github.com/RicoSuter/NSwag/wiki/AspNetCore-Middleware#enable-manual-jwt-token-authentication">
+        manual JWT authorization token authentication
+    </a> and <a href="https://www.thecodebuzz.com/nswag-jwt-token-authorization-openapi-documentation-asp-net-core/#aioseo-nswag-jwt-authorize-button-on-swagger-ui">
+        NSwag JWT Token Authorization OpenAPI Documentation in ASP.Net Core
+    </a>:
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Add the services required for OpenApi v3.0 generation and enable manual JWT authorization
+    token authentication:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/05-nswag-service-one.png"
+         alt="NSwag service injection part one." />
+    <img src="Images/32-api-documentation/06-nswag-service-two.png"
+         alt="NSwag service injection part two." />
+</div>
+<p>
+    You can refer to <a href="https://github.com/RicoSuter/NSwag/wiki/AspNetCore-Middleware#post-process-the-served-openapiswagger-specification-document">
+        Post process the served OpenAPI/Swagger specification document
+    </a> and to <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio#api-info-and-description">
+        API info and description
+    </a> for more info on the <code>options.PostProcess</code> property used above to execute
+    an additional process (post process) on the generated document to customize the API
+    documenation.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Add and configure NSwag in the middleware pipeline:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/07-nswag-middleware.png"
+         alt="NSwag middleware configuration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Ensure that the SwaggerUI and the OpenAPI document with the specification are available.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Launch the application and navigate to the relative path that we configured earlier
+    for the NSwag UI <code>/swagger</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/08-nswag-ui.png"
+         alt="NSwag UI." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Navigate to the relative path that we configured earlier for the OpenAPI document
+    <code>/swagger/v1/swagger.json</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/09-open-api-document.png"
+         alt="OpenAPI JSON document." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Generate an authorization token (access JWT) to authorize the NSwag UI for operations
+    that require secured Application/Server-Api resources.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Launch the application, login with the admin user created in the <a href="04-secure-user-manager">
+        Secure User Manager
+    </a> lesson, and go to the "Application" tab of the web browser's dev tools to retrieve
+    the value for the "access token" produced in the current session:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/10-application-tab-token.png"
+         alt="Application tab with access token." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Navigate to the NSwag UI, select the "Authorize" button element, paste the access
+    token, and click the "Authorize" button element to enable the NSwag UI to request access
+    to secured API resources:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/11-nswag-ui-authorize.png"
+         alt="NSwat UI properly authorized." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Still in the <code>/swagger</code> relative path, test the <code>"api/Users"</code>
+    endpoint to ensure that the authorization operation grants access from the NSwag UI:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/12-api-users-test.png"
+         alt="Api/Users endpoint tested and authorized successfully." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Enable <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio#xml-comments">
+        XML comments
+    </a> to display the endpoints' comments in the NSwag UI.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Use the Visual Studio Solution Explorer to open the Application/Server-Api
+    <a href="03-routing">project file</a> (.csproj) and add the <strong>
+        <code>
+            &lt;GenerateDocumentationFile&gt;
+        </code>
+    </strong> property:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/13-xml-comments.png"
+         alt="Project file with GenerateDocumentationFile property." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Launch the application, navigate to the NSwag UI and confirm that the XML comments
+    are being displayed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/32-api-documentation/14-xml-comments.png"
+         alt="NSwag UI with XML comments displayed." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    <a href="07-dynamic-website">Publish and deploy</a> the web app into Azure App Service
+    and repeat the process to ensure that:
+</p>
+<ul>
+    <li>The NSwag UI is available at the relative path <code>/swagger</code>.</li>
+    <li>
+        The OpenAPI document is available at the relative path
+        <code>/swagger/v1/swagger.json</code>
+    </li>
+    <li>
+        NSwag UI can be properly authorized to access secured Application/Server-Api
+        resources (api endpoints).
+    </li>
+    <li>
+        NSwag UI displays the XML comments of the source code in the Application/Server-Api
+        endpoints.
+    </li>
+</ul>
+<p>
+    Success!! We have documented the Application/Server-Api with the NSwag tooling to
+    produce an OpenAPI document v3.0 and an NSwag UI to test secured/unsecured endpoints.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://blog.hubspot.com/website/api-documentation">
+            What is API Documentation? [+ How to Write and Read It]
+        </a>
+    </li>
+    <li>
+        <a href="https://swagger.io/docs/specification/about/">
+            What is OpenAPI?
+        </a>
+    </li>
+    <li>
+        <a href="https://spec.openapis.org/oas/v3.1.0">
+            OpenAPI Specification v3.1.0
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/web-api-help-pages-using-swagger?view=aspnetcore-7.0">
+            ASP.Net Core web API documentation with Swagger / OpenAPI
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-7.0&tabs=visual-studio">
+            Get started with Swashbuckle and ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Swashbuckle.AspNetCore
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-7.0&tabs=visual-studio">
+            Get started with NSwag and ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/RicoSuter/NSwag">
+            NSwag
+        </a>
+    </li>
+    <li>
+        <a href="https://www.thecodebuzz.com/nswag-jwt-token-authorization-openapi-documentation-asp-net-core/#aioseo-nswag-jwt-authorize-button-on-swagger-ui">
+            NSwag JWT Token Authorization OpenAPI Documentation in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/RicoSuter/NSwag/wiki/AspNetCore-Middleware#enable-api-key-authentication">
+            AspNetCore Middleware
+        </a> to implement security by RicoSuter / NSwag
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/jH8hNdVNCN0">
+            What is Swagger
+        </a> of the course Azure Tutorial for beginners by Kudvenkat.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/TlytBx3-k-k">
+            How to use swagger in asp.net core web api
+        </a> of the course "Azure Tutorial for beginners" by Kudvenkat.
+    </li>
+    <li>
+        Written version of
+        <a href="https://www.pragimtech.com/blog/azure/how-to-use-swagger-in-asp.net-core-web-api/">
+            Hot to use swagger in asp.net core web api
+        </a> of the course "Azure Tutorial for beginners" by Kudvenkat.
+    </li>
+    <li>
+        Episode 61.
+        <a href="https://www.udemy.com/share/104giU3@chfAFkcyn_gCZ-2dmP-Vo8Y3cHV8H5rVFg0pvvHyAZ1XNYwT26NyuctIeShaPRMv/">
+            Add OpenAPI with Default Behavior
+        </a> and 62. Add OpenAPI to <strong>Support Multiple Versions</strong> of Udemy course
+        "Complete Guide to ASP.Net Core RESTful API with Blazor WASM by Frank Liu.
+    </li>
+</ul>

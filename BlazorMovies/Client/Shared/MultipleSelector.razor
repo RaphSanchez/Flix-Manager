@@ -1,0 +1,66 @@
+﻿
+<!-- Field Name -->
+<div class="row">
+    <div class="col-6">
+        <label class="col-form-label-sm">@FieldName</label>
+    </div>
+</div>
+
+<div class="container form-control">
+
+    <div class="row">
+
+        <!-- Available options. -->
+        <div class="col">
+            <ul class="list-group">
+                @foreach (MultipleSelectorDto item in
+               MappedUnSelected)
+                {
+                    <li class="list-group-item list-group-item-action
+                            d-flex justify-content-center mb-0"
+                        role="button" @onclick="@(() => SelectItem(item))">
+                        @item.Value
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <!-- Select All - Unselect All buttons-->
+        <div class="col-auto d-flex flex-column justify-content-center">
+
+            <button type="button" @onclick="@SelectAll"
+                    class="btn btn-outline-success btn-sm mb-2">
+                <span class="oi oi-media-skip-forward" aria-hidden="true"></span>
+            </button>
+
+            <button type="button" @onclick="@UnselectAll"
+                    class="btn btn-outline-secondary btn-sm">
+                <span class="oi oi-media-skip-backward" aria-hidden="true"></span>
+            </button>
+
+        </div>
+
+        <!-- Selected options. -->
+        <div class="col">
+            <ul class="list-group">
+                @if (MappedSelected.Count == 0)
+                {
+                    <li class="list-group-item text-muted
+                        d-flex justify-content-center">
+                        Click on an option.
+                    </li>
+                }
+                @foreach (MultipleSelectorDto item in
+               MappedSelected)
+                {
+                    <li class="list-group-item list-group-item-action list-group-item-success
+                        d-flex justify-content-center mb-0"
+                        role="button" @onclick="@(() => UnSelectItem(item))">
+                        @item.Value
+                    </li>
+                }
+            </ul>
+        </div>
+
+    </div>
+</div><!-- /container -->

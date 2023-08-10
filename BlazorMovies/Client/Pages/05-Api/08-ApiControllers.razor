@@ -1,0 +1,851 @@
+﻿@page "/08-api-controllers"
+<PageTitle>API Controllers</PageTitle>
+
+<h2>Web Server-API - Scaffolding the Web-Api Controllers</h2>
+<p>
+    In the context of a REST API, a <dfn><strong>resource</strong></dfn>
+    is an abstraction of information. Any information that can be named
+    is a resource. For example, a REST resource can be a document, an
+    image, a temporal service, a collection of other resources, or a
+    non-virtual object such as a Person or a Genre data entity.
+    <strong>
+        Data and functionality are considered resources and are accessed
+        using <a href="05-api">Uniform Resource Indentifiers (URIs)</a>.
+    </strong>
+</p>
+<p>
+    The clients and servers exchange representations of resources by
+    using a standarized interface (<a href="05-api">API</a>) and
+    protocol (<a href="05-api">HTTP</a>). The resources have to be
+    decoupled (serialized/deserialized) from their representation so
+    that clients can access the content in various formats such as HTML,
+    XML, plain text, PDF, JPEG, <a href="05-api">JSON</a>, and others.
+</p>
+<p>
+    The state of a resource at any particular time (or stage of the
+    exchange) is known as the <strong>resource representation.</strong>
+    A resource representation consists of:
+</p>
+<ol>
+    <li>
+        The <strong><dfn>data.</dfn></strong>
+    </li>
+    <li>
+        The <strong><dfn>metadata</dfn></strong> describing the data to
+        control caching, detect transmission errors, negotiate appropriate
+        representation format, and perform authentication or access control.
+    </li>
+    <li>
+        The <strong><dfn>hypermedia links</dfn></strong> that can help the
+        clients transition to the next desired state (re-direct).
+    </li>
+</ol>
+<h4>Data Format</h4>
+<p>
+    The data format of a representation (representation format) is known as
+    <span class="mark"><strong>media type</strong></span>, formerly
+    <a href="04-forms-part-one">MIME</a> type, and sometimes called
+    <dfn>content type</dfn>. The media type identifies a specification that
+    defines how a representation is to be processed. As mentioned in the
+    <a href="05-api">Api Introduction</a>, <strong>
+        the application media type (representation format) we will use to
+        exchange data and functionality is JavaScript Object Notation (JSON).
+    </strong>
+</p>
+<p>
+    The representation format
+    (<span class="mark"><code>application/json</code></span>) is specified in
+    the implementation class of the IApiConnector interface which defines methods
+    used to perform the desired transition between two states of any resource but
+    more on that later.
+</p>
+<p>
+    As you can see, a REST API consists of an assembly of interlinked resources.
+    This set of resources is known as the REST API's <dfn>resource model.</dfn>
+</p>
+<p>
+    For more info visit <a href="https://restfulapi.net/">
+        What is REST
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.headers.mediatypewithqualityheadervalue?view=net-6.0">
+        MediaTypeWithQualityHeaderValue class
+    </a>,
+    <a href="https://stackoverflow.com/questions/30649347/setting-accept-header-without-using-mediatypewithqualityheadervalue">
+        Setting Accept Header without using MediaTypeWithQualityHeaderValue
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpresponsemessage?view=net-6.0">
+        HttpResponseMessage class
+    </a>
+</p>
+
+<h3>Web-API Controllers</h3>
+<p>
+    <strong>
+        The controllers model the application's functionality as a set of resources
+        where operations are represented by HTTP verbs.
+    </strong> MVC controllers are responsible for responding to requests made against
+    an ASP.Net MVC website (Blazor is based on MVC). Each browser request is mapped to
+    a particular controller (end point).
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/38-api-controllers-diagram.svg"
+         alt="Application Server-Api diagram." />
+</div>
+<p>
+    After receiving and interpreting a request message, a server responds with an
+    Http response as plain text in either JSON or XML format, just like Http
+    requests. An <strong>Http response is structured with</strong> the following
+    components:
+</p>
+<ol>
+    <li>
+        <strong>Status Line</strong> consists of:
+        <ul>
+            <li>Http Protocol Version (e.g., HTTP).</li>
+            <li>Status Code (e.g., 200).</li>
+            <li>Reason Phrase (e.g., OK or NotFound)</li>
+        </ul>
+    </li>
+    <li>
+        <strong>Http Response Headers</strong> with additional info about the
+        response. For example:
+        <ol>
+            <li>
+                <dfn>"Server"</dfn> describes the software of the origin
+                server.
+            </li>
+            <li>
+                <dfn>"Content-Type"</dfn> depicts the <a href="08-api-controllers">
+                    media type
+                </a> (data format) of the representation (of the content of the
+                response). For example "application/json; char=utf8".
+            </li>
+            <li>
+                <dfn>"Content-Length"</dfn> defines the length of the data, in
+                bytes; i.e., the number of bytes in the response body.
+            </li>
+            <li>
+                <dfn>"Response Body"</dfn> consists of the resource data requested
+                by the client.
+            </li>
+        </ol>
+    </li>
+    <li>
+        <strong>Message Body</strong> (optional).
+    </li>
+</ol>
+<p>Http response metadata:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/40-http-response.png"
+         alt="Http metadata using Network tab of browser's web developer tools." />
+</div>
+<h4>Controller Actions</h4>
+<p>
+    In a web Api controller, each method is considered an <strong>action</strong>
+    (action method) and each <dfn>action</dfn> is decorated with an
+    <strong>Http verb attribute</strong> which defines the action to perform.
+    The Http verb that decorates an action tells the Application/Server-Api what
+    to do with the resource and each action is directly related to a CRUD
+    operation (Application/Server-Api/<strong>Repositories</strong>-business logic):
+</p>
+<ul>
+    <li><code>[Post]</code> &asymp; Create</li>
+    <li><code>[Get]</code> &asymp; Read </li>
+    <li><code>[Put]</code> &asymp; Update (full)</li>
+    <li><code>[Patch]</code> &asymp; Update (partial)</li>
+    <li><code>[Delete]</code> &asymp; Delete</li>
+</ul>
+<p>
+    Since <strong>controller methods are <dfn>actions</dfn></strong>, it makes sense
+    that they <strong>return <dfn>action results.</dfn></strong> There are 5 major sets
+    of <dfn>Action Results:</dfn>
+</p>
+<ol>
+    <li>
+        <strong>Status Code Results:</strong> return Http status code(s) to the
+        client.
+    </li>
+    <li>
+        <strong>Status Code with Object Results:</strong> return Http status code(s)
+        <span class="mark">and</span> an object value.
+    </li>
+    <li>
+        <strong>Redirect Results:</strong> redirect the client to another <dfn>action</dfn>
+        or to another external resource.
+    </li>
+    <li>
+        <strong>File Results:</strong> return a file.
+    </li>
+    <li>
+        <strong>Content Results:</strong> return various kinds of content.
+    </li>
+</ol>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Do <strong>not</strong> include an "Async" suffix to the name of the action
+        methods because ASP.Net Core MVC trims the suffix "Async" from action names
+        by default. This change affects both routing and link generation. <strong>
+            Instead, you can use the "Task" word as a suffix
+        </strong> to indicate
+        that they are asynchronous operations.
+    </p>
+</div>
+<p>
+    <strong><code>ActionResult&lt;T&gt;</code></strong> class represents the result
+    of an action (method). It includes status code(s) <span class="mark">
+        along with the data
+    </span> (object value). <code>ActionResult&lt;T&gt;</code> <strong>
+        automatically serializes the object to JSON and writes the JSON into the body
+        of the response message.
+    </strong>
+</p>
+<p>
+    <code>ActionResult&lt;T&gt;</code> return types can represent a wide range of
+    HTTP status codes. These Http response status codes are grouped in 5 classes:
+</p>
+<ol>
+    <li>
+        Informational responses (100-199).
+    </li>
+    <li>
+        Successful responses (200-299).
+    </li>
+    <li>
+        Redirects (300-399).
+    </li>
+    <li>
+        Client errors (400-499).
+    </li>
+    <li>
+        Server errors (500-599).
+    </li>
+</ol>
+<h4>Routing to controller actions (server-side routing)</h4>
+<p>
+    You can refer to the lesson on "ASP.Net Routing" in section <a href="03-routing">
+        Routing
+    </a> for a brief introduction to client-side routing.
+</p>
+<p>
+    ASP.Net Core controllers use the Routing <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        Middleware
+    </a> to match the URLs of incoming HTTP requests and dispatch those requests
+    to the app's executable endpoints; i.e., ASP.Net Core routing middleware maps
+    the URL of an HTTP request to a <dfn>controller action</dfn>.
+</p>
+<p>
+    <dfn>Endpoints</dfn> (controller <dfn>actions</dfn>) are the application's
+    units of executable request-handling code. The endpoint matching process can
+    extract values from the request's URL and provide those values for request
+    processing.
+</p>
+<p>
+    Controller <dfn>actions</dfn> are either <dfn>conventionally-routed</dfn> or
+    <dfn>attribute-routed</dfn>. Conventional routing is typically used with controllers
+    and views. <strong>
+        Attribute routing is used with REST APIs.
+    </strong>
+</p>
+<h5>Attribute routing for REST APIs</h5>
+<p>
+    REST APIs should use attribute routing to model the app's functionality as a set of
+    resources where operations are represented by HTTP verbs. <dfn>Attribute routing</dfn>
+    uses a set of attributes to map <dfn>route templates</dfn> directly to <dfn>actions</dfn>
+    (controller methods).
+</p>
+<p>
+    ASP.Net Core has the following route templates:
+</p>
+<ul>
+    <li>
+        All the HTTP verb templates are route templates.
+    </li>
+    <li>
+        <strong><code>[Route]</code></strong> attribute.
+    </li>
+</ul>
+<p>
+    Route templates:
+</p>
+<ul>
+    <li>
+        Are defined at startup in Program.cs or in attributes (attribute routing).
+    </li>
+    <li>
+        Describe how URL paths are matched to controller actions.
+    </li>
+    <li>
+        Are used to generate URLs for links. The generated links are typically
+        returned in responses.
+    </li>
+</ul>
+<p>
+    Placing a route template on the controller (at the controller class level) or
+    on a particular <dfn>action</dfn> (more specific) makes it attribute-routed.
+    The <strong><code>[Route]</code></strong> attribute determines the URI of the
+    resource and each resource is identified by a specific URI. The Http verbs that
+    decorate the actions (action methods) tell the Server-Api what to do with the
+    resource and each action is directly related to a CRUD operation
+    (Application/Server-Api/<strong>Repositories</strong>-business logic).
+</p>
+<p>
+    Take the following controller actions named Index and About. They specify different
+    <strong>attribute routes</strong> to be matched with URL's of incoming HTTP requests:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/76-attribute-routing-actions.png"
+         alt="Attribute routing controller actions." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<p>
+    The HomeController.Index <dfn>action</dfn> is run for any of the URL paths:
+</p>
+<ul>
+    <li>/</li>
+    <li>/Home</li>
+    <li>/Home/Index</li>
+    <li>/Home/Index/3</li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> At this point, the <dfn>controller</dfn> and
+    <dfn>action</dfn> <strong>names play no part in which action is matched.</strong> The
+    following example with controller actions named MyIndex and MyAbout (different from the
+    example above) would be matched with exactly the same routes of the previous example
+    because their routes are exactly the same:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/77-atribute-routing-other-actions.png"
+         alt="Attribute routing other controller actions." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<h5>Token Replacement in Route Templates</h5>
+<p>
+    For convenience, <dfn>attribute routes</dfn> support <dfn>token replacement</dfn> by
+    enclosing a token in square-brackets: <strong><code>[ ]</code></strong>. The tokens
+    <strong><code>[controller]</code></strong>, <strong><code>[action]</code></strong>,
+    and <strong><code>[area]</code></strong> are automatically replaced with the values
+    of the controller name, action name, and area name from the action where the route is
+    defined:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/78-token-replacement.png"
+         alt="Token replacement at the controller level." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<p>
+    In the preceding code the <dfn>action</dfn> named List matches "/Products0/List" and
+    the <dfn>action</dfn> named Edit matches "/Products0/Edit/{id}"
+</p>
+<p>
+    Token replacement occurs as the last step of building the <dfn>attribute routes</dfn>.
+    The preceding example behaves the same as the following code:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/79-token-replacement-action.png"
+         alt="Token replacement at the action level." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<p>
+    Tokens within curly braces <strong><code>{ }</code></strong> define
+    <strong>route parameters</strong> that are <dfn>bound</dfn> (converted
+    from string type to .Net types)  if the route is matched. For example,
+    the <strong><code>{id}</code></strong> parameter in the last image is
+    a route parameter.
+</p>
+<p>
+    The <strong><code>{id}</code></strong> parameter expects an argument
+    that can be either a type string, GUID, Int32, etc because it does not
+    have an <dfn>attribute route constraint</dfn>. This means that it could
+    encounter issues when trying to bind the value to the formal input
+    parameter of the Edit action of type int.
+</p>
+<p>
+    You can employ the help of a <dfn>route constraint:</dfn>
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/80-attribute-route-constraint.png"
+         alt="Attribute route constraint." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<p>
+    In the preceding code, the <code>[HttPost]</code> verb has a route template
+    with a route constraint. The Products14Controller.ShowProduct <dfn>action</dfn>
+    is matched only by URL paths like "/products14/3".
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Literal text other than route parameters ({  }) and the path separator (/)
+        must match the text in the URL. In other words, any text in the route
+        template that is not inside curly braces or that is not a path separator
+        must match the text in the URL. Text matching is case-insensitive and
+        based on the decoded representation of the URL's path.
+    </p>
+</div>
+<h4>Attribute routing with Http verb attributes</h4>
+<p>
+    Consider the following controller:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/81-attribute-routing-http-verbs.png"
+         alt="Attribute routing with Http verb attributes example." />
+    <figcaption class="figure-caption text-center">EF Core - Routing to Controller Actions.</figcaption>
+</figure>
+<p>
+    In the preceding code:
+</p>
+<ul>
+    <li>
+        Each <dfn>action</dfn> contains the <code>[HttpGet]</code> attribute which constrains
+        matching to HTTP GET requests only.
+    </li>
+    <li>
+        The GetProduct(string id) action includes the "<code>{id}</code>" segment in its
+        route template. This means that id is appended to the "api/[controller]" route template
+        on the controller. The method's complete route template is "api/[controller]/{id}".
+        Therefore this action only matches GET requests of the form /api/test2/xyz, /api/test2/123,
+        /api/test2{any string}, etc
+    </li>
+    <li>
+        The GetIntProduct(int id) action contains the "<code>int/{id:int}</code>" segment in
+        its route template. The ":int" portion of the route segment constrains the id route
+        values (parameter values) to strings that can be converted to an integer. A GET request
+        to /api/test2/int/abc:<br />
+        <ul>
+            <li>Does not match this action.</li>
+            <li>Returns a <code>404 NotFound</code> error.</li>
+        </ul>
+    </li>
+    <li>
+        The GetInt2Product(int id) action contains the "{id}" segment to indicate that it is a
+        parameter in the route template but it does not constrain "id" to values that can be
+        converted to an integer. A GET request to /api/test2/int2/abc: <br />
+        <ul>
+            <li>Matches this route.</li>
+            <li>
+                Model binding fails to convert "abc" to an integer. The "id" parameter of the
+                method is type Int32.
+            </li>
+            <li>
+                Returns a <code>404 BadRequest</code> because model binding failed to convert
+                "abc" to an integer.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    REST APIs should use attribute routing to model the app's functionality as a set of
+    resources where operations are represented by HTTP verbs. In the next section, we
+    will create an ApiService responsible for building the Http requests/responses which
+    will include the URL to target a specific <dfn>controller action</dfn>.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/routing?view=aspnetcore-6.0#attribute-routing-with-http-verb-attributes">
+        Routing to controller actions in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-6.0">
+        Routing in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-6.0">
+        ASP.Net Core Middleware
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/specifying-an-endpoint-address?redirectedfrom=MSDN">
+        Specifying an Endpoint Adress
+    </a>
+</p>
+<p>
+    You can refer to the lesson on "ASP.Net Routing" in section <a href="03-routing">
+        Routing
+    </a> for a brief introduction to client-side routing.
+</p>
+<h4>Model Binding</h4>
+<p>
+    Controllers work with data that comes from Http requests. For example,
+    route data may provide a record key, and posted form fields may provide
+    values for the properties of the model or data entity. Writing code to
+    retrieve each of these values and convert them from strings to .Net types
+    would be tedious and error-prone. The model binding system automates this
+    process because it:
+</p>
+<ul>
+    <li>
+        Retrieves data from various sources such as route data, form fields, and
+        query strings.
+    </li>
+    <li>
+        Converts the string data to .Net types.
+    </li>
+    <li>
+        Provides the data to controller actions (methods) to satisfy action
+        parameters and public properties.
+    </li>
+    <li>
+        Updates properties of complex types (e.g., classes).
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <dfn>Model binding</dfn> allows controller actions to work directly
+        with model types (classes) passed in as method arguments. Mapping between incoming
+        request data and application models (classes) is handled by model binders. Model
+        binders bind text-based input from the request directly to model types.
+    </p>
+</div>
+<h5>Binding Sources</h5>
+<p>
+    By default, model binding gets data in the form of key-value pairs from the following
+    sources in an HTTP request:
+</p>
+<ul>
+    <li>Form fields.</li>
+    <li>
+        The request body (applies to controllers decorated with the <code>[ApiController]</code>
+        attribute.
+    </li>
+    <li>
+        Route data.
+    </li>
+    <li>
+        Query string parameters.
+    </li>
+    <li>
+        Uploaded files.
+    </li>
+</ul>
+<p>
+    For each <dfn>target parameter</dfn> or property, the sources are scanned in the order
+    indicated in the preceding list. However, you can explicitly specify the source.
+</p>
+<h5>Binding Source Attributes</h5>
+<p>
+    A binding source attribute defines the location at which an <dfn>action's</dfn> parameter
+    value is found. The binding source attributes available are:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/08-ServerApi/84-binding-source-attributes.png"
+         alt="Built-in binding source attributes." />
+    <figcaption class="figure-caption text-center">ASP.Net Core - Create web APIs with ASP.Net Core.</figcaption>
+</figure>
+<p>
+    Apply the <strong><code>[FromBody]</code></strong> binding source attribute to an
+    <dfn>action</dfn> parameter to populate its properties from the body of an HTTP
+    request. The ASP.Net runtime delegates the responsibility of reading the body to an
+    input formatter. If the input formatter finds a suitable value in the body of the
+    request for a given property, that value is used to populate the property.
+</p>
+<p>
+    For model binding to work,  <strong>
+        the controller class must be decorated with an <code>[ApiController]</code>
+    </strong> attribute. ASP.Net core automatically binds the data from an Http
+    request to the corresponding action method's parameter(s). <strong>
+        Model binding takes place after the routing system selects the <dfn>action</dfn>
+        method.
+    </strong>
+</p>
+
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0">
+        Model Binding in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-6.0">
+        Model validation in ASP.Net Core MVC and Razor Pages
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-6.0#binding-source-parameter-inference">
+        Binding source parameter inference
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/advanced/custom-model-binding?view=aspnetcore-6.0">
+        Custom Model Binding in ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/controllers/routing?view=aspnetcore-6.0#ar6">
+        Routing to controller actions in ASP.Net Core
+    </a>,
+    and the "Custom Attributes" section at the end of the <a href="10-ef-soft-delete-audit">
+        Soft Delete & Audit
+    </a> section that explains <strong>custom model validation</strong> before execution of
+    an action (method).
+</p>
+<p>
+    Suggested resources <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/first-web-api?view=aspnetcore-6.0&tabs=visual-studio">
+        Tutorial: Create a web API with ASP.Net Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/ef6/saving/validation">
+        Data Validation
+    </a>,
+    <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        Blazor tutorial for beginners by Kudvenkat
+    </a>,
+    <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        Working with Query Strings in Blazor by Chris Sainty
+    </a>,
+    <a href="https://web.archive.org/web/20151229061347/http://blog.lunatech.com/2009/02/03/what-every-web-developer-must-know-about-url-encoding">
+        What every web developer must know about URL encoding
+    </a>, and
+    <a href="https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string">
+        What characters must be escaped in an HTTP query string?
+    </a>
+</p>
+<h3>Modeling for Performance</h3>
+<p>
+    You might recall from lesson on entities, models, data transfer objects, and mapping
+    in part two of the <a href="04-forms-part-two">Forms</a> module, that <strong>
+        <dfn>modeling</dfn>
+    </strong> refers to the process of taking a combination of one or more data entities
+    that have a relationship and/or a combination of one or more properties of each
+    entity to turn them into a single model (class) which can be used to serve a
+    request from the client. This process is also known as <strong>
+        <dfn>flattening</dfn>.
+    </strong>
+</p>
+<p>
+    Modeling provides optimization benefits and prevents sending execessive and/or
+    sensitive information to the client. In the next module on <a href="01-consuming-api">
+        Consuming the Api
+    </a>, you will learn that you can (and should) build a <dfn>model</dfn> of one or
+    more entities that suits a particular Http request made by the server.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The way you model (or flatten) can have a profound impact on the performance
+        of your application.
+    </p>
+</div>
+<p>
+    For the time being, we will keep things simple but you should always remember
+    that while a properly normalized (flattened) and "correct" model is usually a
+    good starting point, you <span class="mark">
+        <strong>
+            must pay special attention when building a model because it is quite
+            difficult to change a model once an application is running in production.
+        </strong>
+    </span> It is worth keeping performance in mind when creating the initial model.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/performance/modeling-for-performance">
+        Modeling for Performance
+    </a>.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Scaffold the controller(s) that map the REST-Api actions such as [HttpPost],
+    [HttpGet], [HttpPut], and [HttpDelete] to CRUD operations (in the repositories)
+    to Cread, Read, Update, and Delete data from the data store. One EntityNameController.cs
+    file for each root entity mapped to the database (one controller for each
+    Application/Server-Api/Repositories EfEntityName class created earlier).
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Do <strong>not</strong> include an "Async" suffix to the name of the action methods
+        because ASP.Net Core MVC trims the suffix "Async" from action names by default. This
+        change affects both routing and link generation. Instead, you can use a "Task" suffix
+        to indicate that the action is asynchronous.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the "Controllers" folder of
+    the Application/Server-Api project and scaffold a controller for the entity
+    type Genre; i.e., create a new class that derives from the built-in
+    <dfn>ControllerBase</dfn> and name it "GenresController".
+</p>
+<p>
+    Apply a constructor injection of the IUnitOfWork interface responsible for
+    tracking everything you do during a business transaction that can affect the
+    database and for coordinating the work of multiple repositories by creating
+    a single database context instance.
+</p>
+<p>
+    Recall that the <a href="07-api-repository">IUnitOfWork</a> is configured as
+    a service with a <dfn>Transient</dfn> lifecycle in the dependency injection
+    container of the Application/Server-Api project. This means that an instance
+    of its implementation is automatically produced every time it is required:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/33-genres-controller-initial.png"
+         alt="Basic structure of the GenresController class." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Declare the controller actions that
+    can be mapped to CRUD operations adhering to the following specifications:
+</p>
+<ol>
+    <li>
+        Decorate each action (method) with the appropriate Http verb.
+    </li>
+    <li>
+        <span class="mark"><strong>Use generic names</strong></span> for the actions and
+        local variable. For example, use <dfn>Get()</dfn> or <dfn>Add()</dfn> as opposed to
+        <dfn>GetGenre()</dfn> and <dfn>AddGenre()</dfn>. This will make it easier to re-use
+        this code later on when building a controller for the rest of the data entity types.
+    </li>
+    <li>
+        The return type of the actions should be
+        <code>Task&lt;ActionResult&lt;T&gt;&gt;</code>.
+    </li>
+    <li>
+        Wrap each returning object with a meaningful built-in Http response Status
+        Code inherited from the ControllerBase class.<br />
+        <a href="https://docs.microsoft.com/en-US/troubleshoot/developer/webapps/iis/www-administration-management/http-status-code">
+            The HTTP status code in IIS 7.0 and later versions.
+        </a>,<br />
+        <a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">
+            Status code definitions
+        </a>
+    </li>
+    <li>
+        <p>Establish an exception handling mechanism for each action:</p>
+        <ul>
+            <li>Include an appropriate Microsoft.AspNetCore.StatusCodes code.</li>
+            <li>Include an appropriate message.</li>
+            <li>
+                <div class="alert alert-info" role="alert">
+                    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+                        You can refer to <a href="https://blog.christian-schou.dk/how-to-do-global-exception-handling-in-net-6-and-7/">
+                            How to add Global Exception Handling in .Net 6 and 7
+                        </a> by Christian Schou.
+                    </p>
+                </div>
+            </li>
+        </ul>
+    </li>
+    <li>
+        Make sure to include custom data validation when needed; e.g., when adding
+        a new resource ([Post]), check if the provided data in the request body,
+        such as the Entity.Name or Entity.Email property values, are not already in
+        use.<br /><br />
+        <span class="badge bg-info">Notice:</span> Whenever possible, controllers
+        should NOT directly include "data access logic" or "business" logic. A common
+        scenario is when data validation does not require accessing the database. Refer
+        to the <dfn>Custom Validation Attribute</dfn> lesson in the
+        <a href="10-ef-soft-delete-audit">Soft Delete & Audit</a> section.
+    </li>
+    <li>
+        Include a call to the <dfn>IUnitOfWork.PersistToDbAsync()</dfn> method to
+        signify the end of the business transaction, persist any changes made to
+        in-memory objects to the database, and deterministically dispose the
+        application specific DbContext instance (AppDbContext).
+    </li>
+    <li>
+        Test the <dfn>location header</dfn> URI for each action; i.e., type the
+        "api/controller" uri directly into the web browser's URL (e.g.,
+        https://localhost:44363/api/genres) to ensure the the Api responds with
+        an object in JSON format.<br /><br />
+        Recall that you can get or set the application's URL in the
+        Application/Server-Api/Properties/launchsettings.json file.
+    </li>
+    <li>
+        <p>
+            As an alternative to testing the location URIs directly into the web browser's
+            address bar, it is recommended to use the
+            <a href="https://www.postman.com/downloads/">
+                Postman
+            </a> API platform.
+        </p>
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+            "Blazor tutorial for beginners" by Kudvenkat
+        </a>,
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/tutorials/min-web-api?view=aspnetcore-6.0&tabs=visual-studio#install-postman-to-test-the-app">
+            Install Postman to test the app
+        </a>
+    </li>
+    <li>
+        When testing, always try both scenarios: Success and NotFound.
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/34-genres-controller-one.png"
+         alt="Genres controller class part one" />
+    <img src="images/08-ServerApi/34-genres-controller-two.png"
+         alt="Genres controller class part two" />
+    <img src="images/08-ServerApi/34-genres-controller-three.png"
+         alt="Genres controller class part three" />
+    <img src="images/08-ServerApi/34-genres-controller-four.png"
+         alt="Genres controller class part four" />
+    <img src="images/08-ServerApi/34-genres-controller-five.png"
+         alt="Genres controller class part five" />
+    <img src="images/08-ServerApi/34-genres-controller-seven.png"
+         alt="Genres controller class part seven" />
+    <img src="images/08-ServerApi/34-genres-controller-eight.png"
+         alt="Genres controller class part eight." />
+    <img src="images/08-ServerApi/34-genres-controller-nine.png"
+         alt="Genres controller class part nine" />
+</div>
+<p>
+    The "Get" action has no formal input parameters, the "GetById" and "Delete" actions have
+    a formal input parameter of type int, and the "Add" and "Update" actions expect a type
+    Genre to satisfy their formal input parameter.
+</p>
+<p>
+    In other words, the "Get" action does not implement model binding, the "GetById" and
+    "Delete" actions implement model binding of <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0#simple-types">
+        simple types
+    </a>, and the "Add" and
+    "Update" actions implement model binding of <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0#complex-types">
+        complex types
+    </a>
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is recommended to employ a <strong><code>[FromBody]</code></strong> binding source
+        attribute for the "Add" and "Update" actions. The [FromBody] parameter populates the
+        type's properties from the body of the HTTP request. It effectively delegates the
+        responsibility of reading the body to an input formatter. If the input formatter
+        finds a suitable value in the body of the request for a given property, that value is
+        used to populate the property.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The GetGenres action illustrates an expanded
+    exception handling mechanism. This approach is very useful to debug errors during the
+    development stage because it provides the full range of exceptions, their type, their
+    message and their complete stack trace. This information is wrapped as the
+    <dfn>object value</dfn> of the Http response.
+</p>
+<p>
+    The Http response body is available with either Postman or in the Network tab of the
+    web browser's developer tools.
+</p>
+<p>
+    For simplicity, we only illustrate the GenresController but keep in mind that there
+    must be one EntityNameController class for each data entity type mapped to the
+    database.
+</p>
+<p>
+    Now that the Application/Server-Api is up and running, we can create a
+    service that the Application/Client can use to access the Application/Server-Api
+    to make Http requests.
+</p>

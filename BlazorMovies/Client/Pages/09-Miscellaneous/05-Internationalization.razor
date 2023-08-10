@@ -1,0 +1,2003 @@
+﻿@page "/05-internationalization"
+<PageTitle>Internationalization</PageTitle>
+
+<h2>Miscellaneous - Internationalization</h2>
+<p>
+    Now more than ever, web applications are literally just a few clicks away to a
+    vastly diverse audience. If you want (or need) a web application to be readily
+    available worldwide, considerations such as language, region, and culture should
+    be front and center when designing it. Internationalization of a web application
+    involves <dfn>Globalization</dfn> and <dfn>Localization</dfn>.
+</p>
+<p>
+    We all have assumptions about user interfaces and data that are formed by our
+    cultures. E.g., for an English-speaking developer in the United States, serializing
+    date and time data as a string in the format <strong><code>MM/DD/yyyy hh:mm:ss</code></strong>
+    may seem perfectly reasonable.
+</p>
+<p>
+    However, deserializing that string on a system with a different culture setting is
+    likely to throw a <code>System.FormatException</code> exception or produce inaccurate
+    data. Globalization is about identifying such culture-specific assumptions and
+    ensuring that they do not affect the application's design or code.
+</p>
+<p>
+    In fact, we encountered this problem in the <a href="06-api-db-support">DbSupport</a>
+    lesson with the minimum and maximum constraint values of the Range attribute
+    for the ReleaseDate property of a Movie object. The data annotation expects hard coded
+    strings that represent DateTime values.
+</p>
+<p>
+    The current culture of the application host (web server) must match the culture settings
+    of the client (end-user). Otherwise, it is very likely that the system will produce a
+    System.FormatException because it fails to parse (serialize/deserialize) the strings to
+    .Net types during model validation after a user has passed some input data in the MovieForm
+    routable component.
+</p>
+<p>
+    A work around is to specify the hard-coded string values with a format that adheres to
+    the ISO-8601 standard that represents date and time by starting with the year, followed
+    by the month, the day, the hour, the minutes, seconds, and milliseconds; e.g., 2000/1/30.
+    The .Net <code>DateTime</code> type adheres to this standard:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/01-date-time-type.png"
+         alt="DateTime type and Range attribute." />
+</div>
+<p>
+    As you know, our application is a <a href="05-api">hosted Blazor WebAssembly application</a>
+    because it is created for deployment with a backend ASP.Net Core app (Application/Server-Api)
+    to serve its files and a front end UI (Application/Client) responsible for managing
+    user interaction.
+</p>
+<p>
+    Additionally, within the Application/Server-Api, user interaction with
+    <a href="01-security-fundamentals">
+        ASP.Net Core Identity
+    </a> for authentication and authorization of an <a href="02-application-user-api">
+        Application User
+    </a> is handled by a preconfigured <a href="03-security-id-server">
+        Identity Razor class library
+    </a> that is fully integrated with the <a href="02-security-building-blocks">
+        Duende Identity Server framework
+    </a>.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Implementing <dfn>globalization</dfn> and <dfn>localization</dfn> in our application
+    requires enabling these features in the Application/Client for the Blazor WASM UI
+    and also in the Application/Server-Api for the Identity Razor class library UI.
+    Although very similar in nature, there are subtle configuration differences.
+</p>
+<h4>Globalization</h4>
+<p>
+    Globalization is the process of designing and developing a world-ready app that can
+    <span class="mark">
+        <strong>
+            support
+        </strong>
+    </span> different cultures. It is about adding support to handle different input,
+    display, and output of a defined set of language scripts that relate to specific
+    geographic areas. An application targets a single culture or region as its default
+    but you can design it so that it can easily be extended to users in other cultures
+    or regions.
+</p>
+<h4>Localization</h4>
+<p>
+    Localization is the process of adapting a globalized app to a particular culture/locale.
+    It consists of translating an application's resources into localized versions for each
+    culture that the application will support.
+</p>
+<p>
+    To implement localization, the common language runtime (CLR) supports a satellite
+    assembly resource model that separates an application's executable code from its
+    resources. For each localized version of the application (e.g., language and/or
+    region), you add a new satellite assembly that contains the localized user interface
+    block translated into the appropriate language for the target culture.
+</p>
+<p>
+    The executable code block (or section) for all cultures should remain the same. The
+    combination of a localized version of the user interface (UI) section with the code
+    section produces a localized version of the application.
+</p>
+<p>
+    The primary mechanism for isolating localizable strings is with <dfn>resource files</dfn>.
+    Each language and culture combination requires a unique resource file.
+</p>
+<h4>.Net Resources system</h4>
+<p>
+    Nearly every production-quality application has to use resources. A resource is any
+    non-executable data that is logically deployed with an application. A resource has
+    multiple use cases in an application because resource files can contain data in a
+    number of forms, including strings, images, and persisted objects.
+</p>
+<p>
+    Storing the data in a resource file enables changing the data without recompiling
+    the entire app. It also enables storing data in a single location and eliminates
+    the need to rely on hard-coded data that is stored in multiple locations.
+</p>
+<p>
+    In a non-localized app, you can use resource files as a repository for app data,
+    particularly for strings that might otherwise be hard-coded in multiple locations
+    in source code. In other words:
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Even if you are developing an app that targets a single culture or region,
+        you should <strong>
+            use resource files to store strings and other resources that are displayed
+            in the user interface (UI).
+        </strong> You should never add them directly to your code (hard-coding).
+    </p>
+</div>
+<p>
+    In a localized app, you can localize your app's resources for specific cultures. This
+    allows building localized (translated) versions of the application. When the resources
+    in satellite assemblies are deployed, the common language runtime (CLR) automatically
+    selects a culture-appropriate resource based on the user's UI culture.
+</p>
+<p>
+    A resource file is an XML file with the <strong><code>.resx</code></strong> file
+    extension and its content is a collection similar to a dictionary with &lt;Key,Value&gt;
+    pairs where the key is the text to be translated and the value is the translated text.
+    It also has a comments section for each resource record. Resource files are translated
+    prior to the execution of the consuming application. In other words, a resource file
+    represents translated content at rest.
+</p>
+<p>
+    When you develop an app that uses localized resources, you <strong>
+        must explicitly designate a culture that serves as the neutral or fallback
+        culture whose resources are used if no suitable resources are available.
+    </strong>
+</p>
+<p>
+    Typically, the resources of the neutral (or default) culture are stored in the
+    app's executable. The remaining resources for individual localized cultures are
+    stored in standalone satellite assemblies. Because the satellite assemblies are
+    not part of the main assembly, you can easily replace or update resources corresponding
+    to a specific culture without replacing the application's main assembly.
+</p>
+<p>
+    If you do not provide a default resource, an exception will be thrown when the
+    <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/package-and-deploy-resources">
+        resource fallback process
+    </a> attempts to find it.
+</p>
+<p>
+    The .Net framework offers five ways to <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/create-resource-files">
+        create resource
+    </a> files:
+</p>
+<ol>
+    <li>
+        Create a text file that contains string resources and use <a href="https://learn.microsoft.com/en-us/dotnet/framework/tools/resgen-exe-resource-file-generator">
+            Resource File Generator (resgen.exe)
+        </a> to convert the text file into a binary resource (<dfn>.resources</dfn>) file.
+    </li>
+    <li>
+        Create an XML resource (<dfn>.resx</dfn>) file that contains string, image, or
+        object data and use <a href="https://learn.microsoft.com/en-us/dotnet/framework/tools/resgen-exe-resource-file-generator">
+            Resource File Generator (resgen.exe)
+        </a> to convert the .resx file into a binary resource (<dfn>.resources</dfn>) file.
+    </li>
+    <li>
+        Create an XML resource (<dfn>.resx</dfn>) file programatically by using types in
+        the <a>System.Resources</a> namespace.
+    </li>
+    <li>
+        Create a binary resource (<dfn>.resources</dfn>) file programatically an embed the
+        file in the application executable or an application library with a compiler.
+    </li>
+    <li>
+        Use Visual Studio to create a resource file and include it in the project. Visual
+        Studio provides a resource editor that lets you add, delete, and modify resources.
+        At compile time, the resource file is automatically converted to a binary <dfn>
+            .resources
+        </dfn> file and embedded in an application assembly or satellite assembly:
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/02-resource-file-ex.png"
+         alt="Example of a resource file." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Resource files are case sensitive. Always make sure to double check the spelling
+        to avoid unnecessary extra work trying to debug errors that originate from
+        typing errors.
+    </p>
+</div>
+<h4>Globalization and Localization Terms</h4>
+<p>
+    According to the Internet Engineering Task Force (IETF) Request for Comments (RFC) document:
+    RFC 4646, the format for the culture name is:
+</p>
+<p>
+    <strong><code>&lt;languagecode2&gt;</code></strong>-<strong><code>&lt;country/regioncode2&gt;</code></strong>
+</p>
+<p>
+    Where <dfn>languagecode2</dfn> is the language code and country/regioncode2 is the
+    subculture code. For example:
+</p>
+<ul>
+    <li>
+        <strong><code>es-CL</code></strong> for Spanish (Chile).
+    </li>
+    <li>
+        <strong><code>en-US</code></strong> for English (United States).
+    </li>
+    <li>
+        <strong><code>es-MX</code></strong> for Spanish (Mexico).
+    </li>
+</ul>
+<p>
+    RFC 4646 is a combination of an
+    <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes">
+        ISO 639
+    </a> two-letter lowercase culture code associated with a language and an
+    <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes">
+        ISO 3166
+    </a> two-letter uppercase subculture code associated with a country or region.
+</p>
+<p>In summary:</p>
+<dl>
+    <dt>Internationalization</dt>
+    <dd>Describes both globalization and localization.</dd>
+    <dt>Globalization</dt>
+    <dd>The process of making an app support different languages and regions.</dd>
+    <dt>Localization</dt>
+    <dd>The process of customizing an app for a given language and region.</dd>
+    <dt>Culture</dt>
+    <dd>Refers to a language, and optionally, a region.</dd>
+    <dt>Neutral Culture</dt>
+    <dd>
+        A culture that has a specified language but not a region. For example:
+        <strong><code>en</code></strong> or <strong><code>es</code></strong>.
+    </dd>
+    <dt>Specific Culture</dt>
+    <dd>
+        A culture that has a specified language and region. For example:
+        <strong><code>en-US</code></strong> or <strong><code>es-CL</code></strong>.
+    </dd>
+    <dt>Parent Culture</dt>
+    <dd>
+        The neutral culture segment of a specific culture. For example:
+        <strong><code>en</code></strong> is the parent culture of <strong><code>en-US</code></strong>
+        and <strong><code>en-GB</code></strong>.
+    </dd>
+    <dt>Locale</dt>
+    <dd>
+        A locale is the same as the culture.
+    </dd>
+</dl>
+<h4>Resource File Naming</h4>
+<p>
+    The runtime identifies resource files for different cultures by their culture name
+    with the ISO language and country codes as part of the file name.
+</p>
+<p>
+    The ISO language code, and optionally, the country code, are placed between the file
+    name and the <strong><em>.resx</em></strong> file extension.
+</p>
+<p>
+    For example: <strong><code>Resources.es-MX.resx</code></strong>
+</p>
+<p>
+    When searching for a resource, localization engages in "culture fallback". Starting
+    from the requested <dfn>specific culture</dfn>, if not found, it reverts to the
+    <dfn>parent culture</dfn>. If not found, it reverts to the resource file designated
+    as default (or fallback) resource.
+</p>
+<h4>Default Localization (culture) Providers</h4>
+<p>
+    ASP.Net Core provides the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo?view=net-7.0">
+        System.Globalization.CultureInfo
+    </a> class that allows you to specify two culture values, <strong><code>SupportedCultures</code></strong>
+    and <strong><code>SupportedUICultures</code></strong>.
+</p>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture?view=net-7.0">
+        System.Globalization.CultureInfo.CurrentCulture
+    </a> object for <em>SupportedCultures</em> <strong>determines the default format</strong>
+    for dates, times, numbers, currency values, the sorting order of text, casing conventions,
+    and string comparisons.
+</p>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentuiculture?view=net-7.0">
+        System.Globalization.CultureInfo.CurrentUICulture
+    </a> object for <em>SupportedUICultures</em> <strong>
+        determines which translated strings (from <em>.resx</em> files) are looked up
+    </strong> by the <em>ResourceManager</em>. The ResourceManager simply looks up
+    culture-specific strings that are determined by <em>CurrentUICulture</em>.
+</p>
+<p>
+    Every thread in .NET has <em>CurrentCulture</em> and <em>CurrentUICulture</em> objects.
+    ASP.Net Core inspects these values when rendering culture-dependent functions. For
+    example, if the current thread's culture is set to "en-US" (English, United States),
+    <code>DateTime.Now.ToLongDateString()</code> displays "Thursday, February 10, 2023" but
+    if <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#globalization-1">
+        System.Globalization.CultureInfo.CurrentCulture
+    </a> property value is set to "es-ES" (Spanish, Spain), the output will be "jueves, 10
+    de febrero de 2023".
+</p>
+<p>
+    There are three <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-6.0#localization-middleware">
+        default current culture providers
+    </a>:
+</p>
+<ol>
+    <li>
+        <p>
+            <strong>Query string request</strong>: Use the value <strong><code>culture</code></strong>
+            and <strong><code>ui-culture</code></strong>. At the time of this lecture, Blazor
+            <strong>does not support</strong> this approach but it is part of globalization
+            and localization in ASP.Net Core.
+        </p>
+        <p>
+            For example: <strong>
+                <code>
+                    https://localhost:5000/?culture=es-MX&ui-culture=es-MX
+                </code>
+            </strong>
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Cookie request</strong>: A cookie is created and placed in the user's web
+            browser with the values for <strong><code>culture</code></strong> and
+            <strong><code>ui-culture</code></strong>. This approach is recommended for Blazor
+            Server applications.
+        </p>
+        <p>
+            For example: <strong>
+                <code>
+                    c=en-UK|uic=en-US
+                </code>
+            </strong>
+        </p>
+        <p>
+            You can refer to episode "142. Internationalization in Blazor-Server" from
+            Udemy course <a href="https://www.udemy.com/share/102l0i3@QzRHjFlH97cZ-tKRO-r52sSTMpvf68ZCiBJlBkpLYPz49U3KJaCCgJjgmM_cA4D7/">
+                Programming in Blazor - ASP.Net Core 5
+            </a> by Felipe Gavilan for more info.
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>Http Headers:</strong> The <a href="https://www.w3.org/International/questions/qa-accept-lang-locales">
+                Accept-Language
+            </a> header is automatically set by the user's web browser and it can be used
+            to configure what language to use in the application. The Accept-Language HTTP
+            header is settable in most browsers and was originally intended to specify
+            the user's language.
+        </p>
+    </li>
+</ol>
+
+<p>
+    A production app should include a way for a user to customize the choice
+    of culture.
+</p>
+<h3>ASP.Net Core Blazor Globalization and Localization</h3>
+<p>
+    In this section, we will demonstrate how to set globalization
+    and localization in a hosted Blazor WASM app based on:
+</p>
+<ul>
+    <li>
+        The Accept-Language HTTP header which is set by the browser based on a
+        user's language preference in browser settings.
+    </li>
+    <li>
+        A dynamic culture definition based on the user's preference stored in the
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API">
+            browser's local storage
+        </a>.
+    </li>
+</ul>
+<p>
+    The idea is to create a resource file for each component that you intend to
+    localize (translate), and optionally, a <code>
+        SharedResources
+    </code> resource file with common words for a given culture such as "success",
+    "cancel", "save", etc. The naming of resource files designed for specific components
+    should include the name of the component it is related to and its locale.
+</p>
+<p>
+    For example, the default resource localization file for the FlixManager routable
+    component should be named <code>FlixManager.resx</code> and the resource localization
+    file for the FlixManager routable component with an spanish language from Mexico should
+    be named <code>FlixManager.es-MX.resx</code>.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The resource file designated as default (or fallback) resource is the one that
+        lacks any explicit locale; e.g., FlixManager.resx.
+    </p>
+</div>
+<p>
+    As we explained previously, .Net provides the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo?view=net-7.0">
+        System.Globalization.CultureInfo
+    </a> class to specify two culture values, <strong>
+        <code>
+            System.Globalization.CultureInfo.CurrentCulture
+        </code>
+    </strong> (default format)
+    and <strong>
+        <code>System.Globalization.CultureInfo.CurrentUICulture</code>
+    </strong> (translated strings).
+</p>
+<p>
+    For <dfn>globalization</dfn>, Blazor provides formatting for number and date objects.
+    The <strong><code>@@bind</code></strong> attribute directive applies formats and parses
+    values for display based on the user's first <a href="https://developer.mozilla.org/docs/Web/API/NavigatorLanguage/languages">
+        preferred language
+    </a> that the application supports. The current culture can be accessed from the
+    <strong><code>System.Globalization.CultureInfo.CurrentCulture</code></strong>
+    property.
+</p>
+<p>
+    Blazor uses <a href="https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.invariantculture#system-globalization-cultureinfo-invariantculture">
+        CultureInfo.InvariantCulture
+    </a> for the fields of type <em>date</em> and <em>number</em>. These are displayed using
+    their appropriate browser-based formatting rules, cannot contain free-form text, and
+    provide user interaction characteristics based on the browser's implementation.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    When using the <code>date</code> and/or <code>number</code> &lt;input&gt; field types,
+    specifying a culture with <code>@@bind:culture</code> is <strong>not</strong>
+    recommended because Blazor provides built-in support to render values in the current
+    culture.
+</p>
+<p>
+    For <dfn>localization</dfn>, Blazor renders content using the <a href="https://learn.microsoft.com/en-us/dotnet/framework/resources/">
+        .Net Resources system
+    </a> explained before, and supports the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.localization.istringlocalizer">
+        IStringLocalizer
+    </a> and
+    <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.localization.istringlocalizer-1">
+        IStringLocalizer&lt;T&gt;
+    </a> interfaces that represent a service that provides localized strings (language translations).
+</p>
+<p>
+    At the time of this lesson, <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.localization.ihtmllocalizer">
+        IHtmlLocalizer
+    </a> and <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.localization.iviewlocalizer">
+        IViewLocalizer
+    </a> are ASP.Net Core MVC features not supported in Blazor applications.
+</p>
+<h5>Invariant Globalization</h5>
+<p>
+    If the application does not require localization, you can configure the app to support
+    the invariant culture which is generally based on United States English (en-US).
+</p>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#invariant-globalization-1">
+        invariant globalization
+    </a> documentation demonstrates three options to set the <code>InvariantGlobalization</code>
+    property to <code>true</code>:
+</p>
+<ul>
+    <li>
+        In the Application/Client project file (<dfn>.csproj</dfn>).
+    </li>
+    <li>
+        In a <dfn>runtimeconfig.json</dfn> file.
+    </li>
+    <li>
+        With an environment variable.
+    </li>
+</ul>
+<h5>Creating the Localized Resource Files</h5>
+<p>
+    When a resource file is <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/create-resource-files#resource-files-in-visual-studio">
+        added to a Visual Studio project
+    </a>, Visual Studio creates a <dfn>.resx</dfn> file in the project directory. Visual
+    Studio provides resource editors that allow adding strings, images, and binary objects.
+    Since the editors are designed to handle static data only, they cannot be used to store
+    programmatic objects. You can refer to <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/work-with-resx-files-programmatically">
+        work with .resx file programmatically
+    </a> for more info.
+</p>
+<p>
+    Since we are adding localized resources, we must designate their culture in the file
+    name (<strong>except for the default resource locale</strong>). If required, you can explicitly
+    <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/create-resource-files#resource-files-in-visual-studio">
+        designate the application's default culture
+    </a> using the Solution Explorer in Visual Studio but we will do it programmatically in
+    the next exercises. The application's default culture resources are used if no localized
+    resources for a particular culture can be found.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create resource files for each <dfn>locale</dfn>; i.e., create a default resource file
+    that contains text in english and a resource file with text in Spanish-MX.
+</p>
+<p>
+    The resource files will be placed in the Application/Shared folder to make them accessible
+    throughout the solution. One resource file for each culture that the application will support.
+</p>
+<p>
+    For the purpose of this task, we will localize the headers of the FlixManager routable
+    component: "Upcoming Releases" and "In Theaters":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/06-flix-manager-ui.png"
+         alt="Flix Manager UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the Solution Explorer in Visual Studio to go to the Application/Shared .dll, create
+    a new folder named "Resources", and select "Add a new Item" of type "Resources File" for:
+</p>
+<ul>
+    <li>
+        A file named "FlixManagerResources.resx" (this is the default resource file
+        for the FlixManager component).
+    </li>
+    <li>
+        A file named "FlixManagerResources.es-MX.resx" (this is the resource file that
+        contains the spanish language strings for the FlixManager component):
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/03-resource-files-folder-tree.png"
+         alt="Resource files folder tree." />
+</div>
+<p>
+    The <code>FlixManagerResources.Designer.cs</code> class is auto-generated by Visual
+    Studio and contains all the translation keys as public properties. This allows to
+    create strongly typed resource references that can be looked up as localized strings.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Populate the resource files using the header(s) as the <dfn>key</dfn> or name and the
+    translated text as the value. Ensure that the access modifier of the file is set to
+    <code>public</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/03-resource-files.png"
+         alt="Resource files." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Resource files are case sensitive. Always make sure to double check the spelling
+        to avoid unnecessary extra work trying to debug errors that originate from
+        typing errors.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Add a <strong><code>BlazorMovies.Shared.Resources</code></strong> <dfn>using directive</dfn>
+    to the Application/Client _imports file to make the Resources directory available throughout
+    the Application/Client project:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/07-imports-file.png"
+         alt="Imports file." />
+</div>
+<h5>Enabling Localization Services</h5>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the localization section of the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#localization-1">
+        documentation
+    </a> to enable localization services in the front end of the web application
+    (Application/Client).
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Update all the NuGet packages installed in the Application/Client and add the
+    <strong><em>Microsoft.Extensions.Localization</em></strong> package.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Set the <strong><code>BlazorWebAssemblyLoadAllGlobalizationData</code></strong> property
+    to <code>true</code> in the application's (Application/Client) <a href="03-routing">
+        project file
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/05-load-all-glob-data.png"
+         alt="BlazorWebAssemblyLoadAllGlobalizationData property." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the dependency injection container of the Application/Client project and use
+    the <strong><code>AddLocalization</code></strong> extension method to register
+    localization services that enable the <code>IStringLocalizer&lt;T&gt;</code>
+    responsible for providing culture-specific resources at runtime.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    This is not the final version of the dependency injection container. Later, we will
+    extend the container to register the localization services from elsewhere to avoid
+    the excess code logic to implement additional features.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/08-add-localization-services.png"
+         alt="Localization services registration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Add a <code>Microsoft.Extensions.Localization</code> <dfn>using directive</dfn>
+    to the Application/Client <code>_Imports.razor</code> file to make the
+    <code>IStringLocalizer&lt;T&gt;</code> available anywhere in the assembly.
+</p>
+<h5>Setting culture from <span class="fs-4"><code>Accept-Language</code></span> header (dynamically)</h5>
+<p>
+    The <a href="https://developer.mozilla.org/docs/Web/HTTP/Headers/Accept-Language">
+        Accept-Language
+    </a> HTTPS header is set by the browser and controlled by the user's language
+    preferences. A user can set one or more languages in order of preference with the
+    web browser settings. The order of preference is used by the browser to set quality
+    values (e.g., q,0-1) for each language in the header:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/04-accept-language-header.png"
+         alt="Accept-Language header." />
+</div>
+<p>
+    The app's culture is set by matching the first requested language that matches
+    a supported culture of the app. If no match is found, it is set to the app's
+    default (e.g., Application/Shared/Resources FlixManager.resx).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#localization-1">
+        Localization
+    </a> section to dynamically localize the headers of the FlixManager routable component
+    using the <code>Accept-Language</code> HTTP request header.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the FlixManager routable component and use the <code>IStringLocalizer&lt;T&gt;</code>
+    interface that provides strings for <code>T</code> where <code>T</code> is the .Net
+    type that represents the resource file with the translated strings. For example, use it to
+    <em>localize</em> the "Upcoming Releases" and the "In Theaters" headers:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/09-flix-manager-localization.png"
+         alt="FlixManager component with localized headers." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Open your web browser settings to set the default language to spanish. Once the desired
+    language is configured, run the application and navigate to the FlixManager routable
+    component. You should see the localized content in the appropriate language:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/10-flix-manager-ui-localized.png"
+         alt="FlixManager UI localized." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the web browser settings to set the default language back to english. Run
+    the application and navigate to the FlixManager routable component. You should see
+    the localized content in english.
+</p>
+
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <a href="04-forms-part-one">Built-in form validation components</a> provide
+        localization by default using the <code>Accept-Language</code> Http header.
+    </p>
+</div>
+<p>
+    Take the <code>&lt;InputFile&gt;</code> component in the custom <a href="04-forms-part-one">
+        UploadImage
+    </a> component designed to enable an application user to select and upload an
+    image in the Application/Client/Pages/Movies MovieForm component that serves
+    the Application/Client/Pages/Movies MovieEdit routable component.
+</p>
+<p>
+    If the user's language preference in the browser settings is set to spanish, the
+    <code>&lt;InputFile&gt;</code> component will adopt this culture automatically:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/34-input-file-localization.png"
+         alt="InputFile built-in component with localization by default." />
+</div>
+<h5>Setting Culture by User Preference (dynamically)</h5>
+<p>
+    Blazor WebAssembly apps typically store a user's preference in the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">
+        browser local storage
+    </a> and Blazor Server apps commonly store a user's preference in a localization cookie
+    or database. Alternatively, a user's preference can be stored in an external service
+    attached to an external database.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#dynamically-set-the-culture-by-user-preference-1">
+        Blazor documentation
+    </a> and video "138. Manually Changing the App's Language" of the Udemy course <a href="https://www.udemy.com/share/102l0i3@sKaV36DaliRo4qs58FuXPcGH2PSXv7ffqpAK2-hDdOYFmte-t6Sa5rsOyA4B2bNx/">
+        Programming in Blazor - ASP.Net Core 5
+    </a> by Felipe Gavilan to dynamically set the culture by user preference stored in
+    the browser's local storage. Make sure to implement JavaScript isolation to avoid
+    polluting the Application/Client with global functions.
+</p>
+<p>
+    The idea is to define JS functions to get/set the user's culture selection in the
+    browser's local storage. These functions will be consumed from the dependency injection
+    container during application build up and from a custom CultureSelector component to
+    get/set the current culture. We will create the <em>CultureSelector</em> component
+    to provide the user the options that represent the cultures supported by the application.
+</p>
+<p>
+    We can make the CultureSelector component available in every routable component
+    with the help of the <a href="02-components-part-two">MainLayout</a> component but
+    we will not localize the whole Blazor Movies application. We will only localize
+    sections of the FlixManager and the MovieForm routable components. Consequently,
+    the CultureSelector will only be made available in the components where localization
+    is implemented.
+</p>
+<p>
+    As we explained in <a href="02-components-part-three">Part-III</a> of the Components
+    module, placing the actual JS script in a &lt;script&gt; tag or loading scripts from
+    a global .js file pollutes the client with global functions. It is recommended to
+    <a href="02-components-part-three">place the JS function into a separate JS module</a>
+    that can be imported as required.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    To dynamically load a JS module when required, we first have to crate the .js file
+    that will be configured as a JS module. The .js file is a static file and static 
+    files (css, images, videos, .js) are served from the root folder (wwwroot). We 
+    already have a ".js" folder, right click on the folder to add a new item of type
+    JavaScriptFile named "local-storage.js".
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the "local-storage.js" file and declare the JS functions responsible for 
+    getting and setting the user's culture selection with browser local storage:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/11-local-storage-culture.png"
+         alt="LocalStorage culture functions." />
+</div>
+<p>
+    The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">
+        Window.localStorage
+    </a> property of the <a href="02-components-part-three">JS Window interface</a>
+    allows access to a <dfn>storage</dfn> object that represents a particular domain's local
+    storage. <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API#basic_concepts">
+        Storage objects
+    </a> are simple key-value stores, similar to objects, but they stay intact through
+    page loads.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Register the localization services and use JS Interop to invoke the JS function(s)
+    responsible for retrieving the "culture" stored in the browser's local storage and
+    set the current culture for localizing the application. Make sure to extend the
+    dependency injection container to define all the code logic elsewhere.
+</p>
+<p>
+    Recall from lesson <a href="02-components-part-two">Part-II</a> of the Components
+    module that ASP.Net Core (including Blazor) supports the dependency injection design
+    pattern to inject services in a central location such as the dependency injection
+    container (e.g., Application/Client/Program.cs) and make them available throughout
+    the application.
+</p>
+<p>
+    Since we will use JSInterop to invoke JS functions during application build
+    up, the code logic can become a bit extensive for the DI container. For this
+    reason, we will create an Application/Client/Helpers/ServiceExtensions folder
+    that will be responsible for consolidating custom classes (files) that extend
+    the dependency injection container of the Application/Client Program class.
+</p>
+<p>
+    These classes will define extension methods designed to register custom services
+    into the <dfn>Microsoft.Extensions.DependencyInjection.IServiceCollection</dfn>
+    including configuration options. As a result, the dependency injection container
+    will remain cleaner.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the Application/Client/Helpers directory, add a ServiceExtensions folder, and
+    create a static LocalizationServices class. The LocalizationServices class must include
+    a ConfigureLocalizationServices extension method that will be used to configure the
+    localization services:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/12-localization-services-folder-tree.png"
+         alt="LocalizationServices folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Use the <code>IServiceCollection.AddLocalization()</code> extension method to register
+    the localization services in the app's service collection and implement
+    <a href="02-components-part-three">JS Interop</a> to import the module with the 
+    JS functions and invoke them as required to:
+</p>
+<ul>
+    <li>
+        <p>
+            Verify if the client's browser has a "culture" preference stored in local storage.
+        </p>
+    </li>
+    <li>
+        <p>
+            If local storage has a value, use it to set the <code>
+                CultureInfo.DefaultThreadCurrentCulture
+            </code> and <code>CultureInfo.DefaultThreadCurrentUICulture</code> values
+            to localize the application.
+        </p>
+    </li>
+    <li>
+        <p>
+            If local storage is empty, do not set the <code>
+                CultureInfo.DefaultThreadCurrentCulture
+            </code> and <code>CultureInfo.DefaultThreadCurrentUICulture</code> values
+            to instead use the <code>Accept-Language</code> Http header to set the
+            locale (or current culture) for the application.
+        </p>
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/13-localization-services-one.png"
+         alt="LocalizationServices class part one." />
+    <img src="Images/36-internationalization/14-localization-services-two.png"
+         alt="LocalizationServices class part two." />
+    <img src="Images/36-internationalization/71-localization-services-three.png"
+         alt="LocalizationServices class part three." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The LocalizationServices class <strong>must</strong> implement JS isolation.
+        Otherwise, it will sometimes throw and an exception during the application 
+        build up process because the <strong><code>getFromLocalStorage</code></strong>
+        function cannot be found because the global .js file might not be loaded on
+        time:
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/70-get-from-local-storage-exception.png"
+         alt="JSException could not find 'getFromLocalStorage'." />
+</div>
+
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Call the ConfigureLocalizationServices() extension method we just created from
+    the dependency injection container to register the localization services and
+    try to retrieve the "culture" value, if any, from the browser's local storage
+    during the web application build up:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/15-di-container.png"
+         alt="Dependency injection container." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The call to the ConfigureLocalizationServices() extension method <strong>
+        must be placed at the end of the dependency injection container
+    </strong> because it invokes the WebAssembly.HostBuilder.Build and the
+    WebAssemblyHost.RunAsync methods to build and start the web application.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Create the CultureSelector component responsible for setting the user's culture
+    selection into the browser's local storage via JS Interop and reloading the
+    page (routable component) from the server to try and apply the required culture.
+</p>
+<p>
+    CultureSelector component view file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/16-culture-selector-view-file.png"
+         alt="CultureSelector view file." />
+</div>
+<p>
+    CultureSelector component code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/17-culture-selector-code-file-one.png"
+         alt="CultureSelector code file part one." />
+    <img src="Images/36-internationalization/18-culture-selector-code-file-two.png"
+         alt="CultureSelector code file part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    CSharp properties are <strong>not</strong> asynchronous. We need to use the
+    <strong><code>IJSInProcessRuntime</code></strong> to make synchronous JS
+    interop calls. 
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Since we are implementing <a href="02-components-part-three">JS Isolation</a>,
+    we use <code>IJSInProcessObjectReference</code> to import the JS module(s).
+    You can refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-javascript-from-dotnet?view=aspnetcore-6.0#synchronous-js-interop-in-blazor-webassembly-apps">
+        Synchronous JS interop in Blazor WebAssembly apps
+    </a> for more info.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Add the CultureSelector to provide the user with the supported culture options
+    for localization.
+</p>
+<p>
+    As you know, <a href="02-components-part-two">layout components</a> can render other
+    components. We can use the MainLayout component to make the CultureSelector component
+    available throughout the application. Before doing so, let's take a look to the current
+    semantic structure of the MainLayout component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/19-main-layout-structure.png"
+         alt="MainLayout view file." />
+</div>
+<p>
+    The markup for the <dfn>MainLayout</dfn> consists of a &lt;div&gt; element with a
+    "sidebar" attribute that encapsulates the <dfn>NavMenu</dfn> component responsible
+    for rendering the navigation menu you find on the left side of this page. It also
+    has a &lt;main&gt; section with two &lt;div&gt; elements. The first one instantiates
+    a <a href="04-security-config-client">LoginDisplay</a> component that displays a menu
+    to the user dependent on its authentication state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/20-login-display-ui.png"
+         alt="LoginDisplay menu." />
+</div>
+<p>
+    The LoginDisplay component is rendered within a navigation bar and this is likely
+    the best place to insert our CultureSelector component. It is not ideal if the
+    CultureSelector is outside of this section.
+</p>
+<p>
+    In other words, the <dfn>MainLayout</dfn> component consumes the LoginDisplay and we
+    can refactor the LoginDisplay component to include the CultureSelector component but
+    only if and when the current URL matches that of the FlixManager and/or the
+    Index components and since we are modifying the LoginDisplay component, we might as
+    well get rid of the "About" hyperlink:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/21-login-display-one.png"
+         alt="LoginDisplay component with CultureSelector component part one." />
+    <img src="Images/36-internationalization/22-login-display-two.png"
+         alt="LoginDisplay component with CultureSelector component part two." />
+</div>
+<p>
+    The conditional statement is necessary because we intend to localize only a couple
+    routable components for demonstration purposes. Otherwise, the conditional statement
+    would not be necessary because we could leave the CultureSelector component visible
+    or available for the entire Blazor/Client UI.
+</p>
+<p>
+    The <strong><code>.EndsWith</code></strong> method is required because we configured
+    the web application host to resolve to the <code>app.flix-manager.com</code>
+    <a href="09-custom-domain-web-app">custom domain name</a>. We want to display the
+    CultureComponent only if the requested URL ends with "flix-manager":
+    https://app.flix-manager.com/movies/flix-manager/
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Test the culture selector component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Set the browser language settings to english as the first language, run the application,
+    and navigate to the FlixManager routable component. The content should be displayed in
+    english and the CultureSelector component should be available:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/23-flix-manager-en-us.png"
+         alt="FlixManager with en-US culture." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Use the CultureSelector to modify the current culture to "es-MX". The page (routable
+    component) should be reloaded from the server and any localized content should be
+    displayed in spanish:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/24-flix-manager-es-mx.png"
+         alt="FlixManager with es-MX culture." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.3:</span>
+    Go to the "Storage" tab of web browser's developer tools and select "Local Storage"
+    to confirm that the &lt;Key,Value&gt; pair stored in the browser's local storage by
+    the CultureSelector component is "es-MX":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/30-local-storage.png"
+         alt="Web browser's local storage with culture value stored." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.4:</span>
+    Stop and restart the application. If you navigate to the FlixManager routable
+    component, the localized content should be displayed in spanish even though the
+    browser's preferred language setting is in english.
+</p>
+<p>
+    Recall that the <code>ConfigureLocalizationServices</code> extension method of
+    the <dfn>BlazorMovies.Client.Helpers.ServiceExtensions LocalizationServices</dfn>
+    class retrieves the user's culture preference from the browser's local storage
+    during application build up to set the
+    <code>
+        System.Globalization.CultureInfo.CurrentCulture
+    </code> (default format) and the
+    <code>System.Globalization.CultureInfo.CurrentUICulture</code> (translated strings)
+    of the application.
+</p>
+<p>
+    If you were to use the CultureSelector to select the "en-US" culture, the localized
+    content should be displayed in english because the preferred culture has been set in
+    the browser's local storage to "en-US".
+</p>
+<h5>Setting Culture Statically</h5>
+<p>
+    You can statically set the culture with JavaScript (JS) or with CSharp code. If required,
+    you can refer to the documentation to <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#statically-set-the-culture-1">
+        Statically set the culture
+    </a>.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-6.0">
+            Globalization and localization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/globalization#work-with-culture-specific-settings">
+            Globalization
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/localization">
+            Localization in .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly">
+            ASP.Net Core Blazor globalization and localization
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/resources">
+            Resources in .Net apps
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/create-resource-files">
+            Create resource files for .Net apps
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/package-and-deploy-resources">
+            Package and deploy resources in .Net Apps
+        </a>
+    </li>
+    <li>
+        <a href="https://chrissainty.com/simple-localisation-in-blazor/">
+            Simple Localisation in Blazor
+        </a>
+    </li>
+    <li>
+        <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes">
+            List of ISO 639-1 codes
+        </a>
+    </li>
+    <li>
+        <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes">
+            List of ISO 3166 country codes
+        </a>
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@EKb8fU_JzD2fyc3yySZD014iqd9TJ0tkCwq-FqH_-jDLBejsz5lVYuQrlq7eYDzC/">
+            Section 11: Internationalization
+        </a> of Udemy course Programming in Blazor - ASP.Net Core 5 by Felipe Gavilán
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-javascript-from-dotnet?view=aspnetcore-6.0#synchronous-js-interop-in-blazor-webassembly-apps">
+            Synchronous JS interop in Blazor WebAssembly apps
+        </a>
+    </li>
+</ul>
+<h5>Localization of Data Annotations in Blazor Apps</h5>
+<p>
+    We explained that for each default resource file created, Visual Studio automatically
+    generates a Designer.cs class that contains all the translation keys as <strong>
+        public properties.
+    </strong> This allows to create strongly typed resource references that can be
+    looked up as localized strings:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/03-resource-files-folder-tree.png"
+         alt="Resource files folder tree." />
+</div>
+<p>
+    Data annotation localization in Blazor WASM (client-side) and Blazor Server apps, such
+    as validation error messages, is implemented using:
+</p>
+<ul>
+    <li>
+        <p><strong><code>ValidationAttribute.ErrorMessageResourceType</code></strong> property.</p>
+        <p>
+            Gets or sets the resource type to use for error-message lookup if validation
+            fails; i.e., the resource type that represents the resource file with the
+            translated validation error text (messages).
+        </p>
+    </li>
+    <li>
+        <p><strong><code>ValidationAttribute.ErrorMessageResourceName</code></strong> property.</p>
+        <p>
+            Gets or sets the error message resource name (Key) to use in order to look up
+            the <dfn>ErrorMessageResourceType</dfn> property value (value) if validation fails.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Localize the <a href="04-forms-part-two">MovieForm</a> component. Make sure to include
+    localization for the data annotations of its root entity (Movie); include localization
+    for the validation error messages of its fields.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The following steps assume you have enabled the localization services in Application/Client
+    as demonstrated earlier.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create one resource file for each culture that you want to make available for the
+    MovieForm component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Go to the Application/Shared/Resources directory and "Add a new Item" of type "Resources
+    File" as follows:
+</p>
+<ul>
+    <li>
+        A file named "MovieFormResources.resx" (this is the default resource file for
+        the MovieForm component).
+    </li>
+    <li>
+        A file named "MovieFormResources.es-MX.resx" (this is the resource file that
+        contains the spanish language text for the MovieForm component).
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/25-movie-form-resources-folder-tree.png"
+         alt="Folder tree of MovieForm component resource files." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Create a new entry in the default MovieFormResources.resx file for each field in the
+    Application/Client/Pages/Movies MovieForm component and one entry for each data validation
+    error in the Application/Shared/EDM Movie type:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/26-movie-form-resources.png"
+         alt="MovieForm resource files translations." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the MovieForm component and use the <code>IStringLocalizer&lt;T&gt;</code>
+    interface that provides strings for <code>T</code> where <code>T</code> is the .Net
+    type that represents the resource file with the translated text. For example, use it to
+    <em>localize</em> the "Title" and the "In Theaters" form fields:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/27-movie-form-one.png"
+         alt="MovieForm view file part one." />
+    <img src="Images/36-internationalization/28-movie-form-two.png"
+         alt="MovieForm view file part two." />
+    <img src="Images/36-internationalization/29-movie-form-three.png"
+         alt="MovieForm view file part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Shared/EDM Movie type and use the
+    <strong><code>ValidationAttribute.ErrorMessageResourceType</code></strong> and
+    <strong><code>ValidationAttribute.ErrorMessageResourceName</code></strong> properties
+    to localize the validation error messages:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/31-data-validation-movie-entity.png"
+         alt="Movie entity with localized data validation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Test the localized data validation of the MovieForm component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Run the application, login with the "admin" user created in the <a href="04-secure-user-manager">
+        Secure User Manager
+    </a> lesson, and navigate to the FlixManager routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Select the "es-MX" culture option from the CultureSelector and raise the "on-click"
+    event by clicking a button element of a Movie object to navigate to the MovieEdit routable
+    component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/32-flix-manager-es-mx.png"
+         alt="FlixManager routable component." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Modify the input data of a couple fields to ensure that the localized validation
+    is working as expected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/33-edit-movie-localized-validation.png"
+         alt="EditMovie component with localized data validation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Modify the Application/Client/Shared LoginDisplay component to make it available
+    in the MovieEdit routable component and allow the user to select a different
+    culture:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/35-login-display-movie-edit.png"
+         alt="LoginDisplay component enabled for MovieEdit component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Test the MovieEdit routable component for both supported cultures.
+</p>
+<h5>Shared Resources</h5>
+<p>
+    You can use localized strings from a <dfn>shared resource</dfn>. This prevents
+    duplicating translations for common text in different resource files. For example,
+    text in:
+</p>
+<ul>
+    <li>
+        Button elements to save, cancel, or confirm an action.
+    </li>
+    <li>
+        Popup boxes that provide feedback to the user when an action takes place; e.g.,
+        success, failure.
+    </li>
+    <li>
+        Dialog boxes and or modals.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create localization shared resources to centralize common text (e.g., Save, Cancel,
+    Confirm, Success, Warning) and use them to localize the "Save Changes" button element
+    displayed in the Application/Client/Pages/Movies MovieEdit routable component by
+    the Application/Client/Pages/MovieForm component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the Solution Explorer in Visual Studio to create resource files in the
+    Application/Shared/Resources directory for each <dfn>locale</dfn>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/43-shared-resources.png"
+         alt="SharedResources resource files." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Resource files are case sensitive. Always make sure to double check the spelling
+        to avoid unnecessary extra work trying to debug errors that originate from
+        typing errors.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the MovieForm component and use the <code>IStringLocalizer&lt;T&gt;</code>
+    interface that provides strings for <code>T</code> where <code>T</code> is the
+    .Net type that represents the resource file with the translated strings:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/44-movie-form-shared.png"
+         alt="MovieForm with multiple IStringLocalizer instances." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application, login with the "admin" user created in the <a href="04-secure-user-manager">
+        Secure User Manager
+    </a> lesson, and use the FlixManager routable component to navigate to the
+    MovieEdit component and test the localization feature on the button element at the
+    end of the component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/45-save-changes-localized.png"
+         alt="MovieEdit component with localized Save Changes button element." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://stackoverflow.com/questions/42647384/asp-net-core-localization-with-help-of-sharedresources">
+            ASP.Net Core Localization with help of SharedResources
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#shared-resources-1">
+            Shared resources
+        </a>
+    </li>
+</ul>
+<h5>Custom ValidationAttribute Localization</h5>
+<p>
+    You might recall that in the lesson on <a href="10-ef-soft-delete-audit">
+        Soft Delete & Audit
+    </a>, we created a custom validation attribute for the Movie model to ensure
+    that its "InTheaters" property value is false when its "ReleaseDate" property
+    value is after the current date:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/36-movie-ensure-in-theaters-attribute.png"
+         alt="Movie_EnsureInTheatersAttribute code file." />
+</div>
+<p>
+    Custom validation attributes let you specify validation rules for models (classes)
+    and/or model properties:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/37-in-theaters-data-validation.png"
+         alt="InTheaters property decorated with custom validation attribute." />
+</div>
+<p>
+    Since custom validation attributes qualify as data annotations, they should also
+    be localized to adopt the current user's culture preference.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Refactor the Application/Shared/CustomAttributes Movie_EnsureInTheaters custom
+    validation attribute to support localization and test its performance.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Refactor the Application/Shared/CustomAttributes Movie_EnsureInTheaters custom
+    validation attribute to support localization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/38-custom-attribute-localization-one.png"
+         alt="Custom Movie_EnsureInTheatersAttribute with localization part one." />
+    <img src="Images/36-internationalization/39-custom-attribute-localization-two.png"
+         alt="Custom Movie_EnsureInTheatersAttribute with localization part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Refactor the custom attribute decorator for the InTheaters property of the
+    Application/Client/Shared/EDM Movie entity to accomodate localization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/40-in-theaters-localization.png"
+         alt="InTheaters property decorated with custom validation attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Ensure that the localization feature is properly configured for the custom
+    validation attribute of the Movie.InTheaters property.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Run the application, login with the "admin" user created in the <a href="04-secure-user-manager">
+        Secure User Manager
+    </a> lesson, and navigate to the FlixManager routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Select the "es-MX" culture option from the CultureSelector and raise the "on-click"
+    event by clicking the "Create Movie" button element to navigate to the MovieCreate
+    routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/32-flix-manager-es-mx.png"
+         alt="FlixManager routable component." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Select the "En Cines" checkbox, pass a value in the future for the Release Date
+    (Fecha de Estreno) field and click the Save Changed (Guardar Cambios) button element
+    at the bottom of the form. You should see the data validation error message produced
+    by our custom validation attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/41-create-movie-component-one.png"
+         alt="MovieCreate component with custom data validation error message localized part one." />
+    <img src="Images/36-internationalization/42-create-movie-component-two.png"
+         alt="MovieCreate component with custom data validation error message localized part two." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 141. Multi-Language Error Messages of Udemy course
+        <a href="https://www.udemy.com/share/102l0i3@KlqtIg4uRR_r8SbOTyOEERgOkdGLkkCB1O1thVeX7y9PIm90uhQwf8IyNp4rzPXb/">
+            Programming in Blazor - ASP.Net Core 5
+        </a> by Felipe Gavilán.
+    </li>
+    <li>
+        <a href="https://www.syncfusion.com/faq/blazor/forms-and-validation/how-do-i-localize-data-annotations-in-blazor-server-side-and-webassembly-client-side-applications">
+            How do I localize data annotations in Blazor server-side and WebAssembly (client-side)
+            applications?
+        </a>
+    </li>
+    <li>
+        <a href="https://phrase.com/blog/posts/localizing-error-messages-blazor-webassembly-forms/">
+            How to Localize Error Messages for Blazor WebAssembly Forms
+        </a>
+    </li>
+    <li>
+        <a href="https://iamrks-dev.medium.com/create-custom-validation-attribute-with-localization-support-in-c-net-core-3-1-343ba7a4b8ca">
+            Create Custom Validation Attribute with localization support in C#
+            .Net Core 3.1
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.validationattribute.errormessageresourcetype?view=net-5.0">
+            ValidationAttribute.ErrorMessageResourceType Property
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.validationattribute.errormessageresourcename?view=net-5.0">
+            ValidationAttribute.ErrorMessageResourceName Property
+        </a>
+    </li>
+</ul>
+<h3>ASP.Net Core Razor Pages Globalization and Localization</h3>
+<p>
+    In the beginning of this lesson, we mentioned that our application is a
+    <a href="05-api">
+        hosted Blazor WebAssembly application
+    </a> because it is created for deployment with a backend ASP.Net Core app
+    (Application/Server-Api) to serve its files and a front end UI (Application/Client)
+    responsible for managing user interaction.
+</p>
+<p>
+    Additionally, within the Application/Server-Api, user interaction with
+    <a href="01-security-fundamentals">
+        ASP.Net Core Identity
+    </a> for authentication and authorization operations are handled by a preconfigured
+    <a href="03-security-id-server">
+        Identity Razor class library
+    </a> that is fully integrated with the <a href="02-security-building-blocks">
+        Duende Identity Server framework
+    </a>.
+</p>
+<p>
+    We have successfully implemented <dfn>globalization</dfn> and <dfn>localization</dfn>
+    in the Application/Client (front-end). It is now time to configure these features
+    in the Application/Server-Api (back-end) to enable localization of the preestablished
+    Identity Razor class library.
+</p>
+<p>
+    As you know, each language and culture combination requires a unique
+    resource file. Although the implementation for <dfn>globalization</dfn> and
+    <dfn>localization</dfn> is very similar between the Blazor framework and Razor
+    Pages, the <dfn>ResourceManager</dfn> and <dfn>ResourceReader</dfn>, used by the
+    <code>IStringLocalizer</code> interface to provide culture-specific resources
+    at runtime, expect the resource files architecture a bit different.
+</p>
+<h4>Resource File Naming (Razor Pages)</h4>
+<p>
+    Resource files must still be named using the
+    <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/localization#resource-files">
+        resource file naming conventions
+    </a> that the common language runtime (CLR) expects; e.g., they should include the
+    name of the page file they are related to and its <dfn>locale</dfn>. Nevertheless,
+    this is where the similarities in the resource files architecture ends.
+</p>
+<p>
+    There are <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-6.0#resource-file-naming">
+        two methods to create resource files
+    </a> for Razor pages. One is based on the resource files name (dot naming) and
+    the other uses folders to organize the resource files (path naming). In either
+    case, <strong>it is required to create a folder where the resource files will reside</strong>;
+    e.g., "Resources" root directory.
+</p>
+<h5>Resource Files - dot Naming Convention</h5>
+<p>
+    Resource files should reside in the root "Resources" folder
+    (BlazorMovies/Server-Api/Resources) and they should be named for the full type
+    name of their associated class minus the assembly name. For example, the "en-US"
+    (English-US) and "es-MX" (Spanish-Mexico) resource files for the
+    <dfn>Areas.Identity.Pages.Account.LoginModel</dfn> class in the
+    <dfn>BlazorMovies.Server.dll</dfn>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/46-login-model-namespace.png"
+         alt="Namespace of the LoginModel class." />
+</div>
+<p>
+    Should be named:
+</p>
+<ul>
+    <li><dfn>Areas.Identity.Pages.Account.LoginModel.en-US.resx</dfn></li>
+    <li><dfn>Areas.Identity.Pages.Account.LoginModel.es-MX.resx</dfn></li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/48-login-model-dot-naming.png"
+         alt="LoginModel dot naming folder structure." />
+</div>
+<p>
+    If the targeted class's namespace is not the same as the assembly name, the
+    full type name is required (include the assembly name).
+</p>
+<h5>Resource Files - Path Naming Convention</h5>
+<p>
+    Resource files should reside in the root "Resources" folder
+    (BlazorMovies/Server-Api/Resources) and they should be organized into separate
+    folders that mimic the folder structure of their associated class. For example,
+    the folder structure for the "en-US" (English-US) and "es-MX" (Spanish-Mexico)
+    resource files for the <dfn>Areas.Identity.Pages.Account.LoginModel</dfn> class in
+    the <dfn>BlazorMovies.Server.dll</dfn> would be:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/47-login-model-folder-tree.png"
+         alt="Folder tree for the resource file for the LoginModel class." />
+</div>
+<p>
+    Keep in mind that the LoginModel class resides in the Login.cshtml.cs code file
+    as shown a couple images earlier.
+</p>
+<p>
+    The choice of using the <dfn>dot</dfn> or <dfn>path</dfn> naming convention depends
+    on how you want to organize your resource files. For our application, we will
+    adhere to the path naming convention to organize resource files into separate
+    folders that mimic the folder structure of their associated class.
+</p>
+<h5>Creating the Localized Resource Files</h5>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create resource files for the Application/Server-Api/Areas/Identity
+    Pages/Account Login view file. You can refer to YouTube video <a href="https://youtu.be/WGYvThTvwCY">
+        Localizing ASP.Net 6.0 Razor Pages
+    </a> by Medhat Elmasry for an example of what is done here.
+</p>
+<p>
+    One resource file for each <dfn>locale</dfn> that you want the application to
+    support; i.e., create a resource file that contains text in english and a resource
+    file with text in Spanish-MX.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Take a look to the Login page, the first section of the Login.cshtml presentation
+    file, and the first section of the Login.cshtml.cs code file.
+</p>
+<p>Login page:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/55-login-ui.png"
+         alt="Login page." />
+</div>
+<p>First section of the Login.cshtml view (or presentation) file:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/56-login-view-file-one.png"
+         alt="First section of the Login.cshtml view file part one." />
+    <img src="Images/36-internationalization/57-login-view-file-two.png"
+         alt="First section of the Login.cshtml view file part two." />
+</div>
+<p>Login.cshtml.cs code file:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/58-login-code-file.png"
+         alt="LoginModel code file." />
+</div>
+<p>
+    The <code>InputModel</code> class members represent the form fields in the first section
+    of the Login.cshtml presentation (or view) file and the <code>InputModel</code> class
+    in turn is bound to the LoginModel class through the <code>LoginModel.Input</code> property
+    decorated with a <code>[BindProperty]</code> attribute to indicate the model binding.
+</p>
+<p>
+    Since we chose the <dfn>path naming convention</dfn> for the resource files that contain
+    the translated text for every supported culture, <strong>
+        the <code>InputModel</code> class should not reside within the LoginModel class.
+    </strong> Otherwise, resource lookup will <strong>
+        fail to identify and index the associated localized strings
+    </strong> because it won't be able to identify the nested <code>InputModel</code> class.
+</p>
+<p>
+    In other words, we need to <span class="mark">
+        <strong>
+            create an Application/Server-Api/Models root directory
+        </strong>
+    </span> which will be responsible for encompassing any utility models (or classes) and
+    we also need to <span class="mark">
+        <strong>
+            create an Application/Server-Api/Resources/Models directory
+        </strong>
+    </span> which will be responsible for encompassing the resource files for any utility
+    classes organized into separate folders that mimic the folder structure of their
+    associated class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Create an Application/Server-Api/Models root directory and extract the nested
+    <code>InputModel</code> type from the LoginModel.cshtml.cs class to relocate it into
+    the Models directory. Rename it to match its parent (or consumer) class; e.g.,
+    <em>LoginInputModel</em> to avoid any confusions with any other InputModel utility
+    classes.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    LoginInputModel folder tree:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/59-login-input-model-folder-tree.png"
+         alt="LoginInputModel folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    LoginInputModel class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/60-login-input-model.png"
+         alt="LoginInputModel class." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <code>System.ComponentModel.DataAnnotations</code>
+        <a href="https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.displayattribute?view=net-7.0">
+            DisplayAttribute class
+        </a> provides a general purpose attribute that lets you specify localizable
+        string for types and members of entity partial classes. The properties of this
+        class (e.g., Name) can be used either as literals or as resource identifiers
+        for a specified <code>ResourceType</code> instance.
+    </p>
+</div>
+<p>
+    Its <code>Name</code> property gets or sets a value that is used for display in
+    the UI. <span>
+        <strong>
+            The property value is used as the "Key" in the associated resource file.
+        </strong>
+    </span>
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Update the Login.cshtml.cs code file with the new name of the LoginInputModel class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/61-login-model-updated.png"
+         alt="LoginModel file updated." />
+</div>
+<p>
+    With the correct folder structure, we can create the resource files for the
+    Application/Server-Api/Areas/Identity/Pages/Account Login page.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Create one resource file for each locale that the application will support. Consider
+    that at this point the Login page is constructed with the
+    Application/Server-Api/Areas/Identity/Pages/Account LoginModel and the
+    Application/Server-Api/Models LoginInputModel classes.
+</p>
+<p>
+    This means that we need to create 4 resource files:
+</p>
+<ul>
+    <li>
+        Application/Server-Api/Resources/Areas/Identity/Pages/Account LoginModel.en-US.resx
+    </li>
+    <li>
+        Application/Server-Api/Resources/Areas/Identity/Pages/Account LoginModel.es-MX.resx
+    </li>
+    <li>
+        Application/Server-Api/Resources/Models/LoginInputModel.en-US.resx
+    </li>
+    <li>
+        Application/Server-Api/Resources/Models/LoginInputModel.es-MX.resx
+    </li>
+</ul>
+<p>
+    At the end, you should have something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/49-resource-files-folder-tree.png"
+         alt="Resource files folder tree." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Create the LoginModel resource files:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/50-login-model-resource-files.png"
+         alt="LoginModel resource files." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Create the LoginInputModel resource files:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/62-login-input-model-resource-files.png"
+         alt="LoginInputModel resource files." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    <ul>
+        <li>
+            The "Key" in the LoginModel resource files is the text that they represent
+            because later we will use the <code>IStringLocalizer&lt;T&gt;</code> to
+            provide the localized strings (language translations).
+        </li>
+        <li>
+            The "Key" in the LoginInputModel resource files is the
+            <code>System.ComponentModel.DataAnnotations.Display.Name</code>
+            property value.
+        </li>
+    </ul>
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Resource files are <strong>case sensitive</strong>. Always make sure to double
+        check the spelling to avoid unnecessary extra work trying to debug errors that
+        originate from typing mistakes.
+    </p>
+</div>
+<h5>Enabling Localization Services</h5>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the localization section of the <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#localization-1">
+        documentation
+    </a> to enable <dfn>localization</dfn> for the Razor pages UI library responsible for
+    handling authorization and authentication operations (Application/Server-Api/Areas/Identity).
+    Make sure to extend the dependency injection container to define all the code logic
+    elsewhere.
+</p>
+<p>
+    Recall from lesson <a href="02-components-part-two">Part-II</a> of the Components
+    module that ASP.Net Core supports the dependency injection design pattern to inject
+    services in a central location such as the dependency injection container (e.g.,
+    Application/Server-Api/Program.cs) and make them available throughout the application.
+</p>
+<p>
+    Sometimes the code logic required for configuring a service can become quite extensive.
+    For this reason, we will create an Application/Server-Api/Helpers/ServiceExtensions
+    LocalizationServices.cs class responsible for defining the <dfn>localization</dfn>
+    registration and configuration code logic away from the dependency injection container
+    to keep it as lean as possible.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Update all the NuGet packages installed in the Application/Server-Api project and
+    add the <strong><em>Microsoft.Extensions.Localization</em></strong> package.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Add a <code>Microsoft.Extensions.Locations</code> <dfn>using directive</dfn> to the
+    Application/Server-Api <code>_ViewImports.cshtml</code> file to make the
+    <code>IStringLocalizer&lt;T&gt;</code> available anywhere in the assembly.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Server-Api/Helpers directory and create a static
+    LocalizationServices class. The LocalizationServices class must include
+    EnableLocalizationServices and ConfigureRequestLocalizationPipeline methods:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/51-localization-services-config-one.png"
+         alt="LocalizationServices class part one." />
+    <img src="Images/36-internationalization/52-localization-services-config-two.png"
+         alt="LocalizationServices class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the dependency injection container to register the localization services
+    and configure the HTTP request pipeline during application build up.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Call the EnableLocalizationServices to register the localization services in
+    the IServicesCollection of the dependency injection container.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Chain the .AddViewLocalization and .AddDataAnnotationsLocalization extension methods
+    to the .AddControllersWithViews method to support localized view files and data
+    annotations validation messages through IStringLocalizer abstractions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/53-enable-localization.png"
+         alt="Enable localization services." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Call the ConfigureRequestLocalizationPipeline() extension method to set culture
+    information for Http requests based on information provided by the client:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/54-configure-http-pipeline.png"
+         alt="Configure HTTP request pipeline." />
+</div>
+<h4>Setting Culture by User Preference (dynamically)</h4>
+<p>
+    We explained earlier that the <a href="https://developer.mozilla.org/docs/Web/HTTP/Headers/Accept-Language">
+        Accept-Language
+    </a> HTTPS header is set by the browser and controlled by the user's language
+    preferences. A user can set one or more languages in order of preference with the
+    web browser settings.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the ASP.Net Core <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization/make-content-localizable?view=aspnetcore-6.0">
+        documentation
+    </a> to dynamically localize the Application/Server-Api/Areas/Identity Pages/Account/Login
+    Razor page using the <code>Accept-Language</code> Http request header.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Login.cshtml presentation file and use the <code>IStringLocalizer&lt;T&gt;</code>
+    interface that provides strings for <code>T</code> where <code>T</code> is the .Net type
+    that represents the resource file with the translated text:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/63-localized-view-file-one.png"
+         alt="Localized Login presentation file part one." />
+    <img src="Images/36-internationalization/64-localized-view-file-two.png"
+         alt="Localized Login presentation file part two." />
+    <img src="Images/36-internationalization/65-localized-view-file-three.png"
+         alt="Localized Login presentation file part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Did you notice that the <code>LoginInputModel</code> members do not have any explicit
+    localization configuration? Recall that we used a
+    <code>System.ComponentModel.DataAnnotations.Display</code> attribute for each
+    <dfn>LoginInputModel</dfn> member. The <code>Display</code> attribute lets you
+    specify localizable strings for types and members of entity partial classes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Open your web browser settings to set the default language to spanish. Once the desired
+    language is configured, run the application and navigate to the Login page. You should
+    see the localized content in the appropriate language:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/66-localized-login-page.png"
+         alt="Localized Login page." />
+</div>
+<h4>Localization of Data Annotation Attributes in Razor Pages</h4>
+<p>
+    A production application will require resources to localize form labels and validation
+    error messages for PageModel properties that have data annotation attributes applied
+    to them.
+</p>
+<p>
+    We have already demonstrated how to localize form labels in the "Creating the Localized
+    Resource Files" section above where we used the
+    <code>System.ComponentModel.DataAnnotations</code> <dfn>DisplayAttribute</dfn> class
+    which provides a general purpose attribute that lets you specify localizable strings
+    for types and members of entity partial classes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/60-login-input-model.png"
+         alt="LoginInputModel class decorated with Display attribute." />
+</div>
+<p>
+    The <strong><code>Display.Name</code></strong> property gets or sets a value that is
+    used for display in the UI. This property value is used as the "Key" in the associated
+    resource file (Application/Server-Api/Models/LoginInputModel.resx).
+</p>
+<p>
+    To <strong>localize data validation errors</strong>, we need to <span class="mark">
+        <strong>
+            explicitly define the <code>ValidationAttribute.ErrorMessage</code> property
+            value
+        </strong>
+    </span> which is used as the "Key" in the associated resource file
+    (Application/Server-Api/Models/LoginInputModel.resx).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Implement localization for the validation error messages of the members of the
+    LoginInputModel class.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the <code>ValidationAttribute.ErrorMessage</code> property to explicitly define the
+    error messages. The property value is used as the "Key" in the associated resource file
+    with the translated text:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/67-login-input-model-localized.png"
+         alt="LoginInputModel with localized ErrorMessages." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Update the associated resource files with the translated text:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/68-login-input-model-resource-files.png"
+         alt="LoginInputModel resource files updated." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Open your web browser settings to set the default language to spanish. With the
+    language setting configured, run the application, navigate to the Login page and
+    test the validation error messages for the email and password fields:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/36-internationalization/69-localized-error-messages.png"
+         alt="Login page with localized validation error messages." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/WGYvThTvwCY">
+            Localizing ASP.Net 6.0 Razor Pages
+        </a> by Medhat Elmasry
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-6.0#resource-file-naming">
+            Resource file naming
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/localization#register-localization-services">
+            Localization in .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/localization#register-localization-services">
+            Register localization services
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization/select-language-culture?view=aspnetcore-6.0">
+            Implement a strategy to select the language/culture for each request in a localized
+            ASP.Net Core app
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization/make-content-localizable?view=aspnetcore-6.0">
+            Make an ASP.Net Core app's content localizable
+        </a>
+    </li>
+    <li>
+        <a href="https://code-maze.com/aspnetcore-localization/">
+            Localization in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://www.mikesdotnetting.com/article/345/localisation-in-asp-net-core-razor-pages-cultures">
+            Localisation in ASP.Net Core Razor Pages - Cultures
+        </a>
+    </li>
+    <li>
+        <a href="https://www.mikesdotnetting.com/article/346/using-resource-files-in-razor-pages-localisation">
+            Using Resource Files In Razor Pages Localisation
+        </a>
+    </li>
+    <li>
+        <a href="https://www.mikesdotnetting.com/article/347/localising-data-annotation-attributes-in-razor-pages">
+            Localising Data Annotation Attributes in Razor Pages
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.dataannotations.displayattribute?view=net-7.0">
+            DisplayAttribute Class
+        </a>
+    </li>
+</ul>
+<h4>Shared Resources</h4>
+<p>
+    We have established page-specific localization resources. They are associated to the
+    PageModel type and although there is no technical impediment to inject a PageModel
+    type into any other page to localize common text, this is not a good practice at all.
+</p>
+<p>
+    Instead, you should create common resources that can be consumed by different PageModels.
+    For more info, you can refer to:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/globalization-localization?view=aspnetcore-6.0&pivots=webassembly#shared-resources-1">
+            Shared Resources
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/WGYvThTvwCY">
+            Localizing ASP.Net 6.0 Razor Pages
+        </a> by Medhat Elmasry
+    </li>
+    <li>
+        Common Resources section in
+        <a>
+            Using Resource Files in Razor Pages Localisation
+        </a>
+    </li>
+</ul>

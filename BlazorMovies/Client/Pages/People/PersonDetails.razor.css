@@ -1,0 +1,88 @@
+﻿
+/* #region Actor Picture & Biography */
+
+.actor-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin: 15px 0px;
+    max-width: 700px;
+
+}
+
+.picture-container {
+    align-items: center;
+    border-radius: 5px;
+    box-sizing: border-box;
+    display: flex;
+    margin-bottom: 15px;
+    max-width: 100%;
+}
+
+    .picture-container img {
+        border: 1px solid lightgrey;
+        display: block;
+        max-width: 30%;
+        margin: auto;
+    }
+
+.biogaraphy-container {
+    border: 1px solid grey;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    padding-bottom: 5px;
+}
+
+.title {
+    flex: 1;
+    padding: 5px 15px;
+}
+
+.biography-content {
+    display: flex;
+    flex: 7;
+    padding: 5px 15px;
+}
+
+.title-span {
+    margin: 0;
+    font-family: sans-serif;
+    font-weight: bolder;
+}
+
+/* #endregion */
+
+
+/* #region Responsive layout */
+
+@media screen and (min-width: 900px) {
+    .actor-container {
+        flex-direction: row;
+        height: 155px;
+        margin: 20px 0px;
+        justify-content: space-between;
+    }
+
+    .picture-container {
+        border: 1px solid grey;
+        flex-basis: 30%;
+        margin: 0px 0px;
+        padding: 15px 20px;
+    }
+
+        .picture-container img {
+            max-width: 95%;
+            max-height: 95%;
+        }
+
+    .biogaraphy-container {
+        flex-basis: 68%;
+        height: auto;
+    }
+}
+
+/* #endregion */
+
+

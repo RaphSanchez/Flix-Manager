@@ -1,0 +1,1025 @@
+﻿@page "/04-load-complex-data"
+<PageTitle>Load Complex Data</PageTitle>
+
+<h2>Consuming the Api - Load Complex Data</h2>
+<p>
+    It is of the utmost importance that you have a clear understanding of terms like
+    entity relationships, loading and saving related data, circular references, etc.
+    Section <a href="03-create-complex-data">Create Complex Data</a> of this module
+    has an introduction to these topics.
+</p>
+<p>
+    Since we have explained how to create records and store them in the database,
+    including any related data (entities), now we are going to learn how to read
+    those records.
+</p>
+<p>
+    Hopefully by now you have perfectly clear that we created a generic
+    Application/Server-Api/Repositories/<a href="07-api-repository">EfRepository</a>
+    that provides the code logic for general functionality applicable to all data
+    entity types. It has methods that are equivalent to CRUD operations. However,
+    none of these methods are capable of building a query to load entities that
+    include their related data.
+</p>
+<p>
+    The reason is simple. Related data (entity relationships) are represented as
+    reference navigation properties and/or collection navigation properties on
+    each type (class). Starting with EF Core 5, to load a related entity, you must
+    get the entity (principal) to be tracked by the database context and explicitly
+    include any related entities (represented as navigation properties). Given the
+    generic nature of the EfRepository class, it is not its responsibility to contain
+    functionality specific to a particular entity type.
+</p>
+<p>
+    We also mentioned in last lesson that the operations (functionality) exposed
+    to the Application/Client (by the <a href="09-api-connector-service">IApiService</a>)
+    mirror (same signature) the operations executed by the <a href="07-api-repository">
+        IUnitOfWork
+    </a> (business logic and database operations). For this reason, both abstract
+    layers implement an IEntityName interface (e.g., IMovie) to expose and represent
+    data entities and their functionality.
+</p>
+<p>
+    Besides implementing the IRepository&lt;TEntity&gt;, IEntityName interfaces extend
+    its functionality with operations that are specific to the entity type that they
+    represent. IEntityName interfaces are exposed, and implemented in their own way,
+    by the <strong>IApiService</strong> and the <strong>IUnitOfWork</strong>
+    interfaces.
+</p>
+<p>
+    This means that <strong>
+        if we intend to add specific functionality for data entities (such as
+        <a href="03-create-complex-data">eager loading</a> related data), we must
+        implement it in both layers of the application.
+    </strong> We can use the ApiEntityName and EfEntityName classes to implement
+    functionality exposed by the IEntityName interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/02-app-repository-folder-tree.png"
+         alt="Application/Repository folder tree." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span> Server resources are limited and
+    constitute an important factor that has a direct impact on application performance.
+    As mentioned in last lecture, you should load related data if and only when you
+    need it. Furthermore, whenever possible, specify the exact details of the data
+    required (e.g., what property members). For more info go to the lesson on
+    <a href="08-api-controllers">Modeling for Performance</a>.
+</p>
+<p>
+    For cases where you do not need to load related data, you can use the methods defined
+    by the Application/Server-Api/Repositories/EfRepository which contains general functionality
+    equivalent to CRUD operations applicable to all data entity types. These methods do not
+    load related data by default.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you need to load related data, you can employ a custom DTO with the exact
+        details of the data required (e.g., property members).
+    </p>
+</div>
+<p>
+    Recall from the lesson to <a href="03-create-complex-data">Create Complex Data</a>
+    that the <span class="mark">
+        <strong>
+            procedure to add new functionality to our application for a specific data
+            entity type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>ComponentNameDto</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to filter.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to
+        expose the specific functionality (method) to the Application/Client and establish a
+        contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the applicaiton's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions, it might also be required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its implementation
+        (ApiConnector class).
+    </p>
+</div>
+
+<p>
+    This was the case in the example to <a href="03-create-complex-data">
+        Create Complex Data
+    </a> where we give the application the capability to add new Movie objects that
+    include their related data. We had to create an overload of the
+    IApiConnector/InvokePostAsync() generic method capable of handling two different
+    types. One for its formal input parameter and one for its return type.
+</p>
+<p>
+    Having said this, you might recall that in lecture
+    <a href="03-routing">03. Routing</a>, we created an Index routable component for
+    the Movie section (Flix Visualizer then became Flix Manager). Later, in lesson
+    <a href="04-forms-part-one">04. Forms</a>, we created an Index routable component
+    for the Genre (IndexGenre) and People (IndexPeople) sections:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/01-indexes-folder-tree.png"
+         alt="Application folder tree with Index components." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necesssary adjustments to
+    enable the FlixManager routable component to display two sets of movies. One with
+    upcoming releases and one with movies currently in theaters. Arrange that:
+</p>
+<ol>
+    <li>
+        Movies in theaters are presented in descending order using its release date; i.e.,
+        from most recent.
+    </li>
+    <li>
+        Movies that are upcoming releases are presented in ascending order using its release
+        date; i.e., from the closest to be released.
+    </li>
+    <li>
+        Each movie item has an "Edit" and a "Delete" button element.
+    </li>
+</ol>
+<p>
+    We can benefit once more from the characteristics of Razor
+    <a href="02-components-part-one">components</a>. As you know, they are self-contained,
+    reusable pieces of user interface (UI) that may include processing logic. The
+    <a href="02-components-part-four">MoviesCatalog</a> component was built to take a
+    collection of movie items and render them in an orderly fashion. The
+    <a href="movies-search">Search Movie</a> routable component consumes a MoviesCatalog
+    component to render a collection of Movie objects:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/03-movies-catalog.png"
+         alt="MoviesCatalog component rendering Movie objects." />
+</div>
+<p>
+    Study the code logic for the MoviesCatalog:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/04-movies-catalog-code-logic.png"
+         alt="MoviesCatalog markup and code logic." />
+</div>
+<p>
+    For the task in hand, we need two sets of Movies. One with upcoming releases and
+    one with movie items currently in theaters. One approach could be to query the
+    database for the full list of Movie items and build the two sets on the client-side.
+    However, as we have explained, it is not the responsibility of the Application/Client
+    to perform business logic operations. These should be executed away from the UI.
+</p>
+<p>
+    The solution is very similar to the one demonstrated in last section where we
+    configure the application to create new Movie objects because it presents the
+    same challenge. We need a way to wrap the required information (two sets of Movie
+    items) so it can be included in the Http response in a single trip. This can be
+    easily accomplished with a <a href="04-forms-part-two">DTO</a>.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The naming standard for our custom DTOs responsible for encapsulating specific
+        data to include in an Http request/response will be:
+        <span class="mark"><strong>ComponentNameDto</strong></span>. The DTO name is
+        constructed with the name of the component it is built for and a "Dto" suffix.
+    </p>
+</div>
+<p>
+    Recall from lesson on <a href="08-api-controllers">Modeling for Performance</a>
+    that you <span class="mark">
+        <strong>
+            must pay special attention when building a model because it is quite
+            difficult to change a model once an application is running in production.
+        </strong>
+    </span> It is worth keeping performance in mind when creating the initial model.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Application/Shared/EntityDtos
+    folder and add a new DTO named FlixManagerDto. This type will be responsible for
+    encapsulating the data (Movie collections and any other data needed for the FlixManager)
+    so it can be included in the Http request/response as a single element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/05-flix-manager-dto.png"
+         alt="FlixManager data transfer object." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span> Parameter names in the constructor of the
+    DTO that encapsulates the data must match with a property or field name on the object.
+    This means that <span class="mark">
+        <strong>
+            each name of the formal input parameters in the constructor must match a
+            property or field name.
+        </strong>
+    </span> Otherwise, <dfn>System.Text.Json</dfn> serializer won't be able
+    to bind to an object property or field on deserialization (won't be able to match
+    property values accordingly) and will throw a <dfn>SystemInvalidOperationException</dfn>.
+    The match can be <strong>case-insensitive</strong>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Client/ApiServices/IRepositories/IMovies interface to expose a new
+    GetFlixManagerDto() method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/06-i-movies-expose-method.png"
+         alt="IMovies interface exposes new method to the UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define the implementation of the new
+    method in the Application/Server-Api/Repositories/EfMovies class. This is the specific
+    functionality with business logic that performs operations on the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/07-get-flix-manager-dto-implementation-one.png"
+         alt="Implementation of the GetFlixManagerDtoAsync method part one." />
+    <img src="Images/10-LoadComplexData/07-get-flix-manager-dto-implementation-two.png"
+         alt="Implementation of the GetFlixManagerDtoAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span> Always strive for creating as
+    <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-querying#beware-of-lazy-loading">
+        efficient queries
+    </a> as possible because they can add up to a significant impact on application performance.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Define the implementation of the new
+    method in the Application/Client/ApiServices/ApiManager/ApiMovies class. This is the
+    specific functionality to build the URI that matches the route template of the controller
+    endpoint and for creating the Http request to retrieve the required data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/08-api-movies-get-flix-manager-method-one.png"
+         alt="GetFlixManagerDtoAsync method implementation for ApiMovies class part one." />
+    <img src="Images/10-LoadComplexData/08-api-movies-get-flix-manager-method-two.png"
+         alt="GetFlixManagerDtoAsync method implementation for ApiMovies class part two." />
+</div>
+<p>
+    The business logic layer (Application/Server-Api/Repositories) is configured. Now it is
+    time to refactor the Application/Server-Api/Controllers layer. Recall that the
+    controllers respond to Application/Client Http requests by invoking the appropriate
+    business logic.
+</p>
+<p>
+    This means we need to add an <dfn>action</dfn> decorated with an HttpGet verb that
+    includes an additional route segment "flix-manager".
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Go to the
+    Application/Server-Api/Controllers/MoviesController and declare a new <dfn>action</dfn>
+    named GetFlixManagerDtoTask() and decorate it with an <code>[HttpGet]</code> verb
+    that includes the "flix-manager" route segment:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/09-movies-controller-get-flix-manager-one.png"
+         alt="MoviesController with an action named GetFlixManagerDtoTask part one." />
+    <img src="Images/10-LoadComplexData/09-movies-controller-get-flix-manager-two.png"
+         alt="MoviesController with an action named GetFlixManagerDtoTask part two." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span> Recall from the
+    <a href="08-api-controllers">Api Controllers</a> section <strong>not</strong> to
+    include an "Async" suffix to the name of the action methods because ASP.Net Core
+    MVC trims the suffix "Async" from action names by default. This change affects both
+    routing and link generation. <strong>
+        Instead you can use the "Task" word as a suffix
+    </strong> to indicate that they are asynchronous operations.
+</p>
+<p>
+    This concludes the necessary adjustments for the back-end of the application. Let's
+    focus on the front-end (Application/Client).
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Refactor the
+    Application/Client/Pages/Movies/FlixManager routable component to consume the
+    IApiService to generate the Http request for a FlixManagerDto object and render the
+    data retrieved into two separate collections. One with Movie objects currently in
+    theaters and the other collection with upcoming releases:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/10-flix-manager.png"
+         alt="FlixManager component consumes the GetFlixManagerDtoAsync method." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Always include an exception handling
+    mechanism for functionality that performs some sort of operation with the database.
+</p>
+<p>
+    If you navigate to the FlixManager routable component you should see something
+    like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/11-flix-manager-UI.png"
+         alt="Flix Manager UI." />
+</div>
+<p>
+    Since we are working with the <em>Flix Manager</em>, we can improve it to allow
+    the user to navigate to the <dfn>MovieBulletin</dfn> routable component of a
+    certain Movie object displayed.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Perform any necessary adjustments to
+    enable the <em>Flix Manager</em> navigate to the <em>MovieBulletin</em> routable
+    component when a user clicks on a given Movie item to obtain more info about it.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Study the component hierarchy to find
+    out which component is responsible for rendering each Movie item of the collections
+    presented by the Flix Manager. The rendering markup can be configured to direct the
+    user to the MovieBulletin routable component when clicked.
+</p>
+<p>
+    As shown earlier, the FlixManager uses a <em>MoviesCatalog</em> component to render
+    the collections of Movie items that fit in the Upcoming Releases and In Theaters
+    categories. The MoviesCatalog in turn, employs a <em>RenderMovie</em> component to
+    render each Movie item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/16-movies-catalog.png"
+         alt="MoviesCatalog component." />
+</div>
+<p>
+    The <em>RenderMovie</em> component contains the markup responsible for rendering
+    each Movie item in the collections. Notice that the anchor element (&lt;a&gt;)
+    for the image (Movie.PosterPath property) does not have a value for its "href"
+    attribute.
+</p>
+<p>
+    What's more, the "href" attribute value for the Edit button element is currently
+    the <a href="03-routing">route template</a> for the MovieBulletin component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/17-render-movie-component.png"
+         alt="RenderMovie component." />
+</div>
+<p>
+    Let's go to the <em>MovieBulletin</em> routable component to refresh our memory
+    on its base route:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/18-movie-bulletin-component.png"
+         alt="MovieBulletin routable component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the RenderMovie component and
+    provide the anchor element of the Movie.PosterPath with the route to direct the
+    user to the MovieBulletin component and modify the route of the Edit button element
+    to direct the user to the MovieEdit component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/19-render-movie-correct-routes.png"
+         alt="RenderMovie component with correct routes." />
+</div>
+<p>
+    The <dfn>route parameter</dfn> values passed to the route for the MovieBulletin
+    component include a ToLower() and a Replace() method that replaces empty characters
+    with a hyphen character.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Recall that when Blazor navigates to
+    a new URL within the same app, it does not actually navigate in the traditional
+    www sense; i.e., no request is sent to the server requesting the content for the
+    new page. Instead, Blazor rewrites the browser's URL and then renders the relevant
+    content. If you are not sure why this works as it does, refer to the lesson on
+    <a href="03-routing">Routing</a>.
+</p>
+<p>
+    These modifications should direct the user to the MovieBulletin component when
+    any of the images presented by the Flix Manager is clicked on and it should
+    direct the user to the MovieEdit routable component when the user raises the
+    @@onclick event of its "Edit" button element.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Test the Flix Manager component
+    by clicking on the image of the Spider man movie. It should navigate to the
+    MovieBulletin routable component and the address bar of the browser should display
+    its route parameter values; i.e., it should display the Movie.Id and the Movie.Title
+    in low caps and with empty characters replaced by hyphens:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/20-movie-bulletin-address-bar.png"
+         alt="MovieBulletin address bar with route parameter values." />
+</div>
+<p>
+    The Movie.Title property value has 3 consecutive hyphens because the Movie
+    title is "SpiderMan - Far From Home" but we can modify the Movie.Title later
+    when the <a href="06-update-complex-data">Update Complex Data</a> section is
+    completed.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> The browser should also display the
+    URL in the form of a popover, with the aforementioned values, if you go to the
+    FlixManager component and hover the mouse pointer on any of the Movie images.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Refactor the MovieBulletin component to
+    present all the available information of the corresponding Movie item including its
+    poster and official trailer. At the end of this task, you should have something like
+    this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/21-movies-bulletin-example.png"
+         alt="Example of the completed UI for the MoviesBulletin." />
+</div>
+<p>
+    Ensure that the following characteristics are met:
+</p>
+<ol>
+    <li>
+        Present a "spinner" to inform the user when the info is loading from the
+        data source.
+    </li>
+    <li>
+        The address bar of the web browser displays the Movie.Id property
+        value and the Movie.Title separated by hyphens and in lower case.
+    </li>
+    <li>
+        Use the Movie.Title and year of the Movie.ReleaseDate as heading.
+    </li>
+    <li>
+        Include its Genre categories as hypertext (separated by commas) that directs
+        the user to the <em>Search Movie</em> component created in the introductory
+        lesson on <a href="04-forms-part-one">Filtering Form Records</a>. The Search
+        Movie component will be completed in next lesson on <a href="05-filters">Filters</a>.
+    </li>
+    <li>
+        Render the full release date to the right of the Genre items.
+    </li>
+    <li>
+        Display the movie poster and its trailer. Ensure that the dimensions of the movie
+        poster are consistent with different viewport sizes and that the movie trailer
+        frame <strong>is fully responsive.</strong> Tip: implement <a href="02-components-part-two">
+            CSS Isolation
+        </a>
+        for the trailer frame; i.e., use a scoped CSS isolation file.
+    </li>
+    <li>
+        Show the movie summary. Tip: we previously created a component to render markdown
+        content.
+    </li>
+    <li>
+        Provide a list with the movie actors. The list should include:
+        <ul>
+            <li>
+                The actors' image.
+            </li>
+            <li>
+                The actors' name as hypertext that directs the user to the PersonEdit
+                routable component.
+            </li>
+            <li>
+                The name of the character played by each actor. Use an ellipsis (three
+                dots: ...) to separate the real name from the character name.
+            </li>
+            <li>
+                Order the actors based on their "designated order" which is equivalent
+                to the actors' hierarchy in the production.
+            </li>
+        </ul>
+    </li>
+</ol>
+<p>
+    The MovieBulletin component will consume all the available details of a given Movie
+    object. We need to be able to retrieve (or load) the Movie object from the database
+    including its related data (data entities).
+</p>
+<p>
+    This means tha the task in hand can be divided in two major assignments. The first
+    one is to provide the required functionality for the back-end. Once the business
+    logic and the database operations are set, we can focus on consuming the recently
+    created functionality to present the data to the client.
+</p>
+<p>
+    To accomplish the first task assignment, recall from the lesson to
+    <a href="03-create-complex-data">Create Complex Data</a> that the <span class="mark">
+        <strong>
+            process to add new functionality to our application for a specific data
+            entity type is:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>MovieBulletinDto</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to <dfn>model</dfn> or <a href="08-api-controllers">
+            flatten
+        </a> for optimization, security, and ease of use for the client.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to expose
+        the specific functionality (method) to the Application/Client and establish a
+        contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api/Controllers).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement
+        the newly exposed functionality. This is the application's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions, it might also be required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its implementation
+        (ApiConnector class).
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create an
+    Application/Shared/EntityDtos/MovieBulletinDto to encapsulate the property values that
+    can be directly mapped to one or more properties of the Movie class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/22-movie-bulletin-dto.png"
+         alt="Data Transfer Object named MovieBulletinDto." />
+</div>
+<p>
+    As you know, the process of flattening is not just about improving data transfer,
+    it is also intended to make it easier to the user to access the required data. For
+    this reason, we include a property type dictionary named <em>MovieCharacters</em>
+    to store key-value pairs that correspond to the identity property value of a Person
+    (or actor) and the name of the character that he or she interprets in the current
+    Movie object.
+</p>
+<p>
+    The business logic to retrieve this information is defined away from the UI
+    because it is not the responsibility of the MovieBulletin component.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> This is <strong>not the final version</strong>
+    of the MovieBulletinDto. We still have to make an improvement but it is shown
+    in this form for illustrative purposes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the
+    Application/Client/ApiServices/IRepositories/IMovies interface to expose the specific
+    functionality (method) to the Application/Client and establish a contract (or
+    protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/23-imovies-interface.png"
+         alt="IMovies interface exposes new GetMovieBulletinDtoAsync feature." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the
+    Application/Server-Api/Repositories/EfMovies class to implement the newly exposed
+    functionality. This is the application's business logic responsible for building
+    the Linq queries and operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore) and the RESTful API
+    service (Application/Server-Api):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/24-ef-movies-one.png"
+         alt="EfMovies implements GetMovieBulletinDtoAsync functionality part one." />
+    <img src="Images/10-LoadComplexData/25-ef-movies-two.png"
+         alt="EfMovies implements GetMovieBulletinDtoAsync functionality part two." />
+    <img src="Images/10-LoadComplexData/26-ef-movies-three.png"
+         alt="EfMovies implements GetMovieBulletinDtoAsync functionality part three." />
+</div>
+<p>
+    The MovieBulletinDto.MovieCharacters collection is constructed using a <dfn>Join</dfn>
+    extension method. Recall that the <a href="03-create-complex-data">MovieCharacter</a>
+    type represents a <dfn>join table</dfn> that contains common data shared by the
+    Person and Movie types. Their common denominator is the CharacterName which is the
+    character played in a Movie and that CharacterName is played by a Person (actor).
+</p>
+<p>
+    The purpose is to make it easier to the client to access the CharacterName of
+    a given Person that played a role in the current Movie object.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> This is <strong>not the final version</strong>
+    of the EfMovies repository. We still have to make an improvement but it is shown
+    in this form for illustrative purposes.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client/ApiServices/ApiManager/ApiMovies class to implement the newly
+    exposed functionality. This is the application's layer responsible for creating the
+    Http request/response that serializes/deserializes the data and builds the route to
+    match the endpoint's route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/27-api-movies-one.png"
+         alt="ApiMovies class implements GetMovieBulletinDtoAsync method part one." />
+    <img src="Images/10-LoadComplexData/28-api-movies-two.png"
+         alt="ApiMovies class implements GetMovieBulletinDtoAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Use the
+    Application/Server-Api/Controllers/MoviesController to configure the
+    <dfn>action</dfn> (controller method) responsible for responding to the HttpRequest
+    produced in last step. It mediates between the client layer (Application/Client)
+    and the back-end layer (Application/Server-Api/Repositories and
+    Application/Server-Api/DataStore).
+</p>
+<p>
+    Since the MovieBulletinDto is a flattened version of the Movie object. Instead of
+    creating a new <dfn>action</dfn>, refactor the GetById() <dfn>action</dfn> to handle
+    this type and <strong>rename it</strong> to <em>GetMovieBulletinDtoTask</em>.
+</p>
+<p>
+    Recall from lesson on <a href="08-api-controllers">Api Controllers</a> that you should <strong>
+        never include an Async suffix
+    </strong> to the name of an <dfn>action</dfn> because ASP.Net Core MVC trims the
+    suffix "<span class="mark">Async</span>" from action names by default.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/29-movies-controller-one.png"
+         alt="MoviesController with GetMovieBulletinDtoTask action part one." />
+    <img src="Images/10-LoadComplexData/30-movies-controller-two.png"
+         alt="MoviesController with GetMovieBulletinDtoTask action part two." />
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    We have concluded the first task assignment. The business logic and the database
+    operations logic is set to serve a MovieBulletinDto when an Http request is
+    produced by the client. It is time to focus on consuming the added functionality
+    to present the data in a practical way.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Inject an instance of the IApiService
+    to the MovieBulletin routable component and configure it to present the Movie
+    data as specified in the list that follows the task description.
+</p>
+<p>
+    Let's start with the <a href="02-components-part-one">Razor component members</a>;
+    i.e., with the code inside the <code>@@code{ }</code> block at the bottom of the page
+    that contains properties, parameter values, and data request/response logic:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/31-movie-bulletin-component-members.png"
+         alt="MovieBulletin Razor component members." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The MovieBulletin is now a
+    <a href="02-components-part-one">Templated Component</a> because it employs a
+    generic RenderFragment "_genreLinkTemplate" to define markup logic in a single
+    place and use it to dynamically provide specific UI content that will be rendered.
+</p>
+<p>
+    It is very similar to the way we have previously used RenderFragments except that
+    this time, instead of receiving the argument value for its formal input parameter
+    from a parent component through a parameter (property), the argument value is
+    extracted from the Movie object loaded during the initialization cycle of the
+    MovieBulletin component.
+</p>
+<p>
+    Having specified the component state and supplied the required data, let's define
+    the rendering logic to consume the data and present it to the user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/32-movie-bulletin-rendering-logic-one.png"
+         alt="MovieBulletin rendering logic part one." />
+    <img src="Images/10-LoadComplexData/33-movie-bulletin-rendering-logic-two.png"
+         alt="MovieBulletin rendering logic part two." />
+</div>
+<p>
+    The <code>&lt;iFrame&gt;</code> HTML element represents a nested browsing context
+    embedding another HTML page into the current one. Each embedded browsing context
+    has its own session history and document.
+</p>
+<p>
+    For more info on embedding media into the web browser visit
+    <a href="https://github.com/Blazored/Video">
+        Blazored Video
+    </a>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe">
+        &lt;iframe&gt;: The Inline Frame element
+    </a>,
+    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Feature_Policy/Using_Feature_Policy#the_iframe_allow_attribute">
+        Using Feature Policy
+    </a>,
+    <a href="https://support.google.com/youtube/answer/171780?hl=en">
+        Embed videos & playlists
+    </a>, and
+    <a href="https://www.h3xed.com/web-development/how-to-make-a-responsive-100-width-youtube-iframe-embed">
+        How To Make a Responsive 100% Width YouTube iFrame Embed
+    </a>
+</p>
+<p>
+    The CSS to define specific rules to make the iFrame responsive is in a scoped
+    <a href="02-components-part-two">CSS isolation</a> file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/34-iframe-css-isolation-file.png"
+         alt="CSS Isolation file to make the iFrame responsive." />
+</div>
+<p>
+    Everything should be working as expected. However, we mentioned earlier that we did
+    not have the final version of the MovieBulletinDto nor did we have the final version
+    of the EfMovies repository. We can still make a considerable improvement to our code
+    which will make things much more simple and efficient.
+</p>
+<p>
+    The approach adopted to include the CharacterName in the Http response is not
+    necessarily the most effective and/or efficient. As you know, "join" commands
+    could have an impact on database performance. A considerably better approach for
+    the CharacterName value is to borrow the Person.TempCharacterName property added
+    to the type Person in the <a href="03-create-complex-data">Create Complex Data</a>
+    section.
+</p>
+<p>
+    The Person.TempCharacterName property is not mapped to the database but it still
+    serves our purpose because we don't need to persist the value to the database. We
+    simply need to temporarily store the character name value for a given Person object
+    that interprets a role in the current Movie object and pass it to the client for
+    easy access.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Go to the
+    Application/Server-Api/Repositories/EfMovies repository and refactor the
+    GetMovieBulletinDtoAsync() method to retrieve the MovieCharacter name of a given
+    actor and pass it to the Person.TempCharacterName property:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/35-efmovies-improved-one.png"
+         alt="EfMovies repository improved part one." />
+    <img src="Images/10-LoadComplexData/36-efmovies-improved-two.png"
+         alt="EfMovies repository improved part two." />
+</div>
+<p>
+    Note that the MovieBulletinDto.MovieCharacters collection is no longer needed which
+    means that the GetMovieBulletinDtoAsync() does not require the "Join" method anymore.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Go to the
+    Application/Shared/EntityDtos/MovieBulletinDto class and remove the MovieCharacters
+    property because it is no longer needed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/37-movie-dto-improved.png"
+         alt="MovieBulletinDto improved." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Nine:</span> Go to the
+    Application/Client/MovieBulletin routable component and refactor its rendering logic
+    for the Character name of the role played by a given actor in the Movie object
+    loaded during initialization:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/38-movie-bulletin-improved.png"
+         alt="MovieBulletin component improved." />
+</div>
+<p>
+    <span>Notice:</span>
+    The loading spinner was later modified to standardize its style throughout the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/39-spinner.png"
+         alt="Standarized code for loading spinner." />
+</div>
+<p>
+    Success!!! We have configured the MovieBulletin component to present to the user
+    all the available information in a practical manner adhering to the following
+    specifications:
+</p>
+<ol>
+    <li>
+        Present a "spinner" to inform the user when the info is loading from the
+        data source.
+    </li>
+    <li>
+        The address bar of the web browser displays the Movie.Id property
+        value and the Movie.Title separated by hyphens and in lower case.
+    </li>
+    <li>
+        Use the Movie.Title and year of the Movie.ReleaseDate as heading.
+    </li>
+    <li>
+        Include its Genre categories as hypertext (separated by commas) that directs
+        the user to the <em>Search Movie</em> component created in the introductory
+        lesson on <a href="04-forms-part-one">Filtering Form Records</a>. The Search
+        Movie component will be completed in next lesson on <a href="05-filters">Filters</a>.
+    </li>
+    <li>
+        Render the full release date to the right of the Genre items.
+    </li>
+    <li>
+        Display the movie poster and its trailer. Ensure that the dimensions of the movie
+        poster are consistent with different viewport sizes and that the movie trailer
+        frame <strong>is fully responsive.</strong> Tip: implement <a href="02-components-part-two">
+            CSS Isolation
+        </a>
+        for the trailer frame; i.e., use a scoped CSS isolation file.
+    </li>
+    <li>
+        Show the movie summary. Tip: we previously created a component to render markdown
+        content.
+    </li>
+    <li>
+        Provide a list with the movie actors. The list should include:
+        <ul>
+            <li>
+                The actors' image.
+            </li>
+            <li>
+                The actors' name as hypertext that directs the user to the PersonEdit
+                routable component.
+            </li>
+            <li>
+                The name of the character played by each actor. Use an ellipsis (three
+                dots: ...) to separate the real name from the character name.
+            </li>
+            <li>
+                Order the actors based on their "designated order" which is equivalent
+                to the actors' hierarchy in the production.
+            </li>
+        </ul>
+    </li>
+</ol>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/21-movies-bulletin-example.png"
+         alt="UI of the MovieBulletin component completed." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to
+    enable the GenresIndex routable component to render available genres. It should
+    adhere to the following specifications:
+</p>
+<ol>
+    <li>
+        Display the Genre items in a &lt;table&gt; element.
+    </li>
+    <li>
+        Each Genre record includes an "Edit" &lt;button&gt; element that redirects
+        the user to the GenreEdit routable component.
+    </li>
+    <li>
+        Each Genre record includes a "Delete" &lt;button&gt; element.
+    </li>
+</ol>
+<p>
+    Rendering Genre items is a simple process because we do not need to load any
+    related data. This means we can employ the
+    Application/Repository/EFManager/EfRepository which contains general functionality
+    equivalent to CRUD operations applicable to all data entity types.
+</p>
+<p>
+    What's more, we already have a component named <a href="02-components-part-one">
+        TestCollectionNullOrEmpty
+    </a> whose sole responsibility is to test a collection of items for nullability
+    and/or emptiness, and render content passed as an argument to either one of its
+    RenderFragment parameters:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/103-test-collection-options.png"
+         alt="TestCollectionNullOrEmpty component part one." />
+    <img src="Images/02-components/103-test-collection-options-two.png"
+         alt="TestCollectionNullOrEmpty component part two." />
+</div>
+<p>
+    We also have a <a href="02-components-part-one">Confirmation</a> component that
+    displays a confirmation <dfn>modal</dfn> before deleting a given object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/04-components/15-confirmation-component-frontend.png"
+         alt="Confirmation component part one." />
+    <img src="Images/04-components/16-confirmation-component-backend.png"
+         alt="Confirmation component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/Pages/Genres/IndexGenres routable component and provide the
+    required code logic to retrieve Genre items from the database and render them in
+    a &lt;table&gt; element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/12-index-genres-one.png"
+         alt="IndexGenres component part one." />
+    <img src="Images/10-LoadComplexData/12-index-genres-two.png"
+         alt="IndexGenres component part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Test the IndexGenres component. For
+    example, if you raise the <dfn>@@onclick</dfn> event of the "Delete" button element
+    of a given Genre object, you should get something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/13-confirm-delete-ui.png"
+         alt="Confirm Delete UI." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments to
+    enable the IndexPeople routable component to render available people (actors).
+    It should adhere to the following specifications:
+</p>
+<ol>
+    <li>
+        Display the Person items in a table.
+    </li>
+    <li>
+        Items are ordered alphabetically using their last name.
+    </li>
+    <li>
+        Each Person record includes its picture.
+    </li>
+    <li>
+        Each Person record includes an "Edit" &lt;button&gt; element that redirects
+        the user to the PersonEdit routable component.
+    </li>
+    <li>
+        Each Person record includes a "Delete" &lt;button&gt; element.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/Pages/Genres/IndexPeople routable component and provide the
+    required code logic to retrieve items from the database and render them in a
+    &lt;table&gt; element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/14-index-people-one.png"
+         alt="IndexPeople component part one." />
+    <img src="Images/10-LoadComplexData/14-index-people-two.png"
+         alt="IndexPeople component part two." />
+    <img src="Images/10-LoadComplexData/14-index-people-three.png"
+         alt="IndexPeople component part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Test the IndexPeople component. For
+    example, if you raise the <dfn>@@onclick</dfn> event of the "Delete" button element
+    of a given Person object, you should get something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/15-index-people-UI.png"
+         alt="IndexPeople UI." />
+</div>
+
+@code {
+
+}

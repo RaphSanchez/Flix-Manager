@@ -1,0 +1,17 @@
+﻿
+@page "/people/edit/{PersonId:int}"
+@attribute [Authorize (Policy = AuthZPolicies.ApiEditContent)]
+
+<PageTitle>Edit Actor</PageTitle>
+
+<div class="form-control">
+
+    <h3 class="mb-0">Edit Person</h3>
+    <p class="small text-muted">(open the browser's console)</p>
+
+    @if (_person is not null)
+    {
+        <PersonForm Person="_person" OnValidSubmit="EditPersonAsync" />
+    }
+
+</div>

@@ -1,0 +1,721 @@
+﻿@page "/05-api"
+<PageTitle>API Fundamentals</PageTitle>
+<h2>Web Server-API</h2>
+
+<h4>Blazor hosting models</h4>
+<p>
+    As mentioned in the <a href="01-blazor">Blazor Introduction</a> section, Blazor
+    is a client-side web UI framework similar in nature to JavaScript front-end
+    frameworks like Angular, React, or Vue. It handles user interactions and renders
+    the necessary UI updates. Blazor is not based on a request-reply model. User
+    interactions are handled as events that are not in the context of any particular
+    HTTP request.
+</p>
+<p>
+    A Blazor application can be hosted in different ways. Razor components can run
+    server-side in ASP.Net Core (<dfn>Blazor Server</dfn>) and they can also run
+    client-side in the browser on a <dfn>WebAssembly</dfn>-based .Net runtime
+    (<dfn>Blazor WebAssembly</dfn> or <dfn>Blazor WASM</dfn>). You can even host
+    Razor components in native mobile and desktop apps that render to an embedded
+    <a href="https://docs.microsoft.com/en-us/microsoft-edge/webview2/">
+        web view control
+    </a> (<a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/hybrid/?view=aspnetcore-6.0">
+        Blazor Hybrid
+    </a>). <strong>
+        Regardless of the hosting model, the same Razor components can be used with
+        any of the hosting models.
+    </strong>
+</p>
+<h4>Blazor Server</h4>
+<p>
+    With the Blazor Server hosting model, the app is executed on the server from
+    within an ASP.Net Core app. UI updates, event handling, and JS calls are handled
+    over a <dfn>SignalR</dfn> connection. The state on the server associated with
+    each connected client is called a
+    <span class="mark"><strong><dfn>circuit</dfn></strong></span>. A <dfn>circuit</dfn>
+    can tolerate temporary network interruptions and attempts by the client to
+    reconnect to the server when connection is lost.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width:600px; margin: auto;"
+         src="images/09-ConsumingApi/23-blazor-server-diagram.png"
+         alt="Blazor server hosting diagram." />
+    <figcaption class="figure-caption text-center">.Net Hosting Models</figcaption>
+</figure>
+<p>
+    On the client, the Blazor script (<code>blazor.server.js</code>) establishes the
+    SignalR connection with the server. The script is served to the client-side app
+    from an embedded resource in the ASP.Net Core shared framework. The client-side
+    app is responsible for persisting and restoring app state as required.
+</p>
+<h4>Blazor WebAssembly</h4>
+<p>
+    As you know, Blazor WebAssembly (WASM) apps run client-side in the browser on a
+    WebAssembly-based .Net runtime. The Blazor app, its dependencies (NuGet packages,
+    projects, global CSS, etc), and the .Net runtime are downloaded to the browser.
+    The app is executed directly on the browser UI thread. The app's assets are
+    deployed as static files to a web server; i.e., to a service capable of serving
+    static content to clients.
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width:500px; margin: auto;"
+         src="images/09-ConsumingApi/24-blazor-wasm-diagram.png"
+         alt="Blazor WebAssembly diagram." />
+    <figcaption class="figure-caption text-center">.Net Hosting Models</figcaption>
+</figure>
+<p>
+    <span class="badge bg-info">Notice:</span> When the <strong>Blazor WASM</strong>
+    app is created for deployment <strong>without a backend</strong> ASP.Net Core app
+    <strong>to serve its files</strong>, the app is called a <strong>
+        <dfn>
+            standalone Blazor WebAssembly app.
+        </dfn>
+    </strong>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> When the <strong>Blazor WASM</strong>
+    app is created for deployment <strong>with a backend</strong> ASP.Net Core app
+    <strong>to serve its files</strong>, the app is called a <strong>
+        <dfn>
+            hosted Blazor WebAssembly app.
+        </dfn>
+    </strong>
+</p>
+<p>
+    Using the <dfn>hosted</dfn> Blazor WebAssembly model, you get a full-stack web
+    development experience with .Net, including the ability to share code between
+    the client and server apps, support for prerendering, and integration with MVC
+    and Razor Pages.
+</p>
+<p>
+    A hosted client app can interact with its backend server app over the network
+    using a variety of messaging frameworks and protocols, such as
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-6.0">
+        web API
+    </a>, <a href="https://docs.microsoft.com/en-us/aspnet/core/grpc/?view=aspnetcore-6.0">
+        gRPC-web
+    </a>, and <a href="https://docs.microsoft.com/en-us/aspnet/core/signalr/introduction?view=aspnetcore-6.0">
+        SignalR
+    </a>.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/?WT.mc_id=dotnet-35129-website&view=aspnetcore-6.0">
+        Introduction to ASP.Net Core Blazor
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-6.0">
+        ASP.Net Core Blazor hosting models
+    </a>
+</p>
+<h3>Building a web API</h3>
+<p>
+    In this module, you will learn to build an Application Programming Interface
+    (API) responsible for handling Application/Client requests for receiving,
+    sending, or modifying data stored in the database.
+</p>
+<p>
+    From a higher level, APIs are an intermediary that allows two (or more)
+    parties to talk to each other. For example, each time you use an app like
+    Facebook on your phone, you are using an API to send an instant message,
+    upload a picture, etc.
+</p>
+<p>
+    To execute these operations, the application connects to the internet and
+    sends data to a server. The server then retrieves that data, interprets it,
+    performs the necessary actions, and sends it back to your phone. The
+    application then interprets that data and presents you (the client) with
+    the information you wanted in a human readable way. All these operations
+    are handled by an API.
+</p>
+<p>
+    Besides providing services, an API also provides a layer of security because
+    the data in the client is not fully exposed to the server and the server is
+    never fully exposed to the client. Instead, they communicate with small packets
+    of data, sharing only what is necessary.
+</p>
+<p>
+    Some of the main characteristics of APIs are:
+</p>
+<ul>
+    <li>
+        They adhere to standards. Typically to Hyper Text Transfer Protocol (HTTP),
+        Representational State Transfer (REST), and Java Script Object Notation
+        (JSON).
+    </li>
+    <li>
+        They are designed for consumption in a way that can be easily documented,
+        versioned, and maintained.
+    </li>
+    <li>
+        As any other software structure, they have a Software Developement Life
+        Cycle (SDLC) of designing, building, testing, managing, and versioning.
+    </li>
+</ul>
+<h4>Serialization and Deserialization</h4>
+<p>
+    As mentioned above, APIs have to communicate with the client and with the
+    server to handle requests (client) and responses (server) from both parties.
+    This communication takes place through a process known as <dfn>serialization</dfn>.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Serialization is the process of converting the state of an <dfn>object</dfn>
+        (an instance of a .Net class, a file, an image) into a form that can be
+        persisted (stored) or transported.
+    </p>
+</div>
+<p>
+    The complement of serialization is <dfn>deserialization</dfn> which converts a
+    stream into an object (into an instance of a .Net class, a file, an image).
+    Together, these processes allow data to be stored and transferred.
+</p>
+<p>
+    .Net features the following serialization technologies:
+</p>
+<ul>
+    <li>
+        <strong>Binary serialization:</strong> preserves type fidelity, which is
+        useful for preserving the state of an object between different invocations
+        of an application. For example, remoting uses binary serialization to pass
+        objects "by value" from one computer or application domain to another.
+    </li>
+    <li>
+        <strong>XML and SOPA serialization:</strong> serializes only public properties
+        and fields, and does not preserve fidelity. This is useful when you want
+        to provide or consume data without restricting the application that uses the
+        data. Since XML and SOPA are open standards, they are an attractive choice
+        for sharing data accross the web.
+    </li>
+    <li>
+        <span class="mark"><strong>JSON serialization</strong></span>: serializes only
+        public properties and does not preserve type fidelity. JSON is an open standard
+        that is an attractive choice for sharing data accross the web. This is the type
+        of serialization we will employ to transfer data in our Blazor applications.
+    </li>
+</ul>
+
+<h4>Http Standard</h4>
+<p>
+    Hypertext Transfer Protocol (HTTP) is a protocol for fetching resources (HTML
+    documents, images, videos, content, etc). It is the foundation of any data exchange
+    on the web and it is a client-server protocol which means requests are initiated by
+    the recipient, usually the web browser. Clients and servers communicate by exchanging
+    individual messages (as opposed to a stream of data). The <strong>
+        messages sent by the client,
+    </strong> usually a web browser, are called <dfn>requests</dfn> or
+    <strong>Http requests</strong> and the <strong>messages sent by the server</strong>
+    are called <dfn>responses</dfn> or <strong> Http responses.</strong>
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        HTTP is a <dfn>communication protocol</dfn> or system of rules that allows
+        two or more entities of a communication system to transmit information. The
+        protocol defines formal descriptions of digital message formats and
+        transmission rules that are required to exchange messages such as syntax,
+        semantics, synchronization of communication, and error recovery methods.
+    </p>
+</div>
+<p>
+    Between the client and the server are different entities, collectively
+    called <dfn>proxies</dfn>, which perform different operations and act as
+    gateways or caches. The application proxies perform operations like:
+</p>
+<ul>
+    <li>Http caching: Reusing previously fetched resources.</li>
+    <li>Filtering: Antivirus scan, parental controls, etc.</li>
+    <li>Authentication: Control access to different resources.</li>
+    <li>Logging: Allow storage of historical information; e.g., browser history.</li>
+</ul>
+<p>
+    Most common properties defined by communication protocols are: packet size,
+    transmission speed, error connection types, handshaking and synchronization
+    techniques, address mapping, acknowledgement processes, flow control, packet
+    sequence control, routing, and address formatting.
+</p>
+
+<h4>REST standard</h4>
+<p>
+    Representational State Transfer refers to a group of software architecture
+    design constraints that bring about efficient, reliable, and scalable distributed
+    systems. The basic idea is that a resource, e.g., a document, is transferred via
+    well-recognized, language agnostic, and reliably standarized client/server
+    interactions. Services are deemed RESTful when they adhere to these constraints.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        REST means that when a RESTful API is called, the server will transfer to the
+        client a <dfn>representation</dfn> of the <dfn>state</dfn> of the requested
+        <dfn>resource</dfn>. A RESTful Web-API means an HTTP service that can be called
+        using standard web libraries and tools.
+    </p>
+</div>
+<h4>JSON standard</h4>
+<p>
+    Java Script Object Notation (JSON) is a standard text-based format for
+    representing structured data based on JavaScript object syntax. It is commonly
+    used for transmitting data in web applications. Eventhough it closely resembles
+    JavaScript object literal syntax, it can be used independently from JavaScript
+    and many programming environments feature the ability to read (parse) and generate
+    JSON.
+</p>
+<p>
+    JSON exists as a string which is practical and useful when you want to transmit
+    data across a network. <strong>A JSON string</strong> can be stored in its own file,
+    which <strong>
+        is basically just a text file with an extension of <code>.json</code>,
+        and a <dfn>media type</dfn> of <span class="mark"><code>application/json</code></span>.
+    </strong> Media type is also commonly known as <a href="04-forms-part-one">MIME</a> type.
+</p>
+<p>
+    A JSON string format is a combination of <strong><code>"name" : "value"</code></strong>
+    pairs that can only include some basic data types such as strings, numbers, arrays,
+    booleans, and other object literals. This allows to construct a data hierarchy:
+</p>
+
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin: auto;"
+         src="Images/08-ServerApi/01-json.png" alt="Example of a JSON string object." />
+    <figcaption class="figure-caption text-center">stackoverflow</figcaption>
+</figure>
+
+<h4>Uniform Resource Identifier (URI)</h4>
+<p>
+    A Uniform Resource Identifier (URI) is a unique sequence of characters that
+    identifies a logical or physical resource used by web technologies. URIs may
+    be used to identify anything including real-world objects (such as people
+    and places), concepts, or information resources such as web pages and books.
+</p>
+<p>
+    Some URIs provide a means of locating and retrieving information resources
+    on a network (either on the internet or on a private network). These are
+    Uniform Resource Locators (URLs). <strong>
+        A URL provides the location of the resource.
+    </strong>
+</p>
+<p>
+    Other URIs provide only a unique name, without a means of locating or retrieving
+    the resource or information about it. These are Uniform Resource Names (URNs).
+    A URN may be used to signify a resource without implying its location or how to
+    access it; e.g., the International Standard Book Number (ISBN) system:
+    ISBN 0-489-27557-4
+</p>
+<p>
+    In contrast, a URL is a URI that specifies the means of acting upon or
+    obtaining the representation of a resource; i.e., specifying both its primary
+    access mechanism and network location. <strong>
+        A URN identifies an item and a URL provides a method for finding it.
+    </strong>
+</p>
+<p>
+    A URI consists of up to five segments. However, only two are mandatory:
+</p>
+<ul>
+    <li><dfn>scheme:</dfn> Gives information about the protocol being used (mandatory).</li>
+    <li><dfn>authority:</dfn> Identifies the domains.</li>
+    <li><dfn>path:</dfn> Shows the exact path to the resource (mandatory).</li>
+    <li><dfn>query:</dfn> Represents a request action.</li>
+    <li><dfn>fragment:</dfn> Refers to a partial aspect of a resource.</li>
+</ul>
+<p>
+    All components are listed consecutively and separated by specific, predefined
+    characters:
+</p>
+<p>
+    scheme <code>://</code> authority <code>/</code> path <code>?</code> query <code>#</code> fragment
+</p>
+<p>
+    https://www.oficina.org/employees/search?name=robert#part2
+</p>
+<ul>
+    <li><dfn>scheme:</dfn> https</li>
+    <li><dfn>authority:</dfn> www.oficina.org</li>
+    <li><dfn>path:</dfn> employees/search</li>
+    <li><dfn>query: name=robert</dfn></li>
+    <li><dfn>fragment:</dfn> part2</li>
+</ul>
+<p>
+    Besides web pages and web page paths, email senders and recipients can also be
+    identified via URI. Protocols such as HTTP or FTP (file transfer protocol)
+    can function on this basis as the form of identification is defined by the URI
+    syntax. From the URI syntax, a system can read where and how certain information
+    should be identified.
+</p>
+<p>
+    URI schemes are managed by the Internet Assigned Numbers Authority <a href="https://www.iana.org/">
+        IANA
+    </a>. Some of the most common schemes are:
+</p>
+<ul>
+    <li><strong>about:</strong> Browser information.</li>
+    <li><strong>data:</strong> Embedded data.</li>
+    <li><strong>feed:</strong> Web feeds.</li>
+    <li><strong>file:</strong> Files.</li>
+    <li><strong>ftp:</strong> File Transfer Protocol.</li>
+    <li><strong>git:</strong> Version management with Git.</li>
+    <li><strong>http:</strong> Hypertext Transfer Protocol.</li>
+    <li><strong>https:</strong>Hypertext Transfer Protocol secure.</li>
+    <li><strong>imap:</strong> Internet Message Access Protocol.</li>
+    <li><strong>mailto:</strong> Email address (e.g., mailto:user@example.org)</li>
+    <li><strong>news:</strong> Usenet newsgroups.</li>
+    <li><strong>pop:</strong> POP3.</li>
+    <li><strong>rsync:</strong> Data synchronization.</li>
+    <li><strong>sftp:</strong> SSH File Transfer Protocol.</li>
+    <li><strong>ssh:</strong> Secure Shell.</li>
+    <li><strong>tel:</strong> Telephone number.</li>
+    <li><strong>urn:</strong> Uniform Resource Name.</li>
+</ul>
+<p>
+    URL and URN follow the URI syntax. For this reason, both designation types are
+    a subset of URIs. URL and URN are thus always URIs but a URI is neither a URL nor
+    a URN. Nevertheless, the World Wide Web Consortium (W3C) issued a 'URI Clarification
+    Document' that says that <strong>
+        it is now O.K. to use the terms URL and URI interchangeably (to mean URI). It
+        is no longer useful to strictly segment URIs into different types such as URL,
+        URN, and URC.
+    </strong>
+</p>
+<p>
+    We have defined what a RESTful API-Service is, the standards that APIs typically adhere
+    to, and its main components. Let's now focus on the content and control flow of
+    a Web-API service.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/">
+        Serialization in .Net
+    </a>,
+    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">
+        An overview of HTTP
+    </a>,
+    <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON">
+        Working with JSON
+    </a>,
+    <a href="https://chrissainty.com/working-with-query-strings-in-blazor/">
+        Working with Query Strings in Blazor
+    </a>,
+    <a href="https://web.archive.org/web/20151229061347/http://blog.lunatech.com/2009/02/03/what-every-web-developer-must-know-about-url-encoding">
+        What every web developer must know about URL encoding
+    </a>,
+    <a href="https://stackoverflow.com/questions/2322764/what-characters-must-be-escaped-in-an-http-query-string">
+        What characters must be escaped in an HTTP query string?
+    </a>
+</p>
+
+<h3>RESTful Server-Api service</h3>
+<p>
+    In the context of a REST API, a <dfn>resource</dfn> is an abstraction of
+    information. Any information that can be named is a resource. For example,
+    a REST resource can be a document, an image, a temporal service, a collection
+    of other resources, or a non-virtual object (Plain Old CLR Object - POCO)
+    such as an instance of a type "Person" or "Genre" (a data entity).
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        In a REST API, data and functionality are considered <dfn>resources</dfn> and
+        are accessed using Uniform Resource Locators (URLs).
+    </p>
+</div>
+<p>
+    The clients and servers exchange representations of resources by using a
+    standarized interface (API) and a protocol (HTTP). The resources have to be
+    decoupled from their representation so that clients can access the content
+    in various formats such as HTML, XML, plaint text, PDF, JPEG, JSON, and
+    others.
+</p>
+<p>
+    The <strong>state of the resource</strong> at any particular stage of the communication
+    is known as the <strong><dfn>resource representation</dfn></strong>. A resource representation
+    consists of 3 main components:
+</p>
+<ol>
+    <li>
+        The <strong>data:</strong> (object value).
+    </li>
+    <li>
+        The <strong>metadata:</strong> describing the data to control caching,
+        detect transmission errors, negotiate appropriate representation format,
+        and perform authentication or access control.
+    </li>
+    <li>
+        The <strong>hypermedia links</strong> that can help the clients transtion
+        to the next desired state.
+    </li>
+</ol>
+<p>
+    The <strong>data format</strong> of a representation is known as the
+    <span class="mark"><strong>media type</strong></span> which identifies a
+    specification that defines how a <dfn>resource representation</dfn> is to
+    be processed. For example, as mentioned earlier, <strong>
+        we will use the JSON format standard to represent data in
+        our application.
+    </strong> The media type (also known as <a href="04-forms-part-one">MIME</a> type, or
+    <dfn>content type</dfn>) designation of a JSON standard is
+    <span class="mark"><strong><code>application/json</code></strong>.</span>
+</p>
+<p>
+    Blazor WebAssembly applications make requests back to the origin server
+    (RESTful API service) using a
+    <a href="02-components-part-two">pre-configured HttpClient service</a>. Requests
+    are composed using the <dfn>System.Net.Http.HttpClient</dfn> class and the
+    <dfn>System.Net.Http.Json.HttpClientJsonExtensions</dfn>.
+</p>
+<p>
+    The <code>HttpClient</code> class provides methods and properties for sending HTTP
+    requests and receiving HTTP responses from a resource identified by an URI (Uniform
+    Resource Identifier). The <code>HttpClientJsonExtensions</code> are known as
+    <dfn>resource methods</dfn>.
+</p>
+<p>
+    An important building block of a Representational State Transfer (REST) service is
+    the functionality of "<dfn>resource methods</dfn>". Resource methods are used to
+    perform the desired transition between two states of any resource; i.e., they
+    serialize/deserialize .Net objects to JSON format so they can travel through the
+    internet.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient?view=net-6.0#methods">
+        HttpClient class
+    </a>,
+    <a href="https://restfulapi.net/">What is Rest</a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-overview?pivots=dotnet-6-0">
+        JSON serializtion and deserialization
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.text.json?view=net-6.0">
+        System.Text.Json Namespace
+    </a>,
+    <a href="https://www.youtube.com/watch?v=N6JBjzPssQI">JSON in c#</a>,
+    <a href="https://docs.microsoft.com/en-us/previous-versions/windows/apps/hh781239(v=win.10)?redirectedfrom=MSDN">
+        How to connect using System.Net.Http.HttpClient
+    </a>
+</p>
+
+<h4>Application Architecture</h4>
+<p>
+    The architecture design to build our REST API adheres to the following
+    specifications:
+</p>
+<ul>
+    <li>
+        Establishes an appropriate separation of concerns by adding independent
+        projects (.dll files or libraries) with clearly defined responsibilities.
+    </li>
+    <li>
+        Makes extensive use of interfaces and dependency injection to create a loosely
+        coupled application.
+    </li>
+    <li>
+        Uses the repository pattern for Create, Read, Update, Delete (CRUD) operations.
+        This approach creates an abstraction layer between the data access layer and the
+        business logic layer of the application.
+    </li>
+    <li>
+        Uses the 'unit of work' pattern to coordinate the work of multiple repositories
+        using a single (unique) database context instance during a business transaction.
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Initially, the application architecture was designed to host the Application/Repository
+        and the Application/DataStore in separate class libraries (.dll). However,
+        Microsoft's suggested implementation to integrate Duende IdentityServer with
+        ASP.Net Core Identity to perform authentication/authorization operations
+        requires the data store to be in the same project as the Server-Api.
+    </p>
+</div>
+<p>
+    For this reason, the abstract representations (interfaces) for the repositories,
+    the unit of work, and for the API services (serialization/deserialization) will be
+    located in the Application/Client. The DataStore and the implementation for the
+    repositories and for the unit of work will be located in the Application/Server-Api.
+</p>
+<p>
+    As you know, we have been working on the Application/Client project (client-side) of
+    our Blazor app. The Application client will employ an abstract layer IApiService
+    responsible for exposing the available operations and for hiding the details of
+    how to invoke Application/Server-Api endpoints; i.e., how to send/receive Http
+    requests/responses.
+</p>
+<p>
+    The IApiService in turn will employ IEntity interfaces which will be the entry point
+    for the IUnitOfWork responsible for exposing the business logic.
+</p>
+<div class="image-lesson mb-3">
+    <img class="image-lesson mb-3" src="images/08-ServerApi/00-application-diagram.svg"
+         alt="Application Diagram." />
+</div>
+<p>
+    The Application/Client makes a data request, the IApiService serializes the data and
+    sends the Http request to the Application/Server-Api/Controllers using the appropriate
+    IEntityName interface as the entry point.
+</p>
+<p>
+    The Application/Server-Api controller employs the Application/Server-Api/IUnitOfWork
+    business logic methods to query the database through the
+    Application/Server-Api/DataStore/DbContext and, if necessary, persist any changes
+    made to in-memory objects. When the request is completed, the process is reversed,
+    and the response is sent back to the client.
+</p>
+<p>
+    Both abstract layers (IApiService and IUnitOfWork) follow the repository and the
+    unit of work patterns to expose to the Application/Client their higher level interfaces
+    and hide the actual implementation (code logic).
+</p>
+<p>
+    The <strong>operations exposed</strong> to the client (by the
+    <strong>IApiService</strong>) mirror (same signature) the <strong>operations executed</strong>
+    by the <strong>IUnitOfWork</strong> (business logic and database operations).
+    For this reason, both abstract layers employ <strong>IEntityName</strong> interfaces
+    to <strong>expose and represent data entities</strong> which in turn implement a
+    single (unique) <strong>IRepository&lt;TEntity&gt;</strong> interface which establishes
+    the contract for the required <strong>general</strong> functionality
+    <strong>applicable to all</strong> data entities.
+</p>
+<p>
+    <strong>IEntityName</strong> interfaces not only implement
+    <strong>IRepository&lt;TEntity&gt;</strong>, they also
+    <strong>extend its functionality</strong> with operations (code logic) that are
+    specific to the entity type they represent. IEntityName interfaces are exposed, and
+    implemented in their own way, by the IApiService and IUnitOfWork interfaces.
+</p>
+<p>
+    The goal for the control flow of your Blazor application data access structure is
+    as follows:
+</p>
+<ol>
+    <li>Application/Client (UI) makes a request to:</li>
+    <li>
+        Application/Client/ApiServices/ApiManager IApiService interface. Its implementation
+        (Application/Client/ApiServices/ApiManager ApiService class) exposes ApiEntity objects
+        as the entry point for the ApiConnector class which encapsulates Http resource methods
+        that serialize the request so it can travel through the internet to:
+    </li>
+    <li>
+        Application/Server-Api/Controllers/EntityController. Invokes the business logic
+        requested with:
+    </li>
+    <li>
+        Application/Client/ApiServices/IRepositories IUnitOfWork. Its implementation
+        (Application/Server-Api/Repositories UnitOfWork class) encapsulates business logic
+        and coordinates a complete business transaction through a single database context with:
+    </li>
+    <li>
+        Application/Server-Api/DataStore AppDbContext which queries data and, if necessary,
+        persists to the database any modifications made to in-memory objects.
+    </li>
+    <li>
+        Application/Server-Api/Repositories/UnitOfWork. Returns, if any, the entity
+        object(s) to:
+    </li>
+    <li>
+        Application/Server-Api/Controllers/Controller. Every controller hosted in the
+        server returns a Task&lt;ActionResult&lt;Entity&gt;&gt; that represents the
+        result of an "<dfn>action</dfn>" (controller method) to:
+    </li>
+    <li>
+        Application/Client/ApiServices/IApiManager IApiService. Its implementation
+        (Application/Client/ApiServices/ApiManager ApiService class) employs the ApiConnector
+        class which encapsulates Http resource methods that deserialize the response content
+        of the response message to:
+    </li>
+    <li>
+        Application/Client (UI). Receives the content (deserialized response) to present
+        it to the user or perform any additional work on it.
+    </li>
+</ol>
+<h4>Procedure outline for building a RESTful Server-Api service</h4>
+<p>
+    The first step before working with any project should always be making sure that
+    the application will run on the latest ASP.Net version. At the time of this lesson,
+    the latest version is ASP.Net 6. If you are working with an existing application and
+    want to upgrade it to a newer version you can refer to Udemy course: <a href="https://www.udemy.com/share/104giU3@mm8vFEm1VCiFtcyKmraPHLjc_D9SXsD2O7o3sIR-2_Ha55RszJ2kAiIAe6l9ks8S/">
+        Complete Web API in .Net 5 Consumed with Blazor WebAssembly
+    </a> episode 60. Migrate to .Net 5.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> At the time of assembling this lesson,
+    Visual Studio 2022 needs a .Net WebAssembly build tools package to successfully
+    publish Blazor applications targeting the latest .Net version (.Net 6). For more
+    info on installing the package visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/tooling?view=aspnetcore-6.0&pivots=windows#net-webassembly-build-tools">
+        .Net WebAssembly build tools
+    </a> of the "Tooling for ASP.Net Core Blazor" documentation.
+</p>
+<p>
+    The steps that we will follow in the next lessons to build a RESTful Server-Api
+    service are:
+</p>
+
+<ul>
+    <li>
+        <strong>Lower level layers, adding database support:</strong>
+        <br />
+        <ol class="mt-2">
+            <li>
+                Define the relationships between the root entities of the Entity Domain
+                Model (EDM).
+            </li>
+            <li>
+                If you are not using a hosted Blazor WebAssembly template, add a
+                project that will host the RESTful Api service; e.g., add a new
+                web project of type ASP.Net Core Web App.
+            </li>
+            <li>
+                Configure the Database Management System (DBMS) for Entity Framework (EF)
+                Core.
+            </li>
+            <li>
+                Establish a repository pattern to encapsulate the business logic.
+            </li>
+            <li>
+                Establish a unit of work pattern that coordinates the work of multiple repositories
+                by creating a single instance of the database context class shared by all of them.
+            </li>
+        </ol>
+    </li>
+    <li>
+        <strong>Middle level layers, adding a RESTful-Api service:</strong>
+        <br />
+        <ol class="mt-2">
+            <li>
+                Scaffold (create) the controllers that incorporate the REST-Api
+                <dfn>actions</dfn> (methods) that invoke the CRUD operations (business
+                logic) to create, read, update, and delete data to/from the database.
+            </li>
+            <li>
+                Create a service (IApiService) that acts as an intermediary between the
+                Application/Client and the Application/Server-Api projects. The service
+                encapsulates the details of calling the RESTful Web-Api; i.e., contains
+                the details of how to invoke the Web-Api endpoints and how to
+                serialize/deserialize the requests/responses.
+            </li>
+        </ol>
+    </li>
+    <li>
+        <strong>Upper level layer, configuring the IApiService:</strong>
+        <br />
+        <ol>
+            <li>
+                Configure the IApiService in the Application/Client dependency injection
+                container so it can be used to make requests.
+            </li>
+        </ol>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span> In the context of a RESTful
+    Api service, <span class="mark">
+        <strong>
+            all functionality should be asynchronous.
+        </strong>
+    </span>
+</p>
+
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/previous-versions/msp-n-p/ff649690(v=pandp.10)?redirectedfrom=MSDN">
+        The Repository Pattern
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/mvc/overview/older-versions/getting-started-with-ef-5-using-mvc-4/implementing-the-repository-and-unit-of-work-patterns-in-an-asp-net-mvc-application">
+        Implementing the Repository and Unit of Work Patterns in an ASP.Net MVC Application
+    </a>, and
+    <a href="https://www.syncfusion.com/blogs/post/10-performance-improvement-tips-for-asp-net-core-3-0-applications.aspx">
+        10 Performance-Improvement Tips for ASP.Net Core 3.0 Applications
+    </a>
+</p>
+

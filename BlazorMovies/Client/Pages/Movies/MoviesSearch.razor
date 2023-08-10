@@ -1,0 +1,120 @@
+﻿
+@page "/movies/search"
+
+<PageTitle>Search Movie</PageTitle>
+
+<h3>Search Movies</h3>
+
+<EditForm Model="_moviesQueryFilterDto">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    @* Every HTML control must typically be bound to a CSharp variable. *@
+    <div class="form-control bg-light mb-2">
+
+        @* Bootstrap's container-columns classes work better than d-flex.*@
+
+        <!-- Search Movie fields. -->
+        <div class="container">
+            <div class="row justify-content-between align-items-center">
+
+                <!-- Movie Title field. -->
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <input class="form-control" type="text"
+                           placeholder="Movie Title"
+                           @bind="@_moviesQueryFilterDto.Title"
+                           @bind:event="oninput"
+                           @onkeydown="OnEnterKeyDown" />
+                </div>
+
+                <!-- Select Genre field. -->
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <select class="form-select"
+                            @bind="@_moviesQueryFilterDto.Genre">
+
+                        <option selected value="@string.Empty">
+                            --Select Genre--
+                        </option>
+                        @foreach (Genre? genre in _genres)
+                        {
+                            <!-- <select> element is bound to the       -->
+                            <!-- _moviesQueryFilterDto.Genre member     -->
+                            <!-- which is passed lower case values from -->
+                            <!-- the MapUrlQueryDictToQueryDto method.  -->
+                            <!-- The attribute value for the <option>   -->
+                            <!-- must be lower case or data binding will-->
+                            <!-- not work properly; i.e., won't update  -->
+                            <!-- under certain circumstances.           -->
+                            <option value="@genre?.Name.ToLower()">
+                                @genre?.Name
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Upcoming Releases field. -->
+                <div class="col-md-3 form-check ms-3 ms-md-0"
+                     style="max-width: 170px">
+                    <label class="form-check-label small"
+                           for="check-upcoming">
+                        Upcoming Releases
+                    </label>
+                    <input class="form-check-input" type="checkbox"
+                           id="check-upcoming"
+                           @bind="@_moviesQueryFilterDto.UpComingReleases"
+                           @bind:event="oninput" />
+                </div>
+
+                <!-- In Theaters field. -->
+                <div class="col-md-3 form-check" style="max-width: 110px">
+                    <label class="form-check-label small"
+                           for="check-in-theaters">
+                        In Theaters
+                    </label>
+                    <input class="form-check-input" type="checkbox"
+                           id="check-in-theaters"
+                           @bind="@_moviesQueryFilterDto.InTheaters"
+                           @bind:event="oninput" />
+                </div>
+
+            </div>
+        </div><!-- /search movie fields -->
+    </div>
+
+    <!-- Clear & Search button elements. -->
+    <div class="row justify-content-end mb-4">
+
+        <!-- Clear fields button element. -->
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-warning"
+                    @onclick="ClearFieldsAsync">
+                Clear Fields
+            </button>
+        </div>
+
+        <!-- Search Movie button element. -->
+        <div class="col-auto">
+            <button type="submit" class="btn btn-success" id="search-movie"
+                    @onclick="SearchMoviesAsync">
+                Search Movies
+            </button>
+        </div>
+    </div>
+
+</EditForm>
+
+<!-- Collection of Movie items retrieved from the database. -->
+<MoviesCatalog Movies="_movies" />
+
+<!-- Pagination control. -->
+@if (_paginatedResponseDto is not null)
+{
+    <div class="mt-3">
+        <Pagination 
+            CurrentPage="@_moviesQueryFilterDto.PaginationRequestDto.PageNumber"
+            TotalPages="@_paginatedResponseDto.PaginationMetadata.TotalPages"
+            Radius="1"
+            OnSelectedPageValidated="@((pageNumber) =>
+                                         LoadSelectedPageAsync(pageNumber))" />
+    </div> 
+}

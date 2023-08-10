@@ -1,0 +1,1372 @@
+﻿@page "/02-components-part-one"
+<PageTitle>Blazor Components - I</PageTitle>
+<h2>Blazor Components - Part One</h2>
+<br />
+<p>
+    Blazor apps are built using Razor components; i.e., Razor components are the building
+    blocks of a Blazor application. Almost everything in Blazor is a component. Razor
+    components are a <strong>self-contained, reusable piece of user interface (UI),</strong>
+    that may include processing logic to enable dynamic behavior and they typically represent
+    a section of your application. Razor component examples are: buttons, forms, lists,
+    statistical graphic representations, etc.
+</p>
+<p>
+    Blazor transcompiles (taking source code written in one language and transforming
+    it into another) its .razor files to .cs files during the building process; i.e.,
+    Razor components become CSharp classes or more specifically,
+    <strong>
+        Razor components (.razor files) are compiled into CSharp classes (.cs files).
+    </strong>Razor components are .razor files that can be used to encapsulate
+    functionality that can be consumed throughout the application.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Routable components usually set their
+    relative URLs to the component's class name in <dfn>kebab</dfn>-case. For example,
+    a <code>FileUpload</code> component includes routing configuration to reach the
+    rendered component at the relative URL <code>/file-upload</code>.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-5.0">
+        ASP.NET Core Razor components
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/fundamentals/?view=aspnetcore-6.0#razor-components">
+        Razor components
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/built-in-components?view=aspnetcore-6.0">
+        ASP.Net Core built-in Razor components
+    </a>
+</p>
+
+<h3 class="mb-0">Client Project - Pages folder:</h3>
+<h4>BlazorSolution/Client/Pages</h4>
+<p>
+    Typically contains Razor <strong>components</strong> (.razor files) that are
+    <strong>routable</strong>; i.e., the Client/Pages folder contains files that
+    start with an <strong><code>@@page "/*"</code></strong> directive. The
+    <code>@@page</code> directive allows you to assign a URL to the component.
+    Storing routable components in a <em>Pages</em> folder has no special meaning
+    and is purely a convention.
+</p>
+
+<h3 class="mb-0">Client Project - Shared folder:</h3>
+<h4>BlazorSolution/Client/Shared</h4>
+<p>
+    Typically contains Razor <strong>components</strong> (.razor files) that are
+    <strong>not routable</strong>; i.e., the Client/Shared folder components
+    <strong>do not have</strong> an @@page directive but they can be consumed from
+    elsewhere. They start with any combination of HTML and CSharp code used to
+    encapsulate functionality that will be accessible throughout the Client project
+    because they reside inside the Client/Shared folder.
+</p>
+
+<h3>Declaring and Consuming a Razor Component Member</h3>
+<p>
+    Razor component <strong>members</strong> are <strong>defined inside</strong> one or
+    more <strong><code>@@code{}</code></strong> blocks (bottom of the page) where
+    component state is specified and processed with CSharp; e.g., properties, fields,
+    parameter values passed by parent components, route parameters, methods for event
+    handling, and custom component logic.
+</p>
+<p>
+    Razor component <strong>members</strong> are <strong>used</strong> (consumed) in
+    rendering logic (where HTML code resides) using CSharp
+    <a href="01-blazor">implicit/explicit expressions</a> that start with the
+    <strong><code>@@</code></strong> symbol.
+</p>
+
+<h3>Consuming a Razor Component</h3>
+<p>
+    Razor <strong>components</strong> that are not routable components; i.e., that do
+    not have an <code>@@page</code> directive can be <strong>used</strong> by creating
+    an instance with their identifier (or name) inside a <strong>single</strong> HTML
+    tag with open-close angled brackets; e.g., <code>&lt;NameOfComponent/&gt;</code>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/using-declaring-components.png"
+         alt="Code with Razor component declared and consumed else where." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/02-components/using-declaring-components-two.png"
+         alt="Code with Razor component declared and consumed else where." />
+</div>
+<br />
+
+<p>
+    Custom <em>MoviesList</em> component invoked with single HTML tag. It
+    resides in BlazorMovies/Client/Shared/MoviesList.razor:
+</p>
+<div>
+    <!-- #region Comments -->
+    <!-- MoviesList is a .razor component. -->
+    <!-- Movies is a property which means it is a parameter because of its location. -->
+    <!-- _movies is a field which means it is an argument passed to satisfy a formal input parameter -->
+    <!-- #endregion -->
+    <MoviesList Movies="_movies" />
+</div>
+<p>
+    Blazor components are files (.razor files) that are transpiled into .Net classes
+    (.cs files) that represent a reusable piece of UI. Each component maintains its own
+    state and specifies its own rendering logic; e.g., the custom <em>MoviesList</em>.razor
+    component is a reusable block of code that specifies its own rendering logic. It is
+    created in a file that resides in Client/Shared/MoviesList.razor and can be consumed
+    from anywhere in the application; e.g., from this document (or page). The
+    "MoviesCreator.GenerateMoviesList()" method resides in an external class that can be
+    accessed from the "<em>MoviesList</em>.razor" component (.razor file) because its namespace is
+    registered with an <strong><code>@@using</code></strong> directive in the
+    Client/_Imports.razor support file as explained in the
+    <a href="01-blazor">Blazor</a> introductory lesson.
+
+</p>
+<h3>Component Parameters</h3>
+<p>
+    An important aspect of Razor components is that they can be passed data, events,
+    content, UI elements, Razor code, etc, through parameters. For example, you could
+    pass a <em>DialogBox</em>.razor (component) as an argument to satisfy another
+    component's parameter. This means that you can re-use the <em>DialogBox</em>.razor
+    component, a Form, some text, another method, and many other types. If you were to
+    have a <em>button</em> component, you could pass a method that should be executed
+    when that button is clicked.
+</p>
+<p>
+    <strong>
+        Component parameters are defined in the component file (.razor file) using
+        CSharp properties decorated with the <code>[Parameter]</code> attribute:
+    </strong>
+</p>
+<p>
+    Let's introduce parameters into our <em>MoviesList.razor</em> component to make it
+    more flexible. Go to the <em>MoviesList</em>.razor component file and replace the
+    field of type List&lt;Movie&gt; with a property of type List&lt;Movie&gt; and
+    decorate the property with a [Parameter] attribute:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/02-component-parameter.png"
+         alt="Code that introduces a parameter for the MoviesList component." />
+</div>
+<br />
+
+<p>
+    With these modifications, when consuming the <em>MoviesList</em>.razor component
+    from elsewhere, every instance expects an argument to satisfy its formal input
+    parameter of type List&lt;Movie&gt;:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/03-component-arguments.png"
+         alt="Code to consume the MoviesList component and satisfy its arguments." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/02-components/03-component-arguments-members.png"
+         alt="Code to consume the MoviesList component and satisfy its arguments." />
+</div>
+<br />
+<p>
+    Intellisense conveys valuable information. The "MoviesList" element resides in the
+    BlazorMovies/Client/Shared folder which means it is a razor component and its icon
+    is very characteristic. With respect to the "Movies" element, Intellisense displays
+    a property icon. As you know, component parameters are defined using properties
+    decorated with a [Parameter] attribute. Therefore, this Property is a component
+    parameter of type List&lt;Movie&gt; and finally, "_movies" is a field. That can
+    only mean that it is used as an argument to satisfy the formal input parameter of the
+    component.
+</p>
+
+<p>
+    Success! We have introduced a parameter to our <em>MoviesList.razor</em> component
+    declaring a property decorated with a <code>[Parameter]</code> attribute inside an
+    <code>@@code{}</code> block that resides in the component's file (or .razor file).
+    Then we consumed that component from this webpage (routable component) and now we
+    can effectively re-use the <em>MoviesList.razor</em> component to display different
+    lists of movies dependent on a specific requirement; e.g., based on release date,
+    title, genre, etc.
+</p>
+
+<div>
+    <!-- MoviesList is a .razor component. -->
+    <!-- Movies is a property which means it is a parameter because of its location. -->
+    <!-- _movies is a field which means it is an argument passed to satisfy a formal input parameter -->
+    <MoviesList Movies="_movies" />
+</div>
+
+<p>
+    Although we have introduced a parameter as intended, we are not done yet. We
+    can still improve the <em>MoviesList</em>.razor component. Note that its
+    foreach() loop responsible for iterating over the collection of movies has
+    two members with a hard coded type (Movie). We can provide an extra layer of
+    abstraction to decouple the <em>MoviesList</em>.razor component from the hard
+    coded logic.
+</p>
+<p>
+    So far, we have declared an entity of type Movie in the Shared project and we
+    defined an external class with a method that generates a collection of type
+    Movie. Then we implemented a component that:
+</p>
+<ul>
+    <li>Iterates over a collection of movies</li>
+    <li>Tests for nullability and/or empty collections</li>
+    <li>
+        Renders information to the user if collection is empty or if data is loading
+        when it takes longer that it took the rendering engine to render the webpage
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span> Let's create a new Razor component
+    named <em>SingleMovie</em>.razor that will be consumed by the
+    <em>MoviesList</em>.razor component. It should be responsible for defining which
+    properties of each Movie item should be rendered. Since we want our
+    <em>SingleMovie</em>.razor component accessible from anywhere in the Client
+    project, we should create it inside the Client/Shared folder:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/04-single-movie-component.png"
+         alt="Code defining a SingleMovie.razor component." />
+</div>
+<br />
+
+<p>
+    Now we can consume the <em>SingleMovie</em>.razor component we just created, to
+    render each Movie passed as an argument, from the <em>MoviesList</em>.razor
+    component responsible for iterating over a collection of movies:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/05-component-consuming-component.png"
+         alt="Code with a component consuming another component." />
+</div>
+<br />
+
+<p>
+    If you have to assign a CSharp member (field, property, method result) to a component
+    parameter as an HTML attribute value, prefix the member with the Razor's reserved
+    <code>@@</code> symbol but never prefix the HTML parameter attribute:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/06-csharp-member-parameter.png"
+         alt="Code with correct and incorrect way of passing a CSharp member as a parameter." />
+</div>
+<br />
+
+<h3>Arbitrary Parameters & Attribute Splatting</h3>
+<p>
+    So far we've learned to assign explicitly defined parameters to Razor components
+    using properties decorated with the <code>[Parameter]</code> attribute but what
+    if you want to pass an arbitrary number of parameters to a component? In other
+    words, what if during development time, you don't know the exact type and quantity
+    of parameters that will be required to render a given component? Specially because
+    components are re-usable pieces of functionality.
+</p>
+<p>
+    This scenario is very common when defining a component that produces a markup
+    element (HTML element) that supports a variety of customizations. For example,
+    it would be quite an endeavor to define a property (decorated with a [Parameter]
+    attribute) for each and every available attribute for an 'input' element because
+    'input' elements support many attributes. <strong>
+        Razor components can capture and render additional arbitrary attributes
+    </strong> besides the component's parameters declared explicitly during its
+    creation.
+</p>
+<p>
+    <dfn>Splatting</dfn> is the ability (or technique) of combining or passing a collection
+    of parameter values as a single unit. With attribute splatting, you can use arbitrary
+    parameters to pass as many parameters to a component as you want even if these
+    were not explicitly declared during the creation of the component. This way, when
+    <strong>consuming</strong> your component, you could <strong>pass attributes</strong>
+    such as a placeholder, an id, or a name; even if these parameters were not explicitly
+    declared during creation of the component.
+</p>
+<p>
+    <strong>
+        Additional arbitrary attributes can be stored in a
+        <dfn>Dictionary&lt;TKey, TValue&gt;</dfn> collection
+    </strong> or in an <dfn>IEnumerable&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;</dfn>,
+    and then splatted onto an element (HTML element) when the
+    component (Razor component) is consumed. As you know, in CSharp a <dfn>Dictionary</dfn>
+    represents a collection of <dfn>key-value</dfn> pairs. For .razor elements, the
+    <dfn>key</dfn> is a <code>string</code> that represents the attribute name and
+    the <dfn>value</dfn> is an <code>object</code> that represents the attribute value.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a component that produces
+    a TextBox and make it capable of taking additional arbitrary attributes when
+    consumed from elsewhere. Then, use it to render the underlying input control
+    of type 'text' with an additional arbitrary <em>placeholder</em> attribute.
+    Demonstrate the three most common approaches for adding additional arbitrary
+    attributes to a component:
+</p>
+<p>
+    <span class="badge bg-info">Note:</span> It is recommended to <strong>
+        descend (or derive) components from the <code>InputBase&lt;T&gt;</code>
+    </strong> class if you intend to use them as user input. This class adds
+    functionality above that of standard HTML &lt;input&gt; elements such as
+    validation and CSS styling based on the result of the validation. For more
+    info refer to lesson on <em>Built-in form components</em> in module four
+    <a href="04-forms">Forms</a>.
+</p>
+<div class="image-lesson">
+    <img src="Images/02-components/07-component-captureunmateched.png"
+         alt="Code of a Razor component with a Dictionary property to catch unmatched values." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-info">Note:</span> The underlying input element
+    (type text) is declared with an <strong><code>@@attributes</code></strong>
+    property. The
+    <strong>
+        <code>@@attributes</code> property merges a collection of attributes
+        into the current underlying element of the component.
+    </strong>A component <strong>must have a single</strong> parameter with
+    the <strong><code>CaptureUnmatchedValues</code></strong> Parameter.Attribute.Property
+    that allows it to receive additional arbitrary attributes and pass them to
+    the underlying element (input element in our example).
+</p>
+<p>
+    Now we can consume the <em>DummyTextBox</em>.razor component and splat
+    additional arbitrary attributes. There are three main approaches for
+    adding arbitrary attributes when consuming a component.
+</p>
+<p>
+    1. The most common way for splatting additional arbitrary attributes is by creating
+    a property of type Dictionary&lt;TKey, TValue&gt; with the desired arbitrary
+    attributes as key-value pairs and then passing that collection as an argument to
+    satisfy the component's parameter with the CaptureUnmatchedValues
+    Parameter.Attribute.Property.
+</p>
+<p>
+
+    2. You can also use an in-line <code>@@attributes</code> property in combination
+    with the collection of type Dictionary. Study both approaches shown below:
+</p>
+<div class="image-lesson">
+    <img src="Images/02-components/08-component-arbitray-attributes.png"
+         alt="Code that consumes a component and passes arbitrary attributes to underlying element." />
+</div>
+<br />
+
+<div>
+    <!-- DummyTextBox component with additional arbitrary parameters defined in a           -->
+    <!-- Dictionary collection passed as an argument to satisfy its                         -->
+    <!-- AdditionalInputParameters formal input parameter. -->
+    <DummyTextBox AdditionalInputParameters="InputAttributes" />
+
+    <!-- Exactly the same result as above -->
+    <DummyTextBox @attributes="InputAttributes" />
+</div>
+
+<p>
+    3. When consuming your component, instead of using a Dictionary collection to
+    store any key-value pairs of attributes, you can directly pass additional arbitrary
+    attributes with an in-line declaration and the name of the attributes separated with
+    a space. Attributes are invoked from right to left. This means that
+    <strong>default attribute values</strong> should be declared first and the
+    <code>@@attributes</code> directive, if any, should be declared last:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/09-inline-attributes.png"
+         alt="Component with an in-line attribute declaration." />
+</div>
+<br />
+<div>
+    <!-- DummyTextBox component with additional arbitrary parameters defined in-line        -->
+    <DummyTextBox placeholder="Inline Arbitrary Attribute" />
+</div>
+
+<h3>Event handling</h3>
+<p>
+    Events are actions that are executed in response to a user interaction. For example, the
+    Click event is raised when the user clicks on a button control. You can execute methods
+    in response to an event.
+</p>
+<p>
+    In Razor component markup, you can specify delegate event handlers with
+    <strong><code>@@on{DOM EVENT}="{DELEGATE}"</code></strong> where:
+</p>
+<ul>
+    <li>
+        The {DOM EVENT} placeholder is a <a href="https://developer.mozilla.org/en-US/docs/Web/Events">
+            Document Object Model (DOM) event
+        </a>; e.g., <em>click</em>
+    </li>
+    <li>
+        The {DELEGATE} placeholder is the CSharp delegate event handler. In Blazor,
+        delegate event handlers automatically trigger a UI render, so there is no need to
+        manually call the <a href="02-components-part-two"><dfn>StateHasChanged</dfn></a>
+        lifecycle method.
+    </li>
+</ul>
+
+<p>
+    <span class="badge bg-primary text-light p-1">Task:</span> Let's refactor the <em>SingleMovie</em>.razor component
+    to include a Button element below each rendered Movie item to simulate a "Delete"
+    action. If clicked, the Buttons should display a message into the browser's console.
+    Additionally, include a Checkbox on top of the list of Movie items to "Enable Delete"
+    and render (or not) the Delete buttons.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/10-on-click-event.png"
+         alt="Code with an onclick event for a button element." />
+</div>
+<br />
+
+<p>
+    The <em>SingleMovie</em>.razor component declares an 'onclick' DOM event for
+    a button element and uses an explicit expression to define an in-line anonymous
+    function as the event handler. It also implements a parameter of type bool for
+    the conditional block that determines if the buttons must be rendered. The bool
+    and Movie parameters must be satisfied when this <em>SingleMovie</em>.razor
+    component is consumed elsewhere:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/11-onchange-event.png"
+         alt="Code with an onchange event for a checkbox element." />
+</div>
+<br />
+
+<p>
+    The <em>MoviesList</em>.razor component declares an 'onchange' DOM event for a checkbox
+    element and defines an event handler that sets a value for the bool flag field
+    passed as an argument to the <em>SingleMovie</em>.razor component.
+</p>
+
+<p>
+    With these modifications, when you consume the <em>MoviesList</em>.razor component, the
+    rendering engine displays an 'Enable Delete' Checkbox responsible of raising an
+    event to invoke the UpdateCheckboxValue() method and switch the value for the bool
+    flag to render (or not) the delete buttons on each Movie item. The <em>MoviesList</em>.razor
+    component consumes the <em>SingleMovie</em>.razor component responsible for displaying a
+    message into the browser's console every time the user raises a click event on the
+    (delete) Button element. As mentioned earlier, in Blazor, delegate event handlers
+    automatically trigger a UI render which updates the browser when the Checkbox state
+    changes and raises its "onchange" DOM event.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/12-consuming-component-events.png"
+         alt="Code that consumes the <em>MoviesList</em>.razor component" />
+</div>
+<br />
+
+<div>
+    <MoviesList Movies="_movies"></MoviesList>
+</div>
+
+<p>
+    This approach to synchronize the value (or state) of an HTML element with a CSharp
+    variable using a DOM event does the job with no problems. However, a simpler and faster
+    approach would be to utilize Data Binding as shown in the next topic.
+</p>
+<p>
+    <span class="badge bg-info">Note:</span> For events that support an event argument type,
+    specifying an event parameter in the event method definition is only necessary if the
+    event type is used in the event handler (method). For a real life example, you can refer
+    to the OnEnterKeyDown event handler (method) for the <code>@@onkeydown</code> event of an
+    <code>&lt;input&gt;</code> element in the <a href="04-forms-part-one">MoviesSearch</a>
+    routable component.
+</p>
+<p>
+    For more info on Blazor event handling you can go to <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/event-handling?view=aspnetcore-5.0">
+        ASP.Net Core Blazor event handling
+    </a>,
+    <a href="https://github.com/dotnet/aspnetcore/tree/main/src/Components/Web/src/Web">
+        EventArgs classes in the ASP.Net Core Reference Source,
+    </a> and
+    <a href="https://developer.mozilla.org/docs/Web/API/GlobalEventHandlers">
+        MDN web docs: GlobalEventHandlers
+    </a>
+</p>
+
+<h3>Data Binding</h3>
+<p>
+    Data binding allows you to synchronize a variable (field, property, or Razor expression
+    value) with an HTML element or a component so that any <strong>
+        changes that you make in either end of the data binding are reflected.
+    </strong> Blazor implements <strong>two way binding</strong>.
+    To implement data binding you must use the <strong><code>@@bind</code></strong> Razor
+    directive.
+</p>
+<p>
+    <span class="badge bg-primary text-light p-1">Task:</span> Create a
+    <em>DataBindCounter</em>.razor component with a Button element that increments the
+    value of a CSharp variable by one, renders the changes into a simple paragraph
+    element, and it also renders the changes into a TextBox element.
+</p>
+<p>
+    As with any other coding exercise, we can start simple. Create a
+    <em>DataBindCounter</em>.razor component with a variable to store the current value,
+    a method to increment the value of the variable by one, and a paragraph element that
+    displays the current value of the variable using an implicit expression:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/13-db-counter-p.png"
+         alt="Razor component with button element increments variable value." />
+</div>
+<br />
+
+<p>
+    Now we can add an input element of type 'number' that will display the current value
+    of the variable:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/14-ndb-tbx.png"
+         alt="Razor component with text box and no data binding." />
+</div>
+<br />
+
+<p>
+    Although the input element will display the current value of the variable, it does
+    <strong>not</strong> implement two way data binding because it is not using the
+    <code>@@bind</code> Razor directive. It is simply using an implicit expression to
+    display the appropriate value. Let's implement data binding and compare the code:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/15-db-tbox.png"
+         alt="Razor component with text box and data binding." />
+</div>
+<br />
+
+<p>
+    This time we are effectively implementing two way binding because we are using the
+    <code>@@bind</code> Razor directive. If you were to change the value on the text
+    box, the value of the variable it is bound to would also be affected. However,
+    <strong>
+        by default, Blazor binding applies to the element's <code>onchange</code> event.
+    </strong>This means that if the user changes the value of the text box by typing
+    anything, <strong>the event will be raised after the text box element loses focus.</strong>
+</p>
+<p>
+    This is because under the covers, the <code>@@bind</code> directive is actually setting
+    the <code>value</code> attribute of the &lt;input&gt; element to _currentCount and
+    <strong>automatically</strong> setting up an <code>onchange</code> handler which will
+    update _currentCount when the input loses focus. You can see this in the transpiled .Net
+    class that represents the DataBindCounter.razor component:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/99-bind-directive.png" alt="@@bind directive definition." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/100-onchange-event.png" alt="onchange handler automatically assigned." />
+</div>
+
+<p>
+    The <code>@@bind</code> directive understands different control types, for example, a
+    checkbox does not use a <code>value</code> attribute, it uses a <code>checked</code>
+    attribute. <code>@@bind</code> knows this and will apply the correct attributes
+    accordingly.
+</p>
+<p>
+    <span class="badge bg-primary text-light p-1">Task:</span> Suppose that you want to raise
+    an event for some action to take place immediately after any value is typed on the text
+    box, even if it hasn't lost focus.
+</p>
+<p>
+    We can do that using a more specific version of <code>@@bind</code>. We can specify what
+    event the <code>@@bind</code> directive should use to handle updating the value. As we
+    know, by default this event is <code>onchange</code> but you can also bind a variable (field,
+    property, or Razor expression) on a different DOM event by <strong>adding</strong> an
+    <strong><code>@@bind:event="{EVENT}"</code></strong> attribute.
+</p>
+<p>
+    For example, you can <strong>bind</strong> your markup element to an
+    <strong><code>oninput</code></strong> DOM event by adding an <code>@@bind:event="{EVENT}"</code>
+    attribute that will <strong>override</strong> the default <code>onchange</code> event:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/16-db-event-attribute.png"
+         alt="Data binding with oninput event attribute." />
+</div>
+<br />
+
+<p>
+    The <code>@@bind:event="oninput"</code> event attribute overrides the default
+    <code>onchange</code> event. If the user types in any number, the value of the
+    variable is immediately affected as opposed to being affected until the text box
+    element loses focus.
+</p>
+<p>
+    We can import our <em>DataBindCounter</em>.razor component into this routable
+    component (or webpage document) by declaring an instance of the component in
+    a single HTML tag:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/17-counter-component-import.png"
+         alt="Single HTML tag calls the DataBinderCounter.razor component." />
+</div>
+<br />
+<p>
+    That's it. We have successfully created a Razor component that implements data
+    binding and demonstrates how to override the default <code>onchange</code>
+    DOM event. Unlike the DB oninput text box, if you type something into the Data
+    binding text box, the variable is affected until the text box loses focus.
+</p>
+<div>
+    <DataBindCounter />
+</div>
+
+<p>
+    Keep in mind that when a user provides an unparsable value to a data bound
+    element, the unparsable value is automatically set to the element's default
+    value type when the bind event is triggered. For example, when the event is
+    the default "onchange" event, if the user updates the value of the text box
+    to "123.5" and changes the focus, the element's value is set to zeroe because
+    "123.5" is a type decimal, not type int.
+</p>
+<p>
+    When the value is rejected, users understand that their value was not accepted.
+    For the "oninput" event, a value reversion occurs after any keystroke that
+    introduces an unparsable value (e.g., when introduces a dot) because 'int' types
+    don't accept dotted values.
+</p>
+<p>
+    It is obviously much simpler and better to use the <code>@@bind</code> Razor
+    directive than to declare an "onchange" DOM event and define an event handler
+    for the desired action.
+</p>
+<p>
+    <span class="badge bg-primary text-light p-1">Task: </span> Modify the input type
+    Checkbox of the <em>MoviesList</em>.razor component, created in the previous topic
+    of Event Handling, to bind it to the bool variable responsible of storing the state
+    of the checkbox as opposed to using an <code>onchange</code> event and passing it
+    an event handler responsible of switching the value of the variable. Compare both
+    approaches:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/18-db-variable.png"
+         alt="Code with data binding of an HTML element to a CSharp variable." />
+</div>
+<br />
+
+<p>
+    For more info on data binding visit <a href="https://chrissainty.com/a-detailed-look-at-data-binding-in-blazor/">
+        A Detailed Look at Data Binding in Blazor
+    </a> by Chris Sainty,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/data-binding?view=aspnetcore-5.0">
+        ASP.Net Core Blazor data binding,
+    </a> and
+    <a href="https://stackoverflow.com/questions/58221915/difference-between-bind-and-bind-value">
+        Difference between @@bind and @@bind-value
+    </a>
+</p>
+<h3>Event Callback</h3>
+<p>
+    A common scenario with nested components is to execute a parent component's method
+    when a child component event occurs such as an <code>onclick</code> event occurring
+    in the child component. To expose events across components, use an
+    <code>EventCallback</code>. Event callbacks are bound event handler delegates. In
+    other words, <strong>
+        you can pass functionality to a nested component in the form of a parameter
+    </strong> using <strong><code>EventCallback</code></strong> bound event handler
+    delegates.
+</p>
+<p>
+    CSharp includes a non-generic and a generic
+    <strong><code>EventCallback&lt;TValue&gt;</code></strong>. It is strongly advisable
+    to use the generic version to make your callbacks type safe. Both EventCallbacks
+    can implement asynchronous delegates with an <strong><code>InvokeAsync()</code></strong>
+    method responsible of invoking the delegate associated with the binding and
+    dispatching an event notification to the appropriate component.
+</p>
+<p>
+    The main difference between the non-generic and generic version of EventCallback is
+    that the generic version's <code><strong>InvokeAsync(T)</strong></code> method
+    requires passing a T argument that is assignable. Making it type safe, avoiding
+    boxing and unboxing for ValueTypes, and casting for reference types because the
+    non generic InvokeAsync method employs a type <code>object</code>.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Go to the <em>MoviesList</em>.razor
+    component (parent) and implement the functionality to delete a movie from the
+    <em>List&lt;Movie&gt;</em> that receives to satisfy its <em>Movies</em> formal
+    input parameter. Make sure you establish an asynchronous callback of this
+    functionality in the <em>SingleMovie</em>.razor component (child) when the "onclick"
+    event of its delete button element is raised.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One.</span> In the <em>SingleMovie</em>.razor
+    component, define a parameter (property) of type EventCallback&lt;T&gt; with a type
+    parameter Movie. This EventCallback
+    property will allow you to pass a method (functionality) from its parent
+    component as an argument and expose it to this child component. The type parameter
+    is the Movie item to be deleted.
+</p>
+<p>
+    With the EventCallback parameter in place, we can use it to call the InvokeAsync(T)
+    method that invokes the delegate associated with this binding; i.e., to invoke
+    the functionality of the method passed as an argument to this <em>SingleMovie</em>.razor
+    component when it is consumed elsewhere:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/19-event-callback-child-one.png"
+         alt="InvokeAsync method Callback." />
+</div>
+<div class="image-lesson">
+    <img src="Images/02-components/19-event-callback-child-two.png"
+         alt="InvokeAsync method Callback." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-info">Notice:</span> When no arguments are required, you could
+    omit the anonymous function and the <code>InvokeAsync(TValue)</code> method and
+    simply pass the event handler. However, <strong>
+        it is recommended to always use
+        the InvokeAsync&lt;T&gt;() method
+    </strong>for thread safety. The following example is taken from the
+    <em>Confirmation</em> component built in lesson
+    <a href="02-components-part-four">Capturing References To Components</a>
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/19-event-callback-three.png" alt="EventCallback comparison." />
+</div>
+<br />
+<div class="image-lesson">
+    <img src="Images/02-components/19-event-callback-four.png" alt="EventCallback comparison." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> It is the turn of the
+    <em>MoviesList</em>.razor component (parent). First, define a method with the
+    required code logic to delete any Movie item passed as an argument. Then, update the
+    call to the <em>SingleMovie</em>.razor component by declaring its "DeleteMovie"
+    formal input parameter and satisfy it with the "DeleteMovie(Movie)" local method
+    that contains the functionality to delete a movie item from the collection of movies:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/20-event-callback-parent-one.png"
+         alt="Code consumes a child component and passes functionality to it." />
+</div>
+<div class="image-lesson">
+    <img src="Images/02-components/20-event-callback-parent-two.png"
+         alt="Code consumes a child component and passes functionality to it." />
+</div>
+<br />
+<p>
+    If we consume the <em>MoviesList</em>.razor component, it should be working as
+    before except that this time the functionality is defined in the parent component
+    and it is passed to a nested (or child) component using a type safe (generic)
+    EventCallback&lt;Movie&gt; event handler delegate combined with an async
+    InvokeAsync(T) method responsible of invoking the functionality passed as an
+    argument from the parent component. Additionally, this time the Delete buttons
+    in fact remove the movie item from the collection of movies:
+</p>
+
+<div>
+    <MoviesList Movies="_movies" />
+</div>
+
+<p>
+    The DeleteMovie(Movie) method that resides in the parent component is
+    executed when the user raises a DOM event that occurs in a child component. If
+    you delete a movie and refresh the webpage, the complete list is rendered again.
+    This is because you are working with in-memory collections of objects as opposed
+    to data persistent collections.
+</p>
+
+<p>
+    <span class="badge bg-info">Notice:</span> As explained in the "Generic Components" topic
+    a few paragraphs below, any generic type parameters <span class="mark">
+        can be specified
+        using an attribute <strong>
+            that matches the name of the type parameter.
+        </strong>
+    </span>
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/102-specify-generic-type.png" alt="Generic type specification." />
+</div>
+
+<p>
+    Refer to <em>"Step Five"</em> of the lesson on <a href="04-forms-part-two">
+        Autocomplete - Typeahead Component
+    </a> for an example on using generic type parameters.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/event-handling?view=aspnetcore-5.0#eventcallback-1">
+        ASP.Net Core Blazor event handling
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/dotnet/architecture/blazor-for-web-forms-developers/components">
+        Build reusable UI components with Blazor.
+    </a>
+</p>
+
+<h3>Templated Components - RenderFragment class</h3>
+<p>
+    Templated components are Razor components that accept one or more UI templates
+    as parameters which can be used (or adopted) as part of its rendering logic. As
+    mentioned earlier, besides data, you can pass content (UI content) as a
+    parameter of a component.
+</p>
+<p>
+    This is useful when you want to give the templated component the capability
+    to accept UI content passed by its consumer as an argument to satisfy its
+    (UI content) parameter. In other words, you can use templated components
+    when you want to give the consumer of the templated component (a higher level
+    component) the option to dynamically provide specific UI content that will be
+    rendered.
+</p>
+<p>
+    There might be times that you want to have one or more sections in a
+    component where you can pass dynamic content when it is consumed (at
+    run-time). Take one more look to the code logic of our <em>MoviesList</em>.razor
+    component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/21-movies-list-component.png"
+         alt="Code logic of the <em>MoviesList</em>.razor component." />
+</div>
+<br />
+
+<p>
+    The <code>if()</code> block evaluates if the collection of type Movie is null
+    and given the case, it renders an <code>&lt;img&gt;</code> element (UI content).
+    The <code>else if()</code> block is very similar, it evaluates if the collection
+    of type Movie is empty, and given the case, it renders a <code>&lt;text&gt;</code>
+    element (UI element).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Suppose that you want the <code>if()</code>
+    and the <code>else if()</code> sections of the component to be dynamic and have
+    the capability to receive content (UI content) passed as an argument when consumed
+    elsewhere. This way the client (or consumer) of the <em>MoviesList</em>.razor component can
+    pass Razor code as an argument. You can achieve this by turning the <em>MoviesList</em>.razor
+    component into a templated component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One.</span> Define a parameter (property) for
+    each section that will be capable of receiving Razor code (UI content) that
+    should be rendered. The parameter must be of type <strong><code>RenderFragment</code></strong>
+    or <strong><code>RenderFragment(TValue)</code></strong>. A render fragment
+    <strong>represents a segment of UI to render</strong>. Then replace the markup
+    element (UI element) with an implicit expression that references the RenderFragment
+    parameter:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/22-render-fragment-parameter.png"
+         alt="Code with ChildContent RenderFragment parameter." />
+</div>
+<br />
+
+<p>
+    There is a <strong>naming convention</strong> that dictates that when you have
+    <strong>only one</strong> RenderFragment parameter, you should name it
+    <strong>ChildContent</strong>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two.</span> Go to the higher level component that will
+    consume the <em>MoviesList</em>.razor component (e.g., this webpage routable component),
+    declare an instance of the <em>MoviesList</em>.razor component and define any Razor code
+    that you want to pass as an argument to satisfy the ChildContent parameter:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/23-child-content-argument.png"
+         alt="MoviesList.razor component instance with ChildContent argument." />
+</div>
+<br />
+
+<p>
+    The argument (Razor code) passed to satisfy the ChildContent parameter is
+    inside an instance of the <em>MoviesList</em>.razor component; i.e., the
+    <em>MoviesList</em>.razor component is using open and close tags to wrap
+    the Razor code. With these changes, the <em>MoviesList</em>.razor templated
+    component accepts Razor code as an argument to display UI content dynamically
+    because the consumer can swap Razor code as needed:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/24-loading-image.png"
+         alt="UI rendered image while loading Movie collection." />
+</div>
+<br />
+
+<p>
+    What do you think would happen if the consumer of the <em>MoviesList</em>.razor
+    component does not satisfy its RenderFragment parameter? Nothing would be rendered
+    and the "Loading" notification would not take place. This is not a System.Exception
+    but you should <strong>always make sure to include a fallback</strong> (or default)
+    content to render in case the user does not provide anything.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Include the default content to render
+    in case the consumer fails to provide any Razor code to satisfy the RenderFragment
+    parameter of the <em>MoviesList</em>.razor component:
+
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/25-fallback-render-fragment.png"
+         alt="Code with fallback UI code to render if user fails to satisfy parameter." />
+</div>
+<br />
+
+<p>
+    Let's continue with the next section of the <em>MoviesList</em>.razor component that we want
+    to be dynamic and have the capability to receive content (UI content) passed as an
+    argument when consumed elsewhere. Recall that we stated that when you have only
+    one RenderFragment parameter, it is a common convention to name it ChildContent.
+    However, when implementing a templated component that
+    <strong>
+        has more than one RenderFragment parameter, you should not use the
+        ChildContent identifier,
+    </strong>instead choose a meaningful name for each RenderFragment parameter
+    and <strong>include a Template suffix</strong>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/26-fallback-renderfragments.png"
+         alt="Code with fallbackUI code to render if user fails to satisfy parameters." />
+    <img src="Images/02-components/26-fallback-renderfragments-2.png"
+         alt="Code with fallbackUI code to render if user fails to satisfy parameters." />
+</div>
+<br />
+
+<p>
+    Go to the higher level component that will consume the <em>MoviesList</em>.razor component
+    (e.g., this webpage routable component), declare an instance of the <em>MoviesList</em>.razor
+    component and define any Razor code that you want to pass to satisfy its
+    RenderFragment parameters:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/27-movies-list-multiple-renderfragments.png" />
+</div>
+<br />
+
+<p>
+    Since the <em>MoviesList</em>.razor component instance expects more than one RenderFragment
+    argument, you have to explicitly define each RenderFragment argument between start
+    & end tags.
+</p>
+
+<p>
+    So far, we have used RenderFragment parameters that contain mark-up which is then
+    included as-is when the component is rendered. None of the RenderFragment templates
+    shown receive a type parameter; i.e., the RenderFragment templates used are not
+    generic because we have been working with UI content of types that are already
+    built-in to the system. We passed &lt;div&gt;, &lt;img&gt;, and &lt;text&gt; elements.
+    What if you want to implement a RenderFragment template to render a Movie or any other
+    data type that is not System pre-defined? Or maybe you want to increase code
+    re-usability for a templated component.
+</p>
+
+<h5>Generic components</h5>
+<p>
+    As mentioned at the beginning of this Components - Part 1 section, Blazor transpiles
+    its .razor files to .cs files during the building process. Since our .razor files do
+    not require us to declare the class name (it is inferred from the file name), we need
+    a way to additionally specify when the class generated should be made generic. The
+    <strong><code>@@typeparam</code></strong> directive allows us to define one or more
+    comma-separated generic type parameters on our class. This can be especially useful
+    when combined with the generic version of the <code>RenderFragment&lt;T&gt;</code>
+    class.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Any generic type parameters <span class="mark">
+        can be specified using an attribute <strong>
+            that matches the name of the type parameter:
+        </strong>
+    </span>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/102-specify-generic-type.png" alt="Generic type specification." />
+</div>
+<p>
+    Refer to <em>"Step Five"</em> of the lesson on <a href="04-forms-part-two">
+        Autocomplete - Typeahead Component
+    </a> for an example on using generic type parameters.
+</p>
+<h5>Generic RenderFragment&lt;T&gt;</h5>
+<p>
+    The importance of templated components cannot be stressed enough because they allow
+    us to pass content that will be rendered. This is useful when you have section(s) of a
+    component that you want to have the capability of rendering dynamic content (Razor code:
+    HTML & CSharp) supplied to satisfy its input parameter(s) when consuming it from a
+    higher level component.
+</p>
+
+<p>
+    With a quick glance to the <em>MoviesList</em>.razor component, one can realize that
+    its functionality is likely to be used over and over in an application because it
+    tests for nullability and emptiness of a collection of items and based on the
+    collection state, renders dynamic content passed as an argument by its consumer:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/28-movies-list-component.png"
+         alt="Code logic of MoviesList.razor component." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task: </span> Create a new generic component to
+    implement an appropriate separation of concerns. The logic related to
+    testing a collection for nullability and emptiness should reside in the
+    newly created generic component and the <em>MoviesList</em>.razor component should
+    employ the generic component to test its Movie collection for nullability and/or
+    emptiness before attempting to render its collection of Movie items.
+</p>
+<p>
+    If you think about it, the process is very simple because we already have most of
+    the coding logic. We just have to make the MoviesList.razor component generic by
+    declaring an <code>@@typeparam</code> directive and name it following the common
+    convention for generic type parameters (TItem), define a generic parameter
+    List&lt;TItem&gt; and replace the hard coded "Movie" type with the generic type
+    TItem:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/29-generic-movies-list-one.png" />
+    <img src="Images/02-components/29-generic-movies-list-two.png" />
+</div>
+<br />
+
+<p>
+    The <code>@@typeparam TItem</code> directive defines a generic type parameter to
+    be used within the <em>MoviesList</em>.razor templated component. It is customary to
+    <strong>name generic type parameters with a 'T' letter as a prefix</strong>. The
+    generic List&lt;TItem&gt; parameter allows you to postpone the specification of
+    the type of the collection; i.e., it allows you to replace the hard coded type
+    with the generic parameter <code>ItemsList</code>.
+</p>
+<p>
+    At this point, the code logic of the <em>MoviesList</em>.razor component is generic. However,
+    you might have noticed that we are temporarily using an <code>as</code> operator in
+    the <em>SingleMovie</em> component instance to convert the TItem into an item of type Movie
+    because the <em>SingleMovie</em> component is not capable of working with generic type
+    parameters. This will be taken care soon but before that, we should implement an
+    appropriate separation of concerns.
+</p>
+<p>
+    Let's create a new generic component whose sole responsibility will be testing
+    a collection of items for nullability and emptiness, and rendering content passed
+    as an argument when consumed elsewhere. Its name should be something meaningful;
+    e.g., TestCollectionNullOrEmpty.razor. As always, a non-routable component
+    should reside inside the Client/Shared folder. Once created, we only have to
+    remove the code logic related to testing for emptiness and nullability from the
+    <em>MoviesList</em>.razor templated component and paste it into the
+    TestCollectionNullOrEmpty.razor component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/30-movies-list-component.png"
+         alt="MoviesList.razor component with no testing logic for null or empty." />
+</div>
+<br />
+
+<p>
+    The <em>MoviesList</em>.razor templated component is no longer templated because the
+    code logic responsible for testing a generic collection for nullability and emptiness
+    has been transferred to the TestCollectionNullOrEmpty.razor component and that logic
+    includes the RenderFragment parameters NullLoadingTemplate and EmptyTemplate.
+</p>
+<p>
+    Now study the TestCollectionNullOrEmpty.razor templated component responsible for
+    testing if a generic collection is null or empty:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/31-test-collection-one.png"
+         alt="TestCollectionNullOrEmpty generic component logic." />
+    <img src="Images/02-components/31-test-collection-two.png"
+         alt="TestCollectionNullOrEmpty generic component logic." />
+</div>
+<br />
+
+<p>
+    We still have one slight issue. The <em>SingleMovie</em>.razor component has three parameters
+    to be satisfied but the TestCollectionNullOrEmpty.razor templated component lacks the
+    code logic because some of it resides inside the <em>MoviesList</em>.razor component and some
+    other resides inside the <em>SingleMovie</em>.razor component. This can be solved quite easily.
+    As mentioned earlier, besides data, you can pass content (UI content) as a parameter of
+    a component.
+</p>
+<p>
+    Recall that templated components are components that accept one or more UI
+    templates as parameters which can be used as part of its rendering logic. In other words,
+    we can create a new RenderFragment&lt;TItem&gt; parameter that will accept a UI template
+    that defines how to render each TItem of the generic List&lt;TItem&gt; named ItemsList
+    and satisfy it when consuming this TestCollectionNullOrEmpty.razor templated component.
+    For example, we can consume it in the <em>MoviesList</em>.razor component and satisfy its
+    RenderFragment&lt;TItem&gt; parameter from there:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/32-generic-render-fragment.png"
+         alt="Templated component with a generic RenderFragment parameter." />
+</div>
+<br />
+
+<p>
+    With the generic RenderFragment&lt;TItem&gt; parameter named RenderItemTemplate
+    in place, we can go to the <em>MoviesList</em>.razor component, create an instance of the
+    TestCollectionNullOrEmpty.razor templated component and define how we want each
+    TItem rendered:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/33-render-item-template.png"
+         alt="Code consumes TestCollectionNullOrEmpty templated component." />
+</div>
+<br />
+
+<p>
+    The TestCollectionNullOrEmpty instance satisfies its List&lt;TItem&gt; parameter
+    with the local List&lt;Movie&gt; collection named Movies. Then we use start-end
+    tags to explicitly define the RenderItemTemplate formal input parameter
+    and satisfy it with our UI template of how we want to render each TItem element
+    of the list passed as an argument.
+</p>
+<p>
+    You probably realized that we have previously defined an almost identical rendering
+    template for each item in a collection of Movies. This rendering logic (UI content
+    logic) is defined in the <em>SingleMovie</em>.razor component. In fact, this was the reason
+    to create the <em>SingleMovie</em>.razor component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/34-single-movie-component.png" alt="SingleMovie.razor component" />
+</div>
+<br />
+
+<p>
+    There is no point in repeating code here and there. Instead, we can replace the
+    rendering template logic, created to satisfy the RenderItemTemplate parameter of
+    the <em>TestCollectionNullOrEmpty</em>.razor templated component, with the
+    previously defined <em>SingleMovie</em>.razor component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/35-movies-list-single-movie.png"
+         alt="Component consuming a templated component and passing another component as argument." />
+</div>
+<br />
+
+<p>
+    The <em>TestCollectionNullOrEmpty</em>.razor templated component and its
+    RenderItemTemplate parameter utilize start-end tags to wrap complex Razor code and
+    the <em>SingleMovie</em>.razor component only needs a single tag to define in-line
+    attributes (parameters) and their corresponding values.
+</p>
+<p>
+    Another important distinction is that we have been using a variable named "context"
+    to access the TItem object (type Movie) and be able to render it. As shown in the
+    image below, in our example, the TItem object is defined as a type parameter of the
+    RenderFragment&lt;TItem&gt; RenderItemTemplate parameter of the
+    <em>TestCollectionNullOrEmpty</em>.razor templated component. But where do we get
+    the "context" variable from?
+</p>
+
+<h5>Accessing context captured inside the RenderFragment&lt;TValue&gt; parameter</h5>
+<p>
+    When you define a RenderFragment&lt;TValue&gt; property (parameter) in a component, the
+    compiler creates a delegate that encapsulates a method (or function) that has a single
+    parameter of type "T" (TItem):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/36-render-fragment-delegate.png" alt="Intellisense info on RenderFragment." />
+</div>
+<br />
+
+<p>
+    When you execute the delegate:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/37-execute-delegate.png" alt="Code that executes the RenderFragment delegate." I />
+</div>
+<br />
+
+<p>
+    You are calling the delegate on each item in a list of TItems and passing the
+    delegate an item object of type TItem. When the content (UI content) is produced,
+    you get the object value passed to the delegate and use it to access any of its
+    properties. For example, if the value (or object) passed is of type Movie, you
+    will be able to access that type's members.
+</p>
+<p>
+    The (object) value passed to the RenderFragment&lt;TItem&gt; is made available via
+    a <strong>special variable named <code>context</code></strong>. This variable can
+    be <strong>used to determine exactly what to render</strong>; i.e., this variable
+    can be used to access the object's members such as any properties or fields. Study
+    once more the following illustration that was produced a few steps earlier:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/33-render-item-template.png" alt="Accessing object properties with the context variable" />
+</div>
+<br />
+
+<p>
+    We are using the "context" variable to access the (object) value passed as an argument
+    to satisfy the TestCollectionNullOrEmpty.razor component. If the name "context" conflicts
+    with another identifier in your component you can:
+</p>
+
+<p>
+    1. Specify the <strong><code>Context</code></strong> (uppercase) attribute
+    <strong>on the component element</strong>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/38-context-attribute-naming.png" alt="Context attribute naming of context variable." />
+</div>
+<br />
+
+<p>
+    2. Change the parameter name using the <strong><code>Context</code></strong> (uppercase)
+    attribute <strong>on the RenderFragment&lt;TValue&gt; child element</strong>. This is
+    specially useful when you have multiple RenderFragment&lt;TValue&gt; parameters in the
+    templated component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/38-context-attribute-naming-two.png" alt="Context attribute naming of context variable." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-info">Notice:</span> Any generic type parameters <span class="mark">
+        can be specified using an attribute <strong>
+            that matches the name of the type parameter.
+        </strong>
+    </span>
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/102-specify-generic-type.png" alt="Generic type specification." />
+</div>
+
+<p>
+    Refer to <em>"Step Five"</em> of the lesson on <a href="04-forms-part-two">
+        Autocomplete - Typeahead Component
+    </a> for an example on using generic type parameters.
+</p>
+
+<p>
+    Success! The <em>MoviesList</em>.razor component has been significantly simplified and our
+    components have adopted an appropriate separation of concerns. Each component is
+    responsible of one task and it executes it perfectly. Nevertheless, we are not done
+    yet.
+</p>
+<p>
+    The <em>TestCollectionNullOrEmpty</em>.razor templated component has two more
+    RenderFragment parameters. If its consumer fails to supply any arguments to
+    satisfy them, the NullLoadingTemplate and the EmptyTemplate RenderFragment
+    parameters will render content according to their default values.
+</p>
+<p>
+    <span class="badge bg-primary">Task: </span> Make sure you explicitly define the
+    UI content that we want to render if the List&lt;TItem&gt; is null or empty. This
+    overrides the default template:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/39-movies-list-component.png" alt="MoviesList.razor component completed." />
+</div>
+<br />
+
+<p>
+    The <em>MoviesList</em>.razor component consumes the <em>TestCollectionNullOrEmpty</em>.razor
+    templated component and satisfies its three RenderFragment parameters by passing
+    content that specifies what and how it should be rendered dependent on the state
+    of the collection.
+</p>
+
+<p>
+    It's time to put to the test our <em>MoviesList</em>.razor component by creating an
+    instance of it in a higher level component such as this webpage (or routable component):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/02-components/40-consuming-movies-list-component.png" alt="Instance of the MoviesList.razor component." />
+</div>
+<br />
+<p>
+    The <em>MoviesList</em>.razor component works fine even though it is significantly simplified:
+</p>
+<div>
+    <MoviesList Movies="_movies" />
+</div>
+<p>
+    For more info on Blazor templated components you can go to <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/templated-components?view=aspnetcore-5.0">
+        ASP.Net Core Blazor templated components
+    </a>,
+    <a href="https://blazor-university.com/templating-components-with-renderfragements/using-typeparam-to-create-generic-components/">
+        Blazor University - Using @@typeparam to create generic components
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/?view=aspnetcore-5.0#component-parameters">
+        ASP.NET Core Razor components
+    </a>
+</p>
+
+<p>
+    Currently, the <dfn>TestCollectionNullOrEmpty</dfn>.razor component employs a
+    RenderFragment&lt;TItem&gt; named RenderItemTemplate to enable its consumer to provide
+    specific UI content individually (as per item) because it is within the scope of a
+    <dfn>foreach</dfn> loop that iterates over each item of a given collection.
+</p>
+<p>
+    However, there will be times when it is needed to provide the rendering configuration
+    for each item in the collection as a whole. A common scenario is when you want to
+    render data in a &lt;table&gt; element. You can find a use case scenario in the
+    second last task of the <a href="04-load-complex-data">Load Complex Data</a> section of
+    the Consuming the Api module where the GenresIndex routable component is refactored to
+    render available genres.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Modify the <dfn>TestCollectionNullOrEmpty</dfn>
+    component with an additional parameter to provide the user an additional option to
+    render collection items as a whole (e.g., to render &lt;table&gt;) elements.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Add a RenderFragment parameter named
+    WholeListTemplate and define a conditional statement block (if-else) to test both
+    render fragment parameters for nullability (RenderItemTemplate and WholeListTemplate):
+</p>
+<div class="mb-3">
+    <img class="mx-auto d-block" src="Images/02-components/103-test-collection-options.png"
+         alt="TestCollectionNullOrEmpty component with rendering options. Part One." />
+    <img class="mx-auto d-block" src="Images/02-components/103-test-collection-options-two.png"
+         alt="TestCollectionNullOrEmpty component with rendering options. Part Two." />
+</div>
+@code {
+
+    private List<Movie>? _movies;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // simulates database latency
+        await Task.Delay(500);
+        _movies = MoviesCreator.GenerateMoviesList();
+    }
+
+    private Dictionary<string, object> InputAttributes { get; set; } = new()
+        {
+            { "placeholder", "Movie Title" }
+        };
+}

@@ -1,0 +1,1062 @@
+﻿@page "/08-account-confirmation"
+<PageTitle>Account Confirmation</PageTitle>
+
+<h2>Security - User Account Confirmation</h2>
+<p>
+    In ASP.Net Core Identity, upon successful registration of a new User, an email with a
+    link should be sent to confirm that the provided email address belongs to the User.
+    Allowing users to <strong>login</strong> and use the application <strong>
+        without proof of ownership
+    </strong> of the provided email address <strong>is a security risk.</strong>
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Account confirmation prevents accidental account hijacking, reduces spam
+        registrations, avoids sending unsolicited emails, and facilitates account recovery.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Register a new test User to see the current "simulated" user account confirmation, and
+    its behaviour, that came by default during the <a href="03-security-id-server">
+        Scaffold Identity in ASP.Net Core
+    </a>
+    process of the IdentityServer section.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the dependency injection container of the Application/Server-Api project and
+    confirm that the <dfn>SignIn.RequireConfirmedAccount</dfn> option is set to true:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/02-require-confirmed-account.png"
+         alt="RequiredConfirmedAccount option enabled." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The <dfn>RequireConfirmedAccount</dfn> is a new higher-level option that if set, will
+    use the <dfn>IUserConfirmation&lt;TUser&gt;</dfn> service to determine if a User is
+    confirmed. The default implementation of this just uses <dfn>RequireConfirmedEmail</dfn>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Register a new test User, once registered, the User is redirected to the
+    /Areas/Identity/Pages/Account RegisterConfirmation page in the Application/Server-Api.
+    This page contains a link to simulate email confirmation because no email sender service
+    has been implemented yet. Do <strong>not</strong> click on the "Click here to confirm your
+    account" link.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/01-ui-simulated-conf.png"
+         alt="UI for simulated user account confirmation." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Click the "Login" link in the upper right corner, and try to login the test User:
+</p>
+<p>
+    The UI displays an "Invalid login attempt" even though we have provided the correct
+    User credentials. However, this message is not very precise. Let's check the debug
+    console to see the logged information. Alternatively, you can also check the
+    Output window:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/03-debug-console-message.png"
+         alt="Debug console requires a confirmed account to sign-in." />
+</div>
+<p>
+    Remove the test User from the data store.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure ASP.Net Core Identity to validate if the User account has been
+    confirmed with its registered email before executing the login process. If not,
+    it should send a confirmation email and prevent the User from logging in until
+    proper account confirmation takes place. Ensure that the UI conveys a clear
+    and precise error message; e.g., "Email not confirmed yet."
+</p>
+<div class="alert alert-warning mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        At the time of this lesson, using the third party email API from <a href="https://app.sendgrid.com/">
+            Twilio SendGrid
+        </a> to send emails seemed a good idea. Unfortunately, as time passed,
+        emails sent from this platform were being blocked because Twilio's email
+        server IP addresses were blacklisted:
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/36-blocked-email-sample.png"
+         alt="Blocked email sample." />
+</div>
+<p>
+    Twilio SendGrid offers a service package with a private (or dedicated) IP address but
+    it is over priced for the number of operations planned for this app. Instead, we will
+    add an extra implementation to send account confirmation emails (transactional emails)
+    using <a href="https://www.zoho.com/zeptomail/">
+        ZeptoMail
+    </a>.
+</p>
+<p>
+    ZeptoMail is a transactional email service provided by <a href="https://www.zoho.com/">
+        Zoho
+    </a> to deliver transactional emails using either its API or SMTP (Simple Mail
+    Transfer Protocol) servers. The main difference between Twilio SendGrid and ZeptoMail
+    is that ZeptoMail separates the service to send transactional emails from the service
+    to send emails in bulk reducing the probability to be blacklisted.
+</p>
+<p>
+    Besides, later in the <a href="04-azure-dns">Azure DNS</a> lesson, we will use
+    <a href="https://www.zoho.com/">Zoho Mail</a> as a third party email hosting service.
+</p>
+<p>
+    Steps One and Two are repeated. One implementation for Twilio SendGrid API and one
+    implementation for Zoho ZeptoMail.
+</p>
+<hr />
+<p><strong>Twilio SendGrid API configuration:</strong></p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    You must <a href="https://signup.sendgrid.com/">create an account</a> with
+    Twilio SendGrid and be able to successfully <a href="https://www.twilio.com/blog/send-emails-using-the-sendgrid-api-with-dotnetnet-6-and-csharp">
+        send an email from a C# console app
+    </a>.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Configure an email service provider with SendGrid and the IEmailSender interface
+    which supports the ASP.Net Core Identity default UI infrastructure.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Go to the Application/Server-Api/Helpers directory and create a class named
+    AuthMessageSenderOptions to fetch the secure email key that will be stored using
+    the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows#secret-manager">
+        Secret Manager tool
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/04-auth-message-sender-options.png"
+         alt="AuthMessageSenderOptions class." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Configure SendGrid user secrets. Use the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0">
+        secret-manager tool
+    </a> to set the SendGridKey that you should have obtained in Step One.
+</p>
+<p>
+    Go to Visual Studio Solution Explorer, right click the Application/Server-Api project
+    and select "Open In Terminal" to open a developer PowerShell. Use the terminal to
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows#enable-secret-storage">
+        enable secret storage
+    </a> in the project:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/19-acc-confirmation/05-enable-secret-storage.png"
+         style="max-width: 130%"
+         alt="Enable secret storage with PowerShell." />
+</div>
+<p>
+    The <code>dotnet user-secrets init</code> command adds a <code>&lt;UserSecretsId&gt;</code>
+    element within a PropertyGroup of the project file. By default, the inner text of
+    UserSecretsId is a GUID.
+</p>
+<p>
+    Go to the Visual Studio Developer PowerShell and set the SendGridKey with the
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0">
+        secret manager tool
+    </a>, using the following command:
+    <strong><code>dotnet user-secrets set SendGridKey "&lt;key&gt;"</code></strong>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/06-saved-send-grid-key.png"
+         alt="Set SendGridKey command." />
+</div>
+<p>
+    The SendGridKey value has been blurred for security reasons. The contents of the
+    secrets.json file are not encrypted. Go to Visual Studio Solution Explorer, right-click
+    the Application/Server-Api project and select "Manage User Secrets" to view the
+    file contents:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/07-secrets-json-file.png"
+         alt="secrets.json file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Go to Application/Server-Api/Helpers and create a class named EmailSender to
+    implement IEmailSender interface and register it in the dependency injection container
+    as the service responsible for sending emails.
+</p>
+<p>
+    Install the <strong>SendGrid</strong> NuGet package by Elmer Thomas, Twilio DX Team.
+</p>
+<p>
+    Create the EmailSender class and implement the IEmailSender interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/08-email-sender.png"
+         alt="EmailSender type implements IEmailSender interface." />
+</div>
+<p>
+    Configure the IEmailSender interface as a <a href="02-components-part-two">transient</a>
+    service in the dependency injection container of the Application/Server-Api and register
+    the <code>AuthMessageSenderOptions</code> configuration instance created earlier:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/09-email-sender-registration.png"
+         alt="IEmailSender service registration and AuthMessageSenderOptions configuration." />
+</div>
+<hr />
+<p><strong>ZeptoMail SMTP email configuration:</strong></p>
+<p>
+    <span class="badge bg-success">Step One:</span>
+    You must <a href="https://www.zoho.com/zeptomail/help/getting-started.html ">
+        setup
+    </a> a ZeptoMail account. Note that if you are a <a>Zoho</a> user, you can
+    use your email id to sign up for ZeptoMail. As we mentioned earlier, we will
+    use <a href="https://www.zoho.com/">Zoho Mail</a> as a third party email hosting
+    service in the lesson on <a href="04-azure-dns">Azure DNS</a> of the Deployment
+    module.
+</p>
+<p>
+    You will be asked to prove ownership of the domain that will be used to send
+    emails and to follow a very simple process in ZeptoMail to create a <em>bounce</em>
+    address:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/37-zepto-mail-bounce-address.png"
+         alt="ZeptoMail bounce address dialog box." />
+</div>
+<p>
+    <span class="badge bg-success bg-opacity-50">1.1:</span>
+    Create a <em>Mail Agent</em> named FlixManager and delete (Shutdown Mail Agent)
+    the default mail agent:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/38-test-agent.png"
+         alt="ZeptoMail Shutdown Mail Agent UI." />
+</div>
+<p>
+    <span class="badge bg-success bg-opacity-50">1.2:</span>
+    In ZeptoMail, go to the FlixManager mail agent tab, and select "Setup Info",
+    "SMTP" options to have access to ZeptoMail configuration data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/39-setup-info-tab.png"
+         alt="Setup info tab." />
+</div>
+<p>
+    <span class="badge bg-success bg-opacity-50">1.3:</span>
+    You can also find a "Sample Code" section in the "Setup Info" tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/40-setup-sample-code.png"
+         alt="Setup info tab with sample code." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The sample code comes in very handy and will be used as a reference very soon
+    but it is <strong>not</strong> our only source for the final implementation
+    of the email service.
+</p>
+<p>
+    <span class="badge bg-success">Step Two:</span>
+    Configure an email service provider with ZeptoMail and the IEmailSender
+    interface which supports the ASP.Net Core Identity default UI infrastructure.
+</p>
+<p>
+    <span class="badge bg-success bg-opacity-50">2.1:</span>
+    Go to the Application/Server-Api/Helpers AuthMessageSenderOptions type created
+    earlier and add two properties that will represent the ZeptoMailKey and
+    ZeptoMailToken values obtained from earlier.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/41-auth-message-sender-options.png"
+         alt="AuthMessageSenderOptions class." />
+</div>
+<p>
+    The AuthMessageSenderOptions class is used to fetch these values that will be
+    stored using the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows#secret-manager">
+        Secret Manager tool
+    </a>.
+</p>
+<p>
+    <span class="badge bg-success bg-opacity-50">2.2:</span>
+    Configure ZeptoMail user secrets. Use the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0">
+        secret-manager tool
+    </a> to set the ZeptoMailKey and ZeptoMailToken values obtained earlier.
+</p>
+<p>
+    Go to Visual Studio Solution Explorer, right click the Application/Server-Api
+    project and select "Open In Terminal" to open a developer PowerShell. Use the
+    terminal to set the ZeptoMailKey using the following command: <strong>
+        <code>
+            dotnet user-secrets set ZeptoMailKey "&lt;key-value-here&gt;":
+        </code>
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/42-zepto-key-secret.png"
+         alt="Developer PowerShell." />
+</div>
+<p>
+    The ZeptoMailKey value has been blurred for security reasons. The contents of the
+    secrets.json file are not encrypted. You can go to Visual Studio Solution Explorer,
+    right-click the Application/Server-Api project and select "Manage User Secrets" to
+    view the file contents.
+</p>
+<p>
+    Repeat the process for the ZeptoMailToken value.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    We can use the secret-manager tool because it was enabled earlier.
+</p>
+<p>
+    <span class="badge bg-success bg-opacity-50">2.3:</span>
+    Go to the Application/Server-Api/Helpers directory and create a class named
+    EmailSenderSmtp to implement IEmailSender interface and register it in the
+    dependency injection container as the service responsible for sending emails.
+</p>
+<p>
+    Open the Manage NuGet packages window for the Application/Server-Api project
+    and update the currently installed packages. Install the <strong>MailKit</strong>
+    NuGet package by Jeffrey Stedfast.
+</p>
+<p>
+    Create the EmailSenderSmtp class and implement the IEmailSender interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/43-email-sender-smtp-one.png"
+         alt="EmailSenderSmtp implementation part one." />
+    <img src="Images/19-acc-confirmation/44-email-sender-smtp-two.png"
+         alt="EmailSenderSmtp implementation part two." />
+    <img src="Images/19-acc-confirmation/45-email-sender-smtp-three.png"
+         alt="EmailSenderSmtp implementation part three." />
+</div>
+<p>
+    <span class="badge bg-warning">Notice:</span>
+    Ensure the use of <dfn>MailKit.Net.Smtp.SmtpClient</dfn> as opposed to
+    <dfn>System.Net.Mail.Smtp.SmtpClient</dfn>.
+</p>
+<p>
+    <span class="badge bg-success bg-opacity-50">2.4:</span>
+    Configure the IEmailSender interface as a <a href="https://app.flix-manager.com/02-components-part-two">
+        transient
+    </a> service in the dependency injection container of the Application/Server-Api:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/46-email-sender-smtp-registration.png"
+         alt="Dependency injection container of Application/Server-Api project." />
+</div>
+
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/"
+         alt="" />
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Disable default User account verification simulation that came by default during
+    the <a href="03-security-id-server">Scaffold Identity in ASP.Net Core</a> process
+    of the IdentityServer section.
+</p>
+<p>
+    Go to the Areas/Identity/Pages/Account RegisterConfirmation PageModel in
+    Application/Server-Api, set the DisplayConfirmAccountLink property to false and
+    remove the code that redirects the Users to the Account/ConfirmEmail page where
+    they can select a link to have the account confirmed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/10-disable-default-verification.png"
+         alt="Disabling default user account verification." />
+</div>
+<p>
+    We have a registered account and a "sender". Also, we implemented the IEmailSender
+    interface and registered it as a service including the custom
+    AuthenticationMessageSenderOptions class responsible for fetching the email sender
+    service for authentication values (user, token) and removed the default User account
+    verification simulation.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Test the account confirmation and password recovery flow.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Run the application, register a new User with a valid email account and the same
+    password we've been using along (Pass123$), check the inbox for the account confirmation
+    link and click it to confirm ownership of the email address provided.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you cannot get the email to work, visit the
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio#debug-email">
+            Debug email
+        </a> tutorial.
+    </p>
+</div>
+<p>
+    Areas/Identity/Pages/Account RegisterConfirmation PageModel no longer allows simulated
+    verification of the account. This time, you should be invited to check your email inbox
+    to confirm your account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/11-register-confirmation-page.png"
+         alt="Account confirmation page." />
+</div>
+<p>
+    The confirmation email includes the link to confirm ownership of the email account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/19-acc-confirmation/12-confirmation-email.png"
+         alt="Confirmation email." />
+</div>
+<p>
+    The confirmation link has a URL that points to the
+    Application/Server-Api/Areas/Identity/Pages Account/ConfirmEmail page that conveys
+    information to the User dependent on whether the confirmation was successful or not:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/19-acc-confirmation/13-confirm-email-page.png"
+         alt="ConfirmEmail page with confirmation message." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Run the application, select the "Login" link and click on the "Forgot your Password?"
+    link. Enter the email used to register the account. An email with a link to reset your
+    password should be sent. Go to your inbox and click the link to reset the password.
+    Login with the new password.
+</p>
+<p>
+    The account confirmation and password recovery flow is working as intended but we
+    are not done configuring the flow yet. At the beginning of this lecture, we demonstrated
+    that when a registered User tries to login without proving ownership of the email
+    address provided (without confirming the account), the UI displays an "Invalid login
+    attempt" message even if the credentials are valid.
+</p>
+<p>
+    However, this message is not very precise. Only the debug console or the Output window
+    convey clear information regarding the login problem. A confirmed account is required
+    to sign-in:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/03-debug-console-message.png"
+         alt="Debug console requires a confirmed account to sign-in." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Go to the Application/Server-Api/Areas/Identity/Pages Account/Login.cshtml.cs
+    file to include the logic responsible for displaying a clear error message to
+    the User if the account has not been confirmed; i.e., if the User has not proved
+    ownership of the email address provided during the registration process:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/14-login-not-confirmed-message-one.png"
+         alt="Login PageModel with account not confirmed message check part one." />
+    <img src="Images/19-acc-confirmation/15-login-not-confirmed-message-two.png"
+         alt="Login PageModel with account not confirmed message check part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The conditional block ensures that the provided combination of User name and
+    password to login is correct before displaying the "Email not confirmed yet"
+    message. Otherwise, an attacker might try random emails and the "Email not confirmed
+    yet" message would also inform the attacker that the email is valid and it could
+    be used to attempt to sign-in.
+</p>
+<p>
+    In this scenario, the attacker could wait a couple days for the actual owner to
+    confirm the account and then try random password (brute force) to gain access. To
+    avoid <dfn>enumeration</dfn> and <dfn>brute force</dfn> attacks, the error message
+    should only be displayed when both email and password are correct.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.4:</span>
+    Delete any test users registered so far, register a new User and try to login
+    without confirming the account. You should get an error message that clearly
+    informs the User that the account must be confirmed to be granted access:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/16-login-not-confirmed-ui.png"
+         alt="Email not confirmed yet message." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The error message is displayed to the User <strong>only</strong> when
+        authentication is performed by the local Application/Server-Api identity
+        provider (Identity Server).
+    </p>
+</div>
+<p>
+    We will take care of informing the User that the account must be confirmed
+    to be granted access after the first successful external identity provider
+    authentication in the lecture where we establish <a href="10-external-id-providers">
+        External ID Providers
+    </a>.
+</p>
+<h4>Session and State Management in ASP.Net Core</h4>
+<p>
+    HTTP is a stateless protocol. By default, HTTP requests are independent messages
+    that don't retain user values. There are several approaches to <strong>
+        preserve user data between requests.
+    </strong>
+</p>
+<p>
+    State management can be stored using the following approaches:
+</p>
+<dl>
+    <dt>Cookies</dt>
+    <dd>
+        Their size should be kept to a minimum because they are sent with every
+        HTTP request. Ideally, only an identifier should be stored in a cookie with
+        the data stored by the app. Most browsers restrict cookie size to 4096 bytes
+        (4 Mb).
+    </dd>
+    <dd>
+        Cookies can be deleted by users and they expire on clients (browsers).
+        Nevertheless, cookies are generally the most durable form of data persistence on
+        the client (browser). Since cookies are subject to tampering, they must be
+        validated by the app.
+    </dd>
+    <dd>
+        Cookies are often used for personalization, where content is customized for a
+        known user. The user is only identified and not authenticated in most cases.
+        The cookie can store the user's name, account name, or unique user ID such as
+        a GUID. The cookie can be used to access the user's personalized settings such
+        as their preferred website background color.
+    </dd>
+    <dt>Session state</dt>
+    <dd>
+        Session state is an ASP.Net Core scenario for storage of user data while the
+        user browses a web app. Session state uses a store maintained by the app to
+        persist data across reuqests from a client (browser). The session data is backed
+        by a cache and considered ephemeral data. The site should continue to function
+        without the session data because <strong>
+            critical data should be stored in the user database
+        </strong> and cached in session only as a performance optimization.
+    </dd>
+    <dd>
+        Session is not supported in <a href="https://docs.microsoft.com/en-us/aspnet/signalr/">
+            SignalR
+        </a> apss because a SignalR Hub may execute independent of an Http context.
+    </dd>
+    <dt>TempData</dt>
+    <dd>
+        ASP.Net Core exposes the Razor Pages <a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.razorpages.pagemodel.tempdata?view=aspnetcore-6.0#microsoft-aspnetcore-mvc-razorpages-pagemodel-tempdata">
+            TempData
+        </a> property or Controller TempData. This property stores data until it is read in
+        another request. The <code>Keep(string)</code> and <code>Peek(string)</code> methods
+        can be used to examine the data without deletion at the end of the request.
+    </dd>
+    <dd>
+        TempData is useful for redirection when data is required for more than a single
+        request.
+    </dd>
+    <dd>
+        TempData is implemented by <dfn>TempData</dfn> providers using either cookies or
+        session state.
+    </dd>
+    <dt>TempData providers</dt>
+    <dd>
+        The cookie-based TempData provider is used by default to store TempData in
+        cookies. The cookie data is encrypted using <dfn>IDataProtector</dfn>, encoded with
+        <dfn>Base64UrlTextEncoder</dfn>, then chunked. The cookie data is not compressed
+        because <strong>compressing encrypted data can lead to security problems such as the</strong>
+        <a href="https://wikipedia.org/wiki/CRIME_(security_exploit)">
+            CRIME
+        </a> and <a href="https://wikipedia.org/wiki/BREACH_(security_exploit)">
+            BREACH
+        </a> attacks.
+    </dd>
+    <dt>Query strings</dt>
+    <dd>
+        A limited amount of data can be passed from one request to another by adding it to
+        the new request's query string. This is useful for capturing state in a persistent
+        manner that allows links with embedded state to be shared through email or social
+        networks.
+    </dd>
+    <dd>
+        <strong>Never use query strings for sensitive data</strong> because URL query
+        strings are public. In addition to unintended sharing, including data in query
+        strings can expose the app to <a href="https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)">
+            Cross-site Request Forgery
+        </a> attacks.
+    </dd>
+    <dt>Hidden fields</dt>
+    <dd>
+        Data can be saved in hidden form fields and posted back on the next request. Since
+        the client can potentially tamper with the data, the app must always revalidate
+        the data stored in hidden fields.
+    </dd>
+    <dt>HttpContext.Items</dt>
+    <dd>
+        The <code>HttpContext.Items</code> collection is used to store data while processing
+        a single request. The collection's contents are discarded after the request is
+        processed. The <code>Items</code> collection is often used to allow components or
+        middleware to communicate when they operate at different points in time during a
+        request and have no direct way to pass parameters.
+    </dd>
+    <dt>Cache</dt>
+    <dd>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/performance/caching/response?view=aspnetcore-6.0">
+            Caching
+        </a> is an efficient way to store and retrieve data. The app can control the lifetime
+        of cached items. Cached data is not associated with a specific request, user, or
+        session. <strong>
+            Do not cache user-specific data that may be retrieved by other
+            user requests.
+        </strong>
+    </dd>
+</dl>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Change email and activity timeout to 7 days.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    The default inactivity timeout is 14 days. Go to the Application/Server-Api and use
+    the ConfigureApplicationCookie extension method to define available cookie (session
+    cookie) options:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/17-application-cookie-options.png"
+         alt="Application cookie options." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Change all data protection token (Identity user tokens) lifespans to 8 hours.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    The default data protection tokens timeout period is 1 day. Go to the dependency
+    injection container of the Application/Server-Api and use the
+    <code>DataProtectionTokenProviderOptions</code> to change their lifespan configuration
+    to 8 hours:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/18-identity-token-lifespan.png"
+         alt="Identity token lifespan set to 8 hours." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    The default token lifespan of the Identity User tokens is one day. Change the email
+    token lifespan to 3 days.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Server-Api/Helpers directory and create a class named
+    CustomEmailConfirmationTokenProvider and a class named
+    EmailConfirmationTokenProviderOptions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/19-custom-email-conf-token-provider.png"
+         alt="CustomEmailConfirmationTokenProvider class." />
+</div>
+<p>
+    You might recall from the <a href="03-security-id-server">Identity Server</a> lesson
+    that calling the <code>.AddDefaultIdentity&lt;TUser&gt;</code> extension method in the
+    dependency injection container is equivalent to calling AddIdentity, AddDefaultUI,
+    and AddDefaultTokenProviders.
+</p>
+<p>
+    The AddDefaultTokenProviders enables the default token providers to generate tokens
+    for reset passwords, change email, and change telephone. This is where we can configure
+    the email token lifespan with our CustomEmailConfirmationTokenProvider and the
+    EmailConfirmationTokenProviderOptions defined earlier because this is where the token
+    options for the Identity system are set.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Register the CustomEmailConfirmationTokenProvider service that configures the lifespan
+    of the Identity User tokens to 3 days.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Use the .AddDefaultIdentity extension method in the service container to add your
+    CustomEmailConfirmationTokenProvider to the IdentityOptions.Tokens property and use
+    it to set the token provider to be used when generating tokens in account confirmation
+    emails.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Add the CustomEmailconfirmationTokenProvider as a transient service:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/20-custom-email-conf-token-service.png"
+         alt="Adding CustomEmailConfirmationTokenProvider as a service." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Temporarily replace the lifespan value of the TokenLifeSpan property of the
+    EmailConfirmationTokenProviderOptions to 60 seconds, run the application, register
+    a User, allow the token to expire and try to confirm the email using the link in
+    the confirmation email received:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/21-broad-error-message.png"
+         alt="Error confirming your email message is too broad." />
+</div>
+<p>
+    The confirmation was not successful as expected but the error message is to broad.
+    It does not allow the User the reason for the error produced. Let's make it a bit
+    more clear to the User so he can take action.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4</span>
+    Go to the Application/Server-Api/Areas/Identity/Pages Account/ConfirmEmail PageModel
+    and refactor the StatusMessage to convey more information:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/22-confirm-email-page-model.png"
+         alt="StatusMessage refactored." />
+</div>
+<p>
+    With the application running, try one more time to confirm ownership of the email
+    address provided during registration. Use the confirmation email received:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/23-clear-error-message.png"
+         alt="Confirmation email error message more clear to the User." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.5</span>
+    Bring back the lifespan value of the TokenLifeSpan property of the
+    EmailConfirmationTokenProviderOptions to 03 days, run the application, and try to confirm
+    the email using the link in the confirmation email received. This time you should be
+    able to confirm the email address:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/24-success-message.png"
+         alt="Email confirmation success message." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio#register-confirm-email-and-reset-password">
+            Account confirmation and password recovery in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://csharp-video-tutorials.blogspot.com/2019/10/why-email-confirmation-is-important.html">
+            Why email confirmation is important
+        </a>
+    </li>
+    <li>
+        <a href="https://www.twilio.com/blog/send-emails-using-the-sendgrid-api-with-dotnetnet-6-and-csharp">
+            How to send Emails with C# and .Net 6 using the SendGrid API
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.sendgrid.com/ui/sending-email/senders">
+            Adding a Sender
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/PvO_1T0FS_A">
+            Send Email with a .Net 6 Web API using Mailkit & SMTP
+        </a> by Patrick God
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/JzTxD4SczU8">
+            How to send an email in C# with .Net using Mailkit
+        </a> from tutorialEU channel.
+    </li>
+    <li>
+        <a href="https://www.zoho.com/zeptomail/help/smtp-home.html">
+            ZeptoMail email sending with SMTP
+        </a>
+    </li>
+    <li>
+        <a href="https://www.zoho.com/zeptomail/help/API-home.html">
+            ZeptoMail email sending with API
+        </a>
+    </li>
+    <li>
+        <a href="https://www.zoho.com/zeptomail/how-to/set-up-bounce-address.html"> 
+            ZeptoMail handling bounces in transactional emails
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio#disable-default-account-verification">
+            Disable default account verification
+        </a>
+    </li>
+    <li>
+        Episode 113. <a href="https://youtu.be/yRP6C7fhAuE">
+            ASP.Net Core Email Confirmation
+        </a> of YouTube course: "ASP.Net Core tutorial for beginners" by Kudvenkat
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows">
+            Safe storage of app secrets in development in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-6.0">
+            Options pattern in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/key-vault-configuration?view=aspnetcore-6.0">
+            Azure Key Vault configuration provider in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://sendgrid.com/docs/User_Guide/Settings/tracking.html">
+            Twilio Tracking Settings
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio#debug-email">
+            Debug email
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-6.0">
+            Session and state management in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://www.c-sharpcorner.com/article/asp-net-core-working-with-cookie/">
+            ASP.Net Core Working With Cookie
+        </a>
+
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-6.0">
+            Configuration in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-6.0#cookie-settings">
+            Configure ASP.Net Core Identity
+        </a>
+    </li>
+</ul>
+<h4>Configure ASP.Net Core Identity Options</h4>
+<p>
+    ASP.Net Core Identity uses default values for settings such as password policy,
+    lockout, and cookie configuration. These settings can be overridden at application
+    startup.
+</p>
+<p>
+    You can use the <strong><code>IdentityOptions</code></strong> class to configure the
+    settings for the Identity system. Identity options must be set <strong>after</strong>
+    calling the AddIdentity or AddDefaultIdentity extension method which adds a set of
+    common Identity services to the application.
+</p>
+<h5>Lockout</h5>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define the default lockout options for login operations.
+</p>
+<p>
+    The Login form (in the Login page) is displayed when the Login link is selected
+    and/or when a User attempts to access a restricted page and has not been
+    authenticated by the system. When the &lt;form&gt; on the Login page is submitted,
+    the OnPostAsync action is called. Lockout can be set in the PasswordSignInAsync method
+    of the OnPostAsync action.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the OnPostAsync action of the Application/Server-Api/Areas/Identity/Pages
+    Account/Login PageModel and set the <code>lockoutOnFailure</code> parameter value
+    of the PasswordSignInAsync method to <code>true</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/25-lockout-parameter-true.png"
+         alt="Login Identity template with lockoutOnFailure parameter set to true." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the <code>IdentityOptions</code> class to configure the settings for the
+    Identity system. This is where you can set the lockout options. The default values for
+    the lockout settings are:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/26-identity-settings-config.png"
+         alt="ASP.Net Core Identity default lockout settings." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Test the lockout options configured. Run the application, go to the Login page and
+    provide an invalid password for 5 consecutive times:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/27-lockout-page-ui.png"
+         alt="Lockout page with lockout message." />
+</div>
+<p>
+    The lockout flow is working properly but the message is not completely clear to
+    the User. Let's be more specific on the time that the lockout will be in effect.
+    This way the User knows how long will it take before the lockout timer is reset.
+</p>
+<p>
+    The settings for the Identity system were configured in the Application/Server-Api
+    Program class by passing the <code>IdentityOptions</code> class as a type parameter
+    of the Configure extension method.
+</p>
+<p>
+    The Configure method adds an <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-6.0#configure-options-with-a-delegate">
+        IConfigureOptions&lt;TOptions&gt;
+    </a> service to the service container and uses an action delegate to configure the
+    values set in the built-in IdentityOptions configuration provider.
+</p>
+<p>
+    You can access the options values by injecting the <code>IOptions&lt;TOptions&gt;</code>
+    interface into the Lockout Identity template.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Refactor the Lockout Identity template to include the number of minutes the User
+    should wait before trying to login again.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Go to the LockOut PageModel and inject the IOptions&lt;TOptions&gt; interface to
+    access the values for the IdentityOptions configured in the service container:
+</p>
+<div>
+    <img src="Images/19-acc-confirmation/28-lockout-page-model.png"
+         alt="Lockout PageModel retrieves DefaultLockOutTimeSpan value." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Go to the LockOut Page and replace the preconfigured markup with one that includes
+    the number of minutes for the lockout:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/29-lockout-page.png"
+         alt="Lockout page renders the lockout time." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Log in with invalid password to produce a lockout scenario to confirm that the
+    message to the User includes the lockout time:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/30-locked-out-ui.png"
+         alt="Lockout message with lockout time." />
+</div>
+<h5>Password</h5>
+<p>
+    By default, Identity requires that passwords contain an uppercase character,
+    lowercase character, a digit, and a non-alphanumeric character. Passwords must be
+    at least six characters long.
+</p>
+<p>
+    The Register form (in the Register page) is displayed when the Register link is
+    selected. When the &lt;form&gt; on the Register page is submitted, the OnPostAsync
+    action is called and the CreateAsync method creates the specified User with the
+    given password:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/31-register-page-model.png"
+         alt="Register PageModel." />
+</div>
+<p>
+    The ResetPassword form (in the ResetPassword page) is displayed when the Reset Password
+    link is selected in the Login page. When the &lt;form&gt; on the ResetPassword page is
+    submitted, the OnPostAsync action is called and the ResetPasswordAsync method resets
+    the User's password to the specified new password after validating the given password
+    reset token:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/32-reset-password-page-model.png"
+         alt="ResetPassword PageModel." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define the default password options for the register and reset password operations.
+</p>
+<p>
+    Recall that you can use the <code>IdentityOptions</code> class to configure the settings
+    for the Identity system. This is where you can set the password options. The default
+    values for the password settings are:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/33-password-options.png"
+         alt="ASP.Net Core Identity default password settings." />
+</div>
+<h5>User</h5>
+<p>
+    As mentioned earlier, the Register form (in the Register page) is displayed when the
+    Register link is selected. When the &lt;form&gt; on the Register page is submitted, the
+    OnPostAsync action is called and the CreateAsync method creates the specified User with
+    the given user name.
+</p>
+<p>
+    By default, Identity templates allocate the email provided as both the user name
+    <strong>and</strong> the user email:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/34-register-user-name.png"
+         alt="Register PageModel create user section." />
+</div>
+<p>
+    The registration process validates that the user name (which in this case is the email)
+    is not duplicated. For scenarios where the user name is different from the email provided,
+    it is necessary to check for duplicate emails to avoid multiple users with the same email
+    address.
+</p>
+<p>
+    You can set the User settings with the <code>IdentityOptions</code> class in the
+    dependency injection container.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define the default User options for the allowed characters in the user name and the
+    value for the RequireUniqueEmail flat. By default, it is set to false:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/19-acc-confirmation/35-user-settings.png"
+         alt="User settings." />
+</div>
+<h5>Cookie</h5>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The settings for the application's cookie are part of the ASP.Net Core Identity Options
+    but they also belong to the session and state management topic reviewed above. Refer
+    to that section for more info.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-6.0#identity-options">
+            Configure ASP.Net Core Identity
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio#configure-identity-services">
+            Configure Identity services
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-6.0#configure-options-with-a-delegate">
+            Configure options with a delegate
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-6.0&tabs=visual-studio#log-in">
+            Log in
+        </a>
+    </li>
+</ul>

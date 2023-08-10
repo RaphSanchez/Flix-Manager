@@ -1,0 +1,589 @@
+﻿@page "/03-exception-handling"
+
+<PageTitle>Exception Handling</PageTitle>
+
+<h2>Miscellaneous - Exception Handling</h2>
+<p>
+    In <a href="02-sweet-alert">last lesson</a>, we demonstrated how to establish a
+    system to provide feedback to an application user with the help of a third party
+    JavaScript standalone library named SweetAlert.
+</p>
+<p>
+    These features enable us to implement a proper exception handling mechanism to
+    inform the user in case an unexpected error occurs while trying to communicate with
+    the database.
+</p>
+<p>
+    In CSharp, errors at run-time are propagated (or reproduced) through the application
+    by using a mechanism called <dfn><strong>exceptions</strong></dfn>. <em>Exception handling</em>
+    features help dealing with any unforeseen or exceptional situations that occur when a
+    program is running.
+</p>
+<p>
+    Exceptions are thrown by code that encounters an error and caught by code that can
+    correct or handle that error. Once an exception is thrown, it propagates up the
+    <dfn>stack</dfn> until a <strong><code>catch</code></strong> statement for the
+    exception is found. Uncaught exceptions are handled by a generic exception handler
+    provided by the system.
+</p>
+<p>
+    Whenever an <dfn>exception</dfn> occurs, it is very important to know when, where,
+    and how or why it happened. For this reason, the <strong>System.Exception</strong>
+    class was designed with properties and methods that contain essential information.
+    Different types of exceptions are represented by classes derived from the
+    <dfn>Exception</dfn> base class.
+</p>
+<p>
+    Exception handling uses the <strong><code>try</code></strong>, <strong><code>catch</code></strong>,
+    and/or <strong><code>finally</code></strong> keywords to try actions that may not
+    succeed, to handle failures when you decide that it is reasonable to do so,
+    and to clean up resources afterwards.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Before a <code>catch</code> block is executed, the runtime checks for a
+        <code>finally</code> block. A <dfn>finally</dfn> block allows you to run
+        code even if an exception occurs in the <dfn>try</dfn> block. <strong>
+            If no exception is thrown, the <dfn>finally</dfn> block will still execute.
+        </strong>
+    </p>
+</div>
+<p>
+    In many cases, an <dfn>exception</dfn> may be thrown not by a method that your
+    code has called directly but by another method further down in the call stack.
+    After an exception is thrown, the CLR checks the current statement to see whether
+    it is a <dfn>try</dfn> block. If it is, any <dfn>catch</dfn> clauses associated
+    with the <dfn>try</dfn> block are checked to see whether they can <dfn>catch</dfn>
+    the exception.
+</p>
+<p>
+    If the statement that throws an exception is not within a <dfn>try</dfn> block or
+    if the <dfn>try</dfn> block that encloses it has no compatible <dfn>catch</dfn>
+    block, the CLR looks at the method that called the current method for a <dfn>try</dfn>
+    statement and <dfn>catch</dfn> blocks, and so on and so forth up the call stack.
+</p>
+<p>
+    If no appropriate <dfn>catch</dfn> block is found anywhere in the stack, the CLR
+    will terminate the process (or stop execution of the program) and the generic
+    exception handler will display to the console an <dfn>unhandled exception</dfn>
+    message.
+</p>
+<p>
+    If a <dfn>catch</dfn> block is found and executed, control is passed to the
+    next statement after that <dfn>catch</dfn> block.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        More specific type exceptions will often contain additional properties
+        related to the kind of exception you are dealing with.
+    </p>
+</div>
+<p>
+    As explained in the <a href="05-api">Server-Api</a> introductory lesson, the
+    application makes extensive use of interfaces and dependency injection to
+    create a loosely coupled application.
+</p>
+<p>
+    The abstract representations (interfaces) for the repositories, the unit of
+    work, and for the API services (serialization/deserialization) are located
+    in the Application/Client. The Data store and the implementation for the
+    repositories and for the unit of work are located in the Application/Server-Api.
+</p>
+<p>
+    The Application/Client employs an abstract layer (IApiService) responsible
+    for exposing the available operations and for hiding the details of how to
+    invoke Application/Server-Api endpoints; i.e., how to send/receive Http
+    requests/responses.
+</p>
+<p>
+    The IApiService in turn employs IEntity interfaces which are the entry point
+    for the IUnitOfWork responsible for exposing the business logic:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/00-application-diagram.svg"
+         alt="Application architecture diagram." />
+</div>
+<p>
+    The Application/Client makes a data request, the IApiService serializes the
+    data and sends the Http request to the Application/Server-Api/Controllers
+    using the appropriate IEntityName interface as the entry point.
+</p>
+<p>
+    The Application/Server-Api controller employs the Application/Server-Api/IUnitOfWork
+    business logic methods to query the database through the Application/Server-Api/DataStore
+    DbContext and, if necessary, persist any changes made to in-memory objects. When
+    the request is completed, the process is reversed, and the response is sent
+    back to the client.
+</p>
+<p>
+    Both abstract layers (IApiService and IUnitOfWork) follow the repository and the
+    unit of work patterns to expose to the Application/Client their higher level interfaces
+    and hide the actual implementation (code logic).
+</p>
+<p>
+    The <strong>operations exposed</strong> to the client (by the <strong>IApiService</strong>)
+    mirror (same signature) the <strong>operations executed</strong> by the <strong>
+        IUnitOfWork
+    </strong> (business logic and database operations). For this reason, both abstract
+    layers employ <strong>IEntityName</strong> interfaces to <strong>
+        expose and represent
+        data entities
+    </strong> which in turn implement a single (unique) <strong>I</strong>
+</p>
+<p>
+    The whole architecture includes an exception handling mechanism responsible for managing
+    unexpected errors. The mechanism can opt for one or a combination of the following options:
+</p>
+<ul>
+    <li>
+        Handle the exception.
+    </li>
+    <li>
+        Log the exception into the console, a .txt file, and/or a database.
+    </li>
+    <li>
+        Pass control to the next statement after the <dfn>catch</dfn> block that handled
+        the exception.
+    </li>
+    <li>
+        Throw the exception back to propagate up in the stack (upper layers closer to the
+        Application/Client).
+    </li>
+    <li>
+        Throw a new exception with a meaninful message that will eventually inform the
+        end-user that an unexpected error has occurred.
+    </li>
+
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can refer to <a href="https://youtu.be/7rcabH8ZHkw">
+            Episode 3. Setup Serilog For .Net Core API
+        </a> to enable diagnostic logging to files, the console, and/or elsewhere.
+        For info on how to set up a global exception handling mechanism, you can
+        refer to
+        <a href="https://youtu.be/_J8Ge5BUFcQ">
+            Episode 18. Global Exception Handling
+        </a>. Both episodes are part of the Udemy course "Ultimate ASP.Net Core Web API
+        Tutorial for Beginners" by Trevoir Williams.
+    </p>
+</div>
+<h4>Current Exception Handling Mechanism</h4>
+<p>
+    The control flow of the data access structure for the application is as follows:
+</p>
+<ol>
+    <li>Application/Client (UI) makes a request to:</li>
+    <li>
+        Application/Client/ApiServices/ApiManager IApiService interface. Its implementation
+        (Application/Client/ApiServices/ApiManager ApiService class) exposes ApiEntity objects
+        as the entry point for the ApiConnector class which encapsulates Http resource methods
+        that serialize the request so it can travel through the internet to:
+    </li>
+    <li>
+        Application/Server-Api/Controllers/EntityController. The controller invokes the business
+        logic requested with:
+    </li>
+    <li>
+        Application/Client/ApiServices/IRepositories IUnitOfWork. Its implementation
+        (Application/Server-Api/Repositories UnitOfWork class) encapsulates business logic
+        and coordinates a complete business transaction through a single database context with:
+    </li>
+    <li>
+        Application/Server-Api/DataStore AppDbContext which queries data and, if necessary,
+        persists to the database any modifications made to in-memory objects.
+    </li>
+    <li>
+        Application/Server-Api/Repositories/UnitOfWork. Returns, if any, the entity
+        object(s) to:
+    </li>
+    <li>
+        Application/Server-Api/Controllers/Controller. Every controller hosted in the
+        server returns a Task&lt;ActionResult&lt;Entity&gt;&gt; that represents the
+        result of an "<dfn>action</dfn>" (controller method) to:
+    </li>
+    <li>
+        Application/Client/ApiServices/IApiManager IApiService. Its implementation
+        (Application/Client/ApiServices/ApiManager ApiService class) employs the ApiConnector
+        class which encapsulates Http resource methods that deserialize the response content
+        of the response message to:
+    </li>
+    <li>
+        Application/Client (UI). Receives the content (deserialized response) to present
+        it to the user or perform any additional work on it.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Analyze the exception handling mechanism established so far within the control
+    flow of the application. To do so, examine how the data content is served for
+    the Application/Client/Pages/Movies FlixManager routable component.
+</p>
+<p>
+    Suppose that the application user navigates to the FlixManager routable component and
+    the Http request has been sent from the Application/Client to the Application/Server-Api
+    to request the routable component's content.
+</p>
+<h5>Back-end</h5>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    The Application/Server-Api/Repositories EfMovies repository employs the
+    Application/Server-Api/DataStore AppDbContext to communicate with the database and retrieve
+    the data requested by the Application/Server-Api/Controllers/MoviesController
+    GetFlixManagerDtoTask controller action:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/01-ef-movies-one.png"
+         alt="EfMovies repository part one." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The Application/Server-Api/Repositories EfMovies repository does not have an
+    exception handling mechanism (try-catch blocks) because as we explained earlier, if
+    the statement that throws an exception is not within a <code>try</code> block or if
+    the <code>try</code> block that encloses it has no compatible <code>catch</code>
+    block, the CLR looks at the method that called the current method for a <code>try</code>
+    statement and <code>catch</code> blocks. This process continues up the call stack.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    The Application/Server-Api/Repositories/EfMovies GetFlixManagerDtoAsync method returns
+    the data retrieved from the database to the Application/Server-Api/Controllers/MoviesController
+    GetFlixManagerDtoTask controller action:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/03-movies-controller-one.png"
+         alt="MoviesController part one." />
+    <img src="Images/39-exception-handling/04-movies-controller-two.png"
+         alt="MoviesController part two." />
+</div>
+<p>
+    The <strong><code>try-catch</code></strong> block handles any exceptions by performing
+    the following operations:
+</p>
+<ol>
+    <li>
+        Instantiates a <code>StringBuilder</code> to construct the string representation of the
+        exception.
+    </li>
+    <li>
+        Extracts the exception name, message, and stack trace to build the string representation
+        of the exception.
+    </li>
+    <li>
+        Evaluates if there are any inner exceptions. If so, it includes them in the string
+        representation.
+    </li>
+    <li>
+        Logs the string representation into the debugging console.
+    </li>
+    <li>
+        Instead of throwing the same exception to propagate it up the stack, it replaces
+        the exception with a StatusCode 500 InternalServerError and passes a meaningful
+        message that can later be used to inform the user that an unexpected error
+        occurred.
+    </li>
+</ol>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        For the back-end, we can place the exception handling mechanism in the
+        Application/Server-Api/Controllers and any exceptions that originate at
+        lower levels of the back end will be handled here.
+    </p>
+</div>
+<p>
+    During the development of an application, operations one through four are very common.
+    We can centralize the code logic that constructs the string representation of the
+    exception and displays it into the web browser's console.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go the Application/Shared/Helpers directory and create an ExceptionLoggers class responsible
+    for concentrating any methods to extract and log exceptions. Include an ExtractAndDisplayException
+    method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/12-exception-loggers.png"
+         alt="ExceptionLoggers class." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can refer to <a href="https://youtu.be/7rcabH8ZHkw">
+            Episode 3. Setup Serilog For .Net Core API
+        </a> to enable diagnostic logging to files, the console, and/or elsewhere.
+        For info on how to set up a global exception handling mechanism, you can
+        refer to
+        <a href="https://youtu.be/_J8Ge5BUFcQ">
+            Episode 18. Global Exception Handling
+        </a>. Both episodes are part of the Udemy course "Ultimate ASP.Net Core Web API
+        Tutorial for Beginners" by Trevoir Williams.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Go to the GetFlixManagerDtoTask method of the Application/Server-Api/Controllers
+    MoviesController and replace the code logic to extract and log the exception into the
+    debugging console with the recently created ExtractAndDisplayException method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/02-movies-controller-exception-logger.png"
+         alt="GetFlixManagerDtoTask method with ExceptionLogger." />
+</div>
+<h5>Front-end</h5>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    The Application/Client/ApiServices/ApiManager ApiMovies class employs the
+    Application/Client/ApiServices/ApiManager ApiConnector class to deserialize the Http response
+    received from the Application/Server-Api/Controllers MoviesController.
+</p>
+<p>
+    ApiMovies:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/05-api-movies-one.png"
+         alt="ApiMovies part one." />
+    <img src="Images/39-exception-handling/06-api-movies-two.png"
+         alt="ApiMovies part two." />
+</div>
+<p>
+    The <strong><code>try-catch</code></strong> block handles any exceptions by performing
+    the following operations:
+</p>
+<ul>
+    <li>
+        <p>
+            The <code>catch</code> block employs the <code>ExceptionLoggers.ExtractAndDisplayException</code>
+            method to extract the complete information of the exception passed as an argument
+            including its name, message, stack trace, and any inner exceptions. It employs a
+            StringBuilder to construct the information and send it to the debugging console
+            for display.
+        </p>
+    </li>
+    <li>
+        <p>
+            The ApiConnector class employed to deserialize the Http response evaluates if the
+            response was successful. If not, it produces an <code>HttpRequestException</code>
+            and includes the deserialized message sent from the
+            Application/Server-Api/Controllers MoviesController action.
+        </p>
+        <p>
+            The message can ultimately be consumed to inform the application user of the
+            error. In any case, the <code>HttpRequestException</code> sent from the controller
+            action or any other exception produced is thrown back to continue propagating
+            it up in the stack.
+        </p>
+    </li>
+</ul>
+<p>
+    ApiConnector:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/07-api-connector-one.png"
+         alt="ApiConnector part one." />
+    <img src="Images/39-exception-handling/08-api-connector-two.png"
+         alt="ApiConnector part two." />
+    <img src="Images/39-exception-handling/09-api-connector-three.png"
+         alt="ApiConnector part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The Application/Client/ApiServices/ApiManager ApiConnector does not have an
+    exception handling mechanism (try-catch blocks) because as we explained earlier, if
+    the statement that throws an exception is not within a <code>try</code> block or if
+    the <code>try</code> block that encloses it has no compatible <code>catch</code>
+    block, the CLR looks at the method that called the current method for a <code>try</code>
+    statement and <code>catch</code> blocks. This process continues up the call stack.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        For the front-end, we can place the exception handling mechanism
+        in the Application/Client/ApiServices/ApiManager ApiMovies and any exceptions that
+        originate at lower levels of the front end will be handled here.
+    </p>
+</div>
+<p>
+    The The Application/Client/ApiServices/ApiManager ApiConnector employs a custom
+    <code>HandleHttpRequestErrorAsync</code> method that evaluates if the HttpResponse sent
+    from the Application/Server-Api/Controllers controller action is successful. If not,
+    it deserializes the Http response (e.g., the StatusCode and the meaningful message)
+    and passes it as the message property value of an HttpRequestException.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    The Application/Client/Pages/Movies FlixManager routable component employs the
+    ApiService to make a data request for its content. Currently, it handles any
+    exceptions by displaying them into the web browser's console:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/10-flix-manager-exception-console.png"
+         alt="FlixManager handles exception logging it into the console." />
+</div>
+<p>
+    Obviously, most of the application users are unaware of the web browser's developer
+    tools. We can use the SweetAlert library to inform the user that an unexpected error
+    has occurred.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Refactor the Application/Client/Pages/Movies FlixManager routable component to employ
+    the SweetAlert library to inform the user when an unexpected error occurs while attempting
+    to request data from the Application/Server-Api.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Refactor the exception handling mechanism of the FlixManager component to use the
+    SweetAlert library to display the exception message property value that has been
+    propagated up in the stack to inform the application user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/11-flix-manager-exception-sweet-alert.png"
+         alt="FlixManager handles exception and informs the user." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Manually throw an <code>ApplicationException</code> or any other exception type
+    at any point in the stack to ensure that the application user is informed of
+    the unexpected error and that it is handled appropriately.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Go to the GetFlixManagerDtoAsync() method in the Application/Server-Api/Repositories
+    EfMovies repository and explicitly define the code logic to throw an ApplicationException
+    when the FlixManager routable component generates an Http request for its content:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/13-ef-movies-exception.png"
+         alt="ApplicationException in EfMovies repository." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Run the application and navigate to the FlixManager routable component. The
+    ApplicationException originates in the EfMovies repository and it propagates
+    up the stack where:
+</p>
+<ol>
+    <li>
+        <p>
+            It is handled by the exception handler mechanism (try-catch block)
+            of the GetFlixManagerDtoTask action in the MoviesController.
+        </p>
+        <p>
+            The <code>ExceptionLogger.ExtractAndDisplayException</code> method in the
+            <code>catch</code> block extracts the complete information of the exception
+            including its name, message, stack trace, and any inner exceptions. It
+            employs a <code>StringBuilder</code> to construct the information and send
+            it to the debugging console for display:
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/39-exception-handling/14-debugging-console.png"
+                 alt="Debugging console with exception info." />
+        </div>
+        <p>
+            At this point the CLR is still in the back-end. This is why the
+            <code>ApplicationException</code> is logged into the debugging console.
+        </p>
+    </li>
+    <li>
+        <p>
+            After logging the <code>ApplicationException</code>, the <code>catch</code>
+            block replaces the exception with a <code>StatusCode 500 Internal Server Error</code>
+            and a custom message: "An unexpected error occurred while retrieving data
+            from the database. Please try again." which is sent to the front-end where
+            the HandleHttpRequestErrorAsync method of the
+            Application/Client/ApiService/ApiManager ApiConnector deserializes
+            the message and passes it to a custom <code>HttpRequestException</code>.
+        </p>
+        <p>
+            The <code>HttpRequestException</code> is thrown up the stack until
+            it finds an exception handler (try-catch block) in the
+            Application/Client/ApiServices/ApiManager ApiMovies class.
+        </p>
+        <p>
+            The <code>ExceptionLogger.ExtractAndDisplayException</code> method in the
+            <code>catch</code> block extracts the complete information of the exception
+            including its name, message, stack trace, and any inner exceptions. It
+            employs a <code>StringBuilder</code> to construct the information and send
+            it to the web browser's console for display:
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/39-exception-handling/15-browser-console.png"
+                 alt="Web browser's console with exception info." />
+        </div>
+        <p>
+            At this point the CLR is in the front-end. This is why the
+            <code>HttpRequestException</code> is logged into the web browser's
+            console.
+        </p>
+        <p>
+            The Network tab in the web browser's developer tools captures the
+            StatusCode and the response body of the <code>HttpRequestException</code>:
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/39-exception-handling/16-network-tab.png"
+                 alt="Web browser's network tab with exception info." />
+        </div>
+        <p>
+            The <code>HttpRequestException</code> is thrown back to continue
+            propagating it up in the stack.
+        </p>
+    </li>
+    <li>
+        <p>
+            The exception handler mechanism of the FlixManager routable component
+            catches the exception and employs the SweetAlert library to inform the
+            user that "An unexpected error occurred":
+        </p>
+        <div class="image-lesson mb-3">
+            <img src="Images/39-exception-handling/17-sweet-alert-dialog-box.png"
+                 alt="SweetAlert dialog box with message for the application user." />
+        </div>
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Remove the explicitly defined <code>ApplicationException</code> from the
+    GetFlixManagerDtoAsync method of the Application/Server-Api/Repositories EfMovies
+    repository.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    <strong>
+        It is advisable to force the browser to reload the routable component from the
+        server if a problem is encountered.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Refactor the Application/Client/Pages/Movies MovieCreate routable component to
+    employ the SweetAlert library to inform the user when an unexpected error occurs while
+    attempting to interact with the Application/Server-Api; i.e., when trying to request
+    and/or send data content. Make sure to force a reload from the server when handling
+    data input from the application user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/39-exception-handling/20-movie-create-one.png"
+         alt="MovieCreate component with exception handling to inform user part one." />
+    <img src="Images/39-exception-handling/21-movie-create-two.png"
+         alt="MovieCreate component with exception handling to inform user part two." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that every routable component has an exception handling mechanism that
+    clearly informs the end user when an unexpected error has occurred while interacting
+    with the Application/Server-Api. Make sure to enforce a reload from the server when
+    handling data input from the application user.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can refer to <a href="https://youtu.be/7rcabH8ZHkw">
+            Episode 3. Setup Serilog For .Net Core API
+        </a> to enable diagnostic logging to files, the console, and/or elsewhere.
+        For info on how to set up a global exception handling mechanism, you can
+        refer to
+        <a href="https://youtu.be/_J8Ge5BUFcQ">
+            Episode 18. Global Exception Handling
+        </a>. Both episodes are part of the Udemy course "Ultimate ASP.Net Core Web API
+        Tutorial for Beginners" by Trevoir Williams.
+    </p>
+</div>
+

@@ -1,0 +1,1236 @@
+﻿@page "/10-external-id-providers"
+<PageTitle>External ID Providers</PageTitle>
+
+<h2>Security - Trusted External Identity Providers</h2>
+<p>
+    An ASP.Net Core application can be configured to enable Users to sign in using
+    OAuth 2.0 with credentials from external authentication providers such as
+    <a href="google.com">Google</a>, <a href="https://www.facebook.com/">Facebook</a>,
+    <a href="https://www.microsoft.com/en-us/">Microsoft</a>, and
+    <a href="https://twitter.com/">Twitter</a>.
+</p>
+<p>
+    The OAuth authentication provider (a.k.a. social login provider) establishes a
+    trust relationship with an application using an <strong>Application ID</strong>
+    (client ID) and an <strong>Application Secret</strong> (client secret). These
+    tokens represent the credentials that your application uses to access the
+    provider's API.
+</p>
+<p>
+    The token values are created for the app when it is registered with the external
+    identity provider. These tokens constitute the "user secrets" that can be linked
+    to your app configuration with the help of <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0#secret-manager">
+        secret manager
+    </a>. User secrets are a more secure alternative than storing the tokens in a
+    configuration source file such as <dfn>appsettings.json</dfn>.
+</p>
+<p>
+    Each external provider that the app uses must be configured independently with
+    the provider's client ID and client secret. Typically, you decide which external
+    authentication providers to support in your application and for each provider,
+    register the application and obtain a Client ID and client secret.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure Google as a trusted external identity provider to allow users to sign-in
+    to your application using their Google credentials.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        At the end of this lesson, both trusted external identity providers (Google and
+        Facebook) will have our application registration with a "development" status.
+        Once the application is ready for deployment (this includes a privacy policy,
+        naming a privacy officer, and the domains where it will be hosted), it must
+        go through a validation process to be granted a "published" status and be
+        fully available to the public.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Register the application with Google and obtain a Client ID and client secret.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Follow the guidance in <a href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid">
+        Setup
+    </a> to get your Google API client ID:
+</p>
+<ul>
+    <li>
+        Create a <dfn>Project</dfn> to work with.
+    </li>
+    <li>
+        Go to the project's <dfn>"Dashboard"</dfn>, look for "APIs & Services"
+        menu and navigate to the "OAuth consent screen":
+        <ul>
+            <li>
+                Select "User type: External" and "Create"
+            </li>
+            <li>
+                In the "App information" dialog, provide an "app name" for the app,
+                "user support email", "app logo", and "developer contact information".
+            </li>
+            <li>
+                Set the "developer contact information".
+            </li>
+            <li>
+                Save.
+            </li>
+            <li>
+                Step through the "Scopes" step. Select userinfo.email, userinfo.profile,
+                and opendid scopes.
+            </li>
+            <li>
+                Step through the "Test Users" process. While the publishing status is set
+                to "Testing", only test users are able to access the app. Register a
+                couple users to test your application and <strong>
+                    store this data in
+                    a safe place
+                </strong> because it will be required soon.
+            </li>
+        </ul>
+    </li>
+    <li>
+        Go to the project's "Dashboard", look for "APIs" & Services" menu and navigate
+        to "Credentials" screen:
+        <ul>
+            <li>
+                Select "Create Credentials".
+            </li>
+            <li>
+                Select "OAuth client ID", application type: "Web Application", and
+                choose a name to identify the Application/Client in the console.
+            </li>
+            <li>
+                In "Authorized JavaScript origins" select "ADD URI" to add the
+                application's domain; e.g., https://localhost:7077. Recall that the
+                app's URL can be found in the <code>launchsettings.json</code>
+                configuration source file of the Application/Server-Api. When deploying
+                the site, <span class="mark">
+                    <strong>
+                        update the app's domain URI in the Google Console to the
+                        app's deployed domain URL.
+                    </strong>
+                </span>
+            </li>
+            <li>
+                In the "Authorized redirect URIs" select "ADD URI" to set the
+                redirect URI. For example: https://localhost:7077/signin-google.
+                When deploying the site, <span class="mark">
+                    <strong>
+                        update the app's redirect URI in the Google Console to the
+                        app's deployed redirect URL.
+                    </strong>
+                </span> You can <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/google-logins?view=aspnetcore-6.0#change-the-default-callback-uri">
+                    change the default callback URI
+                </a> segment in ASP.Net Core while configuring the Google authentication middleware
+                in step 3.2 below.
+            </li>
+            <li>Select the "Create" button element.</li>
+            <li>
+                Save the "Client ID", "Client Secret" for use in the app's configuration,
+                and download the JSON file into a safe directory.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Store the Google client ID and secret using the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0">
+        secret manager
+    </a> tool.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    If you haven't done so in previous steps, use the <strong><code>init</code></strong>
+    command in a Command Prompt or Windows Powershell initialized with administrator
+    privileges from the project directory: Application/Server-Api:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/01-enable-secret-storage.png"
+         alt="Enabling secret storage in Application/Server-Api project." />
+</div>
+<p>
+    Go to the .csproj file and confirm that it has a <code>&lt;UserSecretsId&gt;</code>
+    tag with a GUID.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Use the Command Prompt or the Windows Powershell initialized with administrator privileges
+    to store the sensitive settings in the local secret store with the secret keys
+    "Authentication:Google:ClientId" and "Authentication:Google:ClientSecret":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/02-google-keys.png"
+         alt="Secret google keys." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Once you publish your web site to Azure web app, you should reset the
+        <dfn>ClientSecret</dfn> in the Google developer portal and set the
+        <code>Authentication:Google:ClientId</code> and
+        <code>Authentication:Google:ClientSecret</code> as application settings in
+        the Azure portal. The configuration system is set up to read keys from
+        environment variables.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Configure Google authentication.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Install the NugetPackage <strong>Microsoft.AspNetCore.Authentication.Google</strong>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Use the .AddAuthentication extension method to configure authentication options which
+    can be used to set up default authentication schemes for different purposes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/03-google-options.png"
+         alt="Add Google to authentication to authentication schemes." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    It is advisable to provide a page for scenarios where the User does not approve the
+    requested authorization demand.
+</p>
+<p>
+    The <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/facebook-logins?view=aspnetcore-6.0#react-to-cancel-authorize-external-sign-in">
+        Acceess Denied Path
+    </a> property option sets the optional path the user agent is redirected to if the
+    User does not grant authorization to the Flix Manager application to access its
+    personal data stored with Google.
+</p>
+<p>
+    In the example above, we recycled the Application/Server-Api/Areas/Identity/Pages
+    Account/AccessDenied view but you should only use it as an example to create a
+    custom page that contains the following information:
+</p>
+<ul>
+    <li>
+        Remote authentication was canceled. Access was denied by the resource owner
+        or by the remote server.
+    </li>
+    <li>
+        This application requires authentication.
+    </li>
+    <li>
+        To try sign-in again, select the Login link.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Run the application, click the Login link, and select the "Google" button element
+    which redirects to Google for authentication. Remember to use one of the "Test Users"
+    registered in 1.1:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/04-google-button.png"
+         alt="Google button element." />
+</div>
+<p>
+    After entering your Google credentials, you should be redirected back to the website
+    where you are expected to pass a valid email address because the account must be
+    confirmed:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/05-authn-confirmation.png"
+         alt="Authentication confirmation." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Any User can remove access for any site or web application with its Google
+        credentials in the <a href=" https://myaccount.google.com/permissions">
+            Apps with access to your account
+        </a> section.
+    </p>
+</div>
+<p>
+    Recall that in a previous lesson, we registered an <a href="08-account-confirmation">
+        Account Confirmation
+    </a> service that requires a confirmed account to allow the User to sign in. Upon
+    successful registration, an email with a link is sent to confirm that the provided
+    email address belongs to the User. <strong>
+        Unless the account is confirmed, the login attempt is unsuccessful.
+    </strong> We also provided the code logic to inform the User that sign in is
+    not allowed unless account confirmation is completed.
+</p>
+<p>
+    We still have to inform the User that eventhough authentication with the external
+    identity provider was successful, a one time only account confirmation is required
+    to sign in to the application. We'll take care of this soon but first, let's establish
+    Facebook as an alternate option for external authentication.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure Facebook as a trusted external identity provider to allow users to sign-in to
+    the application using their Facebook credentials.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Register the application with Facebook and obtain an App ID and App Secret.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Follow
+    the guidance in <a href="https://developers.facebook.com/docs/development/create-an-app">
+        Create an App
+    </a> to generate a unique ID for the application (BlazorMovies):
+</p>
+<ul>
+    <li>
+        Create an <dfn>App</dfn> to work with. Select the "Create App"
+        button element and choose an app type "Consumer". Click "Next".
+    </li>
+    <li>
+        Fill out the form with basic information such as the Display Name and the app
+        contact email. Tap the "Create App" button to be redirected to the "App Dashboard".
+    </li>
+    <li>
+        On the "Add products to your app" page, select "Set Up" on the "Facebook Login"
+        card. The "Quickstart" wizard launches to add Facebook Login to your app. Bypass
+        the wizard for now by clicking the "Settings" tab on the "Facebook Login" nav menu
+        on the left.
+    </li>
+    <li>
+        <p>In the "Client OAuth settings" dialog:</p>
+        <div class="image-lesson mb-3" style="overflow: scroll hidden">
+            <img src="Images/21-external-providers/08-facebook-client-oauth.png"
+                 style="max-width: 110%"
+                 alt="Facebook Client OAuth dialog." />
+        </div>
+    </li>
+    <li>
+        Enter the development URI (application URL) in the "Valid OAuth
+        Redirect URIs" field; e.g., https://localhost:7077/signin-facebook. When
+        deploying the site <span class="mark">
+            <strong>
+                update the app's redirect URI to the app's deployed redirect URL.
+            </strong>
+        </span> You can <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/google-logins?view=aspnetcore-6.0#change-the-default-callback-uri">
+            change the default callback URI
+        </a> segment in ASP.Net Core while configuring the Facebook authentication
+        middleware in step 3.2 below.
+    </li>
+    <li>
+        Select the "Save Changes" button element.
+    </li>
+    <li>
+        Go to the "Settings" tab in the nav menu on the left and select the "Basic"
+        link.
+    </li>
+    <li>
+        Provide a valid "Contact email", and valid URLs for:
+        <ul>
+            <li>Privacy Policy URL</li>
+            <li>Terms of Service URL</li>
+            <li>User data deletion; e.g., https://localhost:7077/Identity/Account/Manage/PersonalData</li>
+            <li>Data Protection Officer contact information Email</li>
+        </ul>
+    </li>
+    <li>
+        Select the "Save Changes" button element.
+    </li>
+    <li>
+        Save the "App ID" and the "App secret" for use in the ASP.Net Core
+        configuration later.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Create "Test User Accounts":
+</p>
+<ul>
+    <li>
+        On the "Roles" nav menu on the left, select "Test Users".
+    </li>
+    <li>
+        Tap on the "Create test users" button element to create a couple of "Test
+        User Accounts". These are simulated accounts that we will use to test
+        the authentication process.
+    </li>
+    <li>
+        In the "Create Test Facebook Accounts" dialog box select "<strong>Yes</strong>"
+        for "Do you want this app automatically installed for test users?"
+    </li>
+    <li>
+        In the "Login Permissions" field:
+        <div class="image-lesson mb-3">
+            <img src="Images/21-external-providers/09-test-users.png"
+                 alt="Create Test Facebook Accounts dialog." />
+        </div>
+    </li>
+    <li>
+        Pass the "email" and "public_profile" permissions. The "public-profile" is automatically
+        granted to all apps.
+    </li>
+    <li>
+        Select "Create test users".
+    </li>
+    <li>
+        In the "Test User Accounts" page, go the each test user's ellipsis menu and
+        select "change name or password". Optional to change their name, mandatory to
+        input the desired password: Pass123$
+    </li>
+    <li>
+        <strong>Confirm the permissions granted to each User.</strong> In the test user's
+        ellipsis menu, select "change permissions granted to this app" and make any
+        necessary adjustments. Only "email" and "public_profile" permissions should
+        be requested during the development stage for ease of use.
+    </li>
+    <li>
+        Save the Users data in a safe place because it will be required soon.
+    </li>
+</ul>
+<p>
+    You might have noticed that the image shown in step 1.1 for the Facebook Client OAuth dialog
+    has the warning message: <em>
+        "Your app has standard access to public_profile. To use Facebook Login, switch
+        public_profile to advanced access."
+    </em> This is related to the User data that
+    your app can access from Facebbok.
+</p>
+<p>
+    With 'Standard Access', your application (Flix Manager) can only request data from users
+    with an "App role". With 'Advanced Access', your application can request data from end
+    users (test users in development stage).
+</p>
+<p>
+    You need to provide an 'Advanced Access' category to the "public_profile" of the
+    created App (Facebook App) or you will get the following error while trying to
+    authenticate a test User from Flix Manager using Facebook as the trusted external
+    identity provider:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/11-facebook-error.png"
+         alt="App not active error." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3:</span>
+    Configure the "Access Level" for the requested permissions on each Test User. The
+    "public_profile" and the "email" should be set to "Advanced Access":
+</p>
+<ul>
+    <li>
+        In the "App Review" of the navigation menu on the left, select "Permissions
+        and Features"
+    </li>
+    <li>
+        Go to the "email" row and select "Get Advanced Access". Do the same for the
+        "public-profile". You might be prompted for your password to make the changes.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.4:</span>
+    A prompt with a "Complete the Data Use Checkup" should be displayed. Follow the
+    instructions to complete.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Store the Facebook app ID and secret using the <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0">
+        secret manager
+    </a> tool.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    If you haven't done so, use the <code>init</code> command in a Command Prompt or
+    Windows Powershell initialized with administrator privileges from the project
+    directory: Application/Server-Api as shown earlier in step 2.1 of the Google
+    configuration process.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Use the Command Prompt or the Windows Powershell intialized with administrator
+    privileges to store the sensitive data in the local secret store with the secret
+    keys "Authentication:Facebook:AppId" and "Authentication:Facebook:AppSecret":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/12-fecebook-keys.png"
+         alt="Facebook keys stored in the secret store." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Once you publish your web site to Azure web app, you should reset the
+        <dfn>AppSecret</dfn> in the Facebook developer portal and set the
+        <code>Authentication:Facebook:AppId</code> and
+        <code>Authentication:Facebook:AppSecret</code> as application settings in
+        the Azure portal. The configuration system is set up to read keys from
+        environment variables.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Configure ASP.Net Core Identity to support Facebook authentication.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Install the Nuget package <strong>Microsoft.AspNetCore.Authentication.Facebook</strong>.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Use the .AddAuthentication extension method to configure authentication options which
+    can be used to set up default authentication schemes for different purposes:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/13-facebook-options.png"
+         alt="Add Facebook to authentication schemes." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    It is advisable to provide a page for scenarios where the User does not approve the
+    requested authorization demand.
+</p>
+<p>
+    The <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/facebook-logins?view=aspnetcore-6.0#react-to-cancel-authorize-external-sign-in">
+        Acceess Denied Path
+    </a> property option sets the optional path the user agent is redirected to if the
+    User does not grant authorization to the Flix Manager application to access its
+    personal data stored with Facebook.
+</p>
+<p>
+    In the example above, we recycled the Application/Server-Api/Areas/Identity/Pages
+    Account/AccessDenied view but you should only use it as an example to create a
+    custom page that contains the following information:
+</p>
+<ul>
+    <li>
+        Remote authentication was canceled. Access was denied by the resource owner
+        or by the remote server.
+    </li>
+    <li>
+        This application requires authentication.
+    </li>
+    <li>
+        To try sign-in again, select the Login link.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3:</span>
+    Run the application, click the Login link, and select the "Facebook" button element which
+    redirects to Facebook for authentication. Remember to use one of the registered "Test Users"
+    in step one.
+</p>
+<p>
+    After entering your Facebook credentials, you should be redirected back to the website
+    where you are expected to pass a valid email address because the local account still
+    needs to be confirmed with the email provided:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/14-external-authn-conf.png"
+         alt="Authentication confirmation." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Any User can remove access for any site or web application with its Facebook
+        credentials in the <a href="https://www.facebook.com/help/218345114850283/?helpref=search&query=apps%20and%20websites&search_session_id=55851ba47aa8483f34bd7f9c099c9481&sr=2">
+            Apps and Websites
+        </a> page in the "Settings & Privacy" section of the User profile.
+    </p>
+</div>
+<p>
+    Recall that in the <a href="08-account-confirmation">Account Confirmation</a>
+    lesson, we registered a service that requires a confirmed account to allow the
+    User to sign in. Upon successful registration, an email with a link is sent to
+    confirm that the provided email address belongs to the User. <strong>
+        Unless the account is confirmed, the login attempt is unsuccessful.
+    </strong> We also provided the code logic to inform the User that sign in is not
+    allowed unless account confirmation is completed.
+</p>
+<p>
+    We still have to inform the User that eventhough authentication with the external
+    identity provider was successful, a one time only account confirmation is required
+    to sign in to the application.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Both trusted external identity providers (Google and Facebook) have our
+        application registration with a "development" status. Once the application is
+        ready for deployment (this includes a privacy policy, naming a privacy officer,
+        and the domains where it will be hosted), it must go through a validation
+        process to be granted a "published" status and be fully available to the public.
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        From episode
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU">
+            104. External identity providers
+        </a> of YouTube course ASP.Net core tutorial for beginners by Kudvenkat
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/?view=aspnetcore-6.0&tabs=visual-studio">
+            Facebook, Google, and external provider authentication in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/google-logins?view=aspnetcore-6.0">
+            Google external login setup in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://developers.google.com/identity/sign-in/web/sign-in">
+            Integrating Google Sign-In into your web app
+        </a>
+    </li>
+    <li>
+        <a href="https://console.cloud.google.com/apis">
+            Google Cloud Console
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/facebook-logins?view=aspnetcore-6.0">
+            Facebook external login setup in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://developers.facebook.com/docs/development/create-an-app">
+            Create an App (Facebook)
+        </a>
+    </li>
+    <li>
+        <a href="https://developers.facebook.com/apps/">
+            Meta for Developers
+        </a>
+    </li>
+    <li>
+        <a href="https://developers.facebook.com/docs/facebook-login/overview">
+            Facebook Login Overview
+        </a>
+    </li>
+    <li>
+        <a href="https://www.facebook.com/groups/193115591403722/">
+            Facebook Blazor-WebAssembly group
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/additional-claims?view=aspnetcore-6.0">
+            Persist additional claims and tokens from external providers in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-6.0&tabs=windows">
+            Safe storage of app secrets in development in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-6.0">
+            Options pattern in ASP.Net Core
+        </a>
+    </li>
+</ul>
+<h4>Account Confirmation with External Providers</h4>
+<p>
+    As we said earlier, after the external provider successfully authenticates a User,
+    the UI displays a message informing the User the result of the authentication attempt:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/06-success-authn-message.png"
+         alt="Successful authentication message." />
+</div>
+<p>
+    However, this does not mean that our application has successfully signed in the
+    authenticated User. Recall that in lesson <a href="08-account-confirmation">
+        Account Confirmation
+    </a>, we configured ASP.Net Core Identity with a service responsible for validating
+    if the User account has been confirmed with its registered email before allowing
+    the sign-in process to complete.
+</p>
+<p>
+    Currently, the application displays a message that the User has successfully
+    authenticated with the external identity provider but this <strong>does not mean</strong>
+    that our application will sign in the user. In fact, the User is not allowed to
+    sign in because its account has not been confirmed.
+</p>
+<p>
+    If the User has been successfully authenticated with an external identity
+    provider but the account has not been confirmed, the User should be provided a
+    message explaining that the email confirmation is required. At this point, only
+    the debugging console displays the reason why the User will not be allowed to
+    sign-in:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/07-console-message.png"
+         alt="Debugging console info." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that the UI clearly informs the User that the account requires a one time
+    email confirmation to be granted access after a successful external identity provider
+    authentication; e.g., <em>
+        "Email not confirmed yet. Please check your email to confirm your account.".
+    </em> This way, the User will know that ownership of the email address provided
+    must be confirmed to complete the registration process for the local account and
+    be granted access to the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Refactor the ExternalLogin Model to verify if the User has confirmed the
+    local User account and react accordingly.
+</p>
+<p>
+    The Application/Server-Api/Areas/Identity/Pages Account/ExternalLogin Model is
+    called when the User requests a login using a trusted external identity provider.
+    Its OnGetCallbackAsync handler (method) captures the external login information
+    sent back by the external login provider after an authentication attempt.
+</p>
+<p>
+    Use the <code>ExternalLoginInfo</code> to extract the email used by the
+    external provider to authenticate the User and build a query to request a
+    "dbUser" with a registered email that matches the external email address.
+</p>
+<p>
+    If the result of the query is not null and its ApplicationUser.EmailConfirmed
+    property value is set to false, it means that account confirmation is still
+    pending. We can employ the help of a "PendingEmailConfirmationi" flag to
+    determine the message to display to the User dependent on the current state of
+    its local account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/15-external-login-model-one.png"
+         alt="ExternalLogin model part one." />
+    <img src="Images/21-external-providers/16-external-login-model-two.png"
+         alt="ExternalLogin model part two." />
+    <img src="Images/21-external-providers/17-external-login-model-three.png"
+         alt="ExternalLogin model part three." />
+    <img src="Images/21-external-providers/18-external-login-model-four.png"
+         alt="ExternalLogin model part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Refactor the ExternalLogin view to convey a message to the User based on
+    its current account confirmation status and to make available the appropriate
+    action; e.g., login with external provider after the confirming the account
+    or registering a new local account.
+</p>
+<p>
+    If the <code>SignInResult</code> is neither "Successful" nor "IsLockedOut", it
+    means the User does not have a local account. The User's email is retrieved from
+    the <code>ExternalLogInInfo</code> object and passed to the ExternalLogin.cshtml
+    view for convenience to the User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/19-external-login-view-one.png"
+         alt="ExternalLogin view part one." />
+    <img src="Images/21-external-providers/20-external-login-view-two.png"
+         alt="ExternalLogin view part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Test the external login process with a scenario where the user has not
+    registered an email to create a local account user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/21-associate-account-request.png"
+         alt="Register local account UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Click the Register button and test the external login process with a scenario where
+    the user has provided an email to associate the local account but has not executed
+    the email confirmation and tries to login using the external login provider:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/22-confirm-ownership-request.png"
+         alt="Pending email confirmation UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Go to your email inbox and use the Flix Manager email to prove ownership of the
+    email address provided and initiate the user account confirmation process.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Log in to the application using the external identity provider.
+</p>
+<h4>Optionally set password for local account</h4>
+<p>
+    When a User registers with an external login provider, it is not required to
+    register a password for the local account of the application (Flix Manager). This
+    alleviates the User from creating and remembering a password for the application
+    but it also makes the User dependent on the external login provider.
+</p>
+<p>
+    If the external login provider is unavailable, the User won't be able to sing-in
+    to the application.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Refactor the Application/Server-Api/Areas/Identity/Pages Account/ExternalLogin
+    page to give the User an option to register a password for the local account.
+</p>
+
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can use the Application/Server-Api/Areas/Identity/Pages Account/Register
+        view as an example for capturing, validating, and setting the User password.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the ExternalLogin Model and make the following adjustments:
+</p>
+<ul>
+    <li>
+        Extend the "InputModel" with "Password" and "ConfirmPassword" properties.
+    </li>
+    <li>
+        Refactor the <code>OnPostConfirmationAsync</code> handler (method) to evaluate
+        if the User provided a password before creating an ApplicationUser object for
+        the local account and act accordingly.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/26-external-login-model-password-one.png"
+         alt="ExternalLogin Model with option to set password for local account part one." />
+    <img src="Images/21-external-providers/27-external-login-model-password-two.png"
+         alt="ExternalLogin Model with option to set password for local account part two." />
+    <img src="Images/21-external-providers/28-external-login-model-password-three.png"
+         alt="ExternalLogin Model with option to set password for local account part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the ExternalLogin View and make the following adjustments:
+</p>
+<ul>
+    <li>
+        Declare a message to inform the User that providing a password for the
+        local account is optional.
+    </li>
+    <li>
+        Declare &lt;input&gt; elements for "Password" and "Confirm Password" fields.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/29-external-login-view-password-one.png"
+         alt="ExternalLogin view with option to set password for local account part one." />
+    <img src="Images/21-external-providers/30-external-login-view-password-two.png"
+         alt="ExternalLogin view with option to set password for local account part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Run the application and login using an external identity provider. Make sure to
+    login in with a User that has not been registered previously:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/21-external-providers/31-ui-optional-password.png"
+         style="max-width: 110%"
+         alt="Login UI with external identity provider." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Define a password for the local account and click the "Register" button
+    element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/32-ui-register-confirmation.png"
+         alt="Confirm account UI." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Go to your inbox and use the email message received from Flix Manager. Alternatively,
+    you can go to the dbo.AspNetUsers[Data] table and hard code the value for the
+    EmailConfirmed column.
+</p>
+<p>
+    Make sure that after account confirmation you can login with both the external
+    identity provider and the local User account credentials. Click on the User link
+    in the nav bar on top of the web page to navigate to the "Manage your account"
+    page and select "Password":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/33-manage-account-ui.png"
+         alt="Password section of manage your account page." />
+
+</div>
+<p>
+    The "Current password" field is populated.
+</p>
+<h4>Combine Local Account Login with External ID Provider Login</h4>
+<p>
+    You can combine an existing local account with a social login provider
+    account to login.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Combine a local User login with an external identity provider login account.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Run the application and login in using the credentials of a local User account.
+    Select the User link on top of the web browser in the nav menu:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/21-external-providers/23-user-link.png"
+         alt="User link on top of page." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    In the Application/Server-Api/Areas/Identity/Pages Account/Manage/Index page
+    select the "External Logins" button of the nav menu on the left and then click
+    the external identity provider you want to combine with your local account to
+    log in:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/24-external-logins.png"
+         alt="External Logins page." />
+</div>
+<p>
+    You should be redirected to the external identity provider login page.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Provide valid credential to login with the external identity provider.
+</p>
+<p>
+    You should be redirected back to the External Logins page but this time
+    the registered external login is displayed with a "Remove" button element
+    in case you want to disassociate the accounts:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/25-external-login-added.png"
+         alt="External log in added." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://youtu.be/4XugKqgwGnU">
+            Episode 112. Block login if email is not confirmed in asp net core
+        </a> of Udemy course: "ASP.Net tutorial for beginners" by Kudvenkat
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/?view=aspnetcore-6.0&tabs=visual-studio#optionally-set-password">
+            Optionally set password
+        </a>
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/accconfirm?view=aspnetcore-6.0&tabs=visual-studio#combine-social-and-local-login-accounts">
+            Combine social and local login accounts
+        </a>
+    </li>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete">
+            HTML attribute: autocomplete ("new-password" value)
+        </a>
+    </li>
+</ul>
+<h4>Customize buttons for external login providers</h4>
+<p>
+    You can use <a href="https://fontawesome.com/">Font Awesome</a>, 
+    an icon library and toolkit, to customize the button elements of the
+    social login providers displayed in the
+    Application/Server-Api/Areas/Identity/Pages Account/Login page.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Customize the button elements of the social login providers of the Login page.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Set up Font Awesome in your application.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Create an account with <a href="https://fontawesome.com/start">Font Awesome</a>
+    and confirm the email address provided. This step will automatically create
+    a Font Awesome <dfn>kit</dfn> that will contain a unique code for identification.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Login to Font Awesome and navigate to <a href="https://fontawesome.com/kits">
+        Your Kits
+    </a> section to select the Kit that was just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/34-font-awesome-kit.png"
+         alt="Font Awesome Kit." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3</span>
+    Copy the Kit's script from Font Awesome and paste it inside the <code>&lt;head&gt;</code>
+    tag of the Application/Server-Api/Pages Shared/_Layout.cshtml support page:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/21-external-providers/35-kit-code.png"
+         style="max-width: 110%;"
+         alt="Kit code." />
+</div>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/21-external-providers/36-layout-file.png"
+         style="max-width: 110%"
+         alt="_Layout support file with Font Awesome kit script." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Find any of the Font Awesome <a href="https://fontawesome.com/search?o=r&f=classic%2Cbrands">
+        icons
+    </a> that you intend to add to your project (e.g., Google icon) and copy the
+    HTML code. Note that it is inside an <code>&lt;i&gt;</code> tag:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/37-google-icon.png"
+         alt="HTML code for Google icon from Font Awesome." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Include the Google icon in the Login page of the ASP.Net Core Identity UI. Do
+    the same for the Facebook icon:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/38-login-view-with-icons.png"
+         alt="Google and Facebook buttons with proper icon." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Run the application and go to the Login UI:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/39-login-view-social-login-icons.png"
+         alt="Login UI with social login provider icons. " />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Repeat the process for the "Register" page.
+</p>
+<p>Data sources:</p>
+<ul>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/security/authentication/social/?view=aspnetcore-6.0&tabs=visual-studio#additional-information">
+            Additional Information
+        </a>
+    </li>
+    <li>
+        <a href="https://github.com/dotnet/AspNetCore.Docs/issues/10563">
+            How to customize the login buttons
+        </a>
+    </li>
+    <li>
+        <a href="https://fontawesome.com/docs/web/#web-setup">
+            Use Font Awesome on the Web
+        </a>
+    </li>
+    <li>
+        <a href="https://fontawesome.com/docs/web/setup/use-kit">
+            Use a Kit
+        </a>
+    </li>
+    <li>
+        <a href="https://fontawesome.com/icons/facebook-f?s=&f=brands">
+            Search Font Awesome
+        </a>
+    </li>
+</ul>
+<h4>Automatic Logout if User is Inactive</h4>
+<p>
+    When a User is authenticated, it is granted authentication and authorization
+    credentials in the form of security tokens issued by a trusted party (identity
+    provider). These tokens contain claims that provide assertions about who the
+    User is and what privileges does it have to manage access to resources.
+</p>
+<p>
+    If the application remains idle for a certain amount of time, the User should
+    be automatically logged out to avoid exposing specific application resources,
+    User specific information, or any sensitive information.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Configure the application to automatically logout the current User if it remains
+    idle for more than 10 minutes. Use JS Isolation.
+</p>
+<p>
+    To complete this task, we need <a href="02-components-part-three">JS Interporability</a>.
+    The idea is to define a function in JavaScript responsible for monitoring the current
+    User activity in the browser and setting a timer state accordingly. User activity
+    will be measured with the <code>onmousemove</code> and <code>onkeypress</code>
+    properties.
+</p>
+<p>
+    If the timer interval is exhausted before any activity is registered, the JS function
+    should invoke a .Net instance method to logout the current User.
+</p>
+<p>
+    As mentioned in the "JavaScript Isolation in JavaScript Modules" section of the
+    <a href="02-components-part-three">Blazor Components - Part Three</a> lesson, placing
+    the actual JS script in a &lt;script&gt; tag or loading scripts from a global .js file
+    pollutes the client with global functions.
+</p>
+<p>
+    For production apps, it is recommended to <strong>place JS into separate JS modules</strong>
+    that can be imported as required.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        JS modules are .js files that contain certain JS functionality specific to any given
+        section of your application such as a Blazor component. With JS isolation, modules
+        can be downloaded on-demand depending on the active component.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create the <code>.js</code> file that will be configured as a JS module to allow
+    dynamically loading it when required. Include the JS functions responsible for
+    setting the events, the event handlers, and invoking the .Net method to logout the
+    current User.
+</p>
+<p>
+    The .js file is a static file asses and static files (css, images, videos, .js) are
+    served from the web root folder (wwwroot). We already have a .js folder; this is
+    where the .js file should reside. Recall that the common convention is to name JS
+    modules with the name of the component they will be consumed from; e.g.,
+    "MainLayout.js"
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Create the <code>.js</code> file in the "js" folder of the webroot directory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/40-web-root-folder-tree.png"
+         alt="Web root folder tree with MainLayout.js file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Define the JS functions responsible for listening to the document events, resetting
+    the timer, setting the timer interval, and invoking the .Net instance method responsible
+    for logging out the current User:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/41-main-layout-js-module.png"
+         alt="MainLayout.js file (.js module) with functionality." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The <dfn>timeout</dfn> value (time interval) for the inactivityTimer instance is
+    set to 3,000 milliseconds for testing purposes <strong>only</strong>. A common
+    value for the <dfn>setTimeout</dfn> function is 10 minutes or 600,000 milliseconds.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Define the code logic to import the JS module into the .Net environment through
+    an instance method that encapsulates the JS functions.
+</p>
+<p>
+    Recall that in section "Extending <code>IJSRuntime</code> interface" of
+    the <a href="02-components-part-three">Blazor Components - Part Three</a> lesson,
+    we created a class that extends the functionality of the <code>IJSRuntime</code>
+    interface with extension methods that encapsulate invocations to JS functions.
+</p>
+<p>
+    Consolidating commonly required JS function invocations into a single class that
+    is available from everywhere in the application makes it simple to modify the JS
+    function invocations because it only has to be done in a single place. Otherwise,
+    you would have to manually update each JS function invocation throughout the
+    application.
+</p>
+<p>
+    Go to the Application/Client/Helpers IJSRuntimeExtensions class to declare the
+    extension method that will encapsulate the JS Interop functionality to invoke
+    the JS module with the JS function(s) we just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/42-extending-ijs-runtime-one.png"
+         alt="Extending the IJSRuntime interface part one." />
+    <img src="Images/21-external-providers/43-extending-ijs-runtime-two.png"
+         alt="Extending the IJSRuntime interface part two." />
+</div>
+<p>
+    As explained in the section on "Application DefaultLayout Component" in the
+    <a href="02-components-part-two">Blazor Components - Part Two</a> lesson, the
+    routable components are rendered using the application's DefaultLayout passed
+    as an argument to satisfy the <dfn>DefaultLayout</dfn> attribute of the
+    <dfn>RouteView</dfn> component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/02-components/65-default-layout.png"
+         alt="Default Layout." />
+</div>
+<p>
+    In an application created with a Blazor project template, the <dfn>MainLayout</dfn>
+    component is the default layout for the application. The root HTML elements are
+    defined inside the <dfn>host page</dfn> and the markup or semantic meaning for the
+    content of the &lt;body&gt; element is defined in a layout component.
+</p>
+<p>
+    Since the MainLayout.razor component is used for all the routable components created
+    so far for the application, we can use this component to initialize the code logic
+    to monitor the User activity and act accordingly.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If later on you decide to include alternate layouts, you should invoke the
+        <code>IJSRuntime.InitializeInactivityTimerTask(T)</code> method to handle
+        automatic logout while using those layouts.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the default Layout component to initialize the JS functions to monitor the
+    User activity and define the .Net instance method named <dfn>LogOutTask</dfn> to
+    automatically log out a User if the timer interval is exhausted:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/44-main-layout-one.png"
+         alt="MainLayout component initializes the JS functions part one." />
+    <img src="Images/21-external-providers/45-main-layout-two.png"
+         alt="MainLayout component initializes the JS functions part two." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+            new redirection approach for apps that target .Net 7
+        </a> calls the <em>
+            NavigationManagerExtensions.<a>
+                NavigateToLogout
+            </a>
+        </em> method and the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.webassembly.authentication.signoutsessionstatemanager">
+            SignOutSessionStateManager
+        </a> is removed from the component's directives at the top of the file because
+        is has been deprecated. You can refer to the <a href="04-migrate-dot-net-seven">
+            Migrate to .Net 7
+        </a> lesson for more info.
+    </p>
+</div>
+<p>
+    In an application that targets .Net 7, the <dfn>MainLayout.razor.cs</dfn> code file
+    should look something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/21-external-providers/47-main-layout-updated-one.png"
+    alt="Updated MainLayout code file part one."/>
+    <img src="Images/21-external-providers/48-main-layout-updated-two.png"
+         alt="Updated MainLayout code file part two."/>
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Run the application, login with a valid User and leave the application idle to
+    test the automatic logout feature we just implemented.
+</p>
+<p>
+    If no activity is registered for 3 seconds, the current User should be logged out
+    and redirected to the Index page.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Modify the value to 10 minutes (600,000 milliseconds) for the <dfn>setTimeout</dfn>
+    function of the Application/Client/wwwroot/js MainLayout.js file.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://www.syncfusion.com/faq/blazor/event-handling/how-do-you-initiate-automatic-logout-when-a-user-is-inactive-in-blazor">
+            How do you initiate automatic logout when a user is inactive in Blazor?
+        </a>
+    </li>
+    <li>
+        Episode 97.
+        <a href="https://www.udemy.com/share/102l0i3@moYmI9YJIE4_9fx2AoDS8wvetqzx89byVL4Bhv0IS5o8nDWCFVZ6rhkfoJ7toST5/">
+            Automatic Logout if User is Inactive
+        </a> of Udemy course "Programming in Blazor - ASP.Net Core 5" by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#procedural-logic">
+            Procedural logic.
+        </a>
+    </li>
+</ul>

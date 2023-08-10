@@ -1,0 +1,397 @@
+﻿@page "/03-user-manager"
+<PageTitle>User Manager</PageTitle>
+
+<h2>User Management- User Manager</h2>
+<p>
+    The term <dfn>User Management</dfn> refers to the ability for application
+    administrators to manage the application users' access to various server-API
+    resources. User management is a core part to any Identity and Access
+    Management (IAM) solution.
+</p>
+<h4>Manage User AuthZ Claims</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Implement the functionality to manage the custom authorization claims for a
+    given application user. It should allow administrators to:
+</p>
+<ul>
+    <li>
+        Display a list of application users currently registered in the application.
+    </li>
+    <li>
+        Assign/remove authorization claims to application users to control their
+        access to different server-API resources.
+    </li>
+</ul>
+<p>
+    Recall that in the <a href="02-application-user-api">ApplicationUser Api</a>
+    lesson, we created a Users controller with an <dfn>action</dfn> that retrieves
+    a sequence of database records for current Users in segments (or portions of
+    data) that adheres to the specifications outlined in its formal input parameter
+    PaginationRequestDto:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/26-get-paginated-users-task-one.png"
+         alt="Users controller with GetPaginatedUsersTask action part one." />
+    <img src="Images/22-identity-user/27-get-paginated-users-task-two.png"
+         alt="Users controller with GetPaginatedUsersTask action part two." />
+    <img src="Images/22-identity-user/27-get-paginated-users-task-three.png"
+         alt="Users controller with GetPaginatedUsersTask action part three." />
+</div>
+<p>
+    The GetPaginatedUsersTask <dfn>action</dfn> consumes the generic
+    Application/Server-Api/Repositories/EfRepository GetPaginatedAsync
+    method to paginate query results of any data entity type. However,
+    if consumed through the ApiService from the client, it would have
+    to be passed a type ApplicationUser because it does not have any
+    mapping functionality (e.g., from ApplicationUser to UserDto).
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        As explained in the <a href="04-forms-part-two">
+            Entities, Models, Data Transfer Objects (DTOs), and
+            Mapping
+        </a> section of the Forms part II module, <strong>
+            a web API should not expose database entities to the
+            client.
+        </strong>
+    </p>
+</div>
+
+<p>
+    We need to implement new features that are specific for the entity type
+    ApplicationUser. The approach we will follow is very similar to the one followed
+    for managing Person and/or Movie objects. We will create an IndexUsers routable
+    component to retrieve the application users registered in the data store.
+</p>
+<p>
+    We will also create an EditUser routable component that will allow the application
+    administrator to select/deselect custom authorization claims for a given
+    application user.
+</p>
+<p>
+    Let's follow the procedure to add new functionality for a specific data entity
+    type as demonstrated in the <a href="03-create-complex-data">Create Data</a>,
+    <a href="04-load-complex-data">Load Data</a>, <a href="06-update-complex-data">
+        Update Data
+    </a>, and <a href="07-delete-data">Delete Data</a> lessons of
+    the Consuming the Api module.
+</p>
+<h4>Procedure to add new functionality for a specific data entity type:</h4>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>Dto</dfn>
+        to encapsulate the property values that can be directly related to one or
+        more properties of the data entity type to work with.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface
+        to expose the specific functionality (method) to the Application/Client and
+        establish a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement
+        the newly exposed functionality. This is the application's business logic
+        responsible for building the Linq queries and operations that act on the
+        model (data entity). It mediates between the data source layer
+        (Application/Server-Api/DataStore) and the RESTful API service
+        (Application/Sever-Api).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to
+        implement the newly exposed functionality. This is the application's layer
+        responsible for creating the Http requests/responses that serialize-deserialize
+        the data and build the endpoint's route template (route to the appropriate
+        controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntityNameController to create
+        the action (controller method) responsible for responding to the HttpRequest
+        produced in last step. It mediates between the client layer
+        (Application/Client) and the business logic layer
+        (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the
+        recently added functionality.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create an AuthZClaimDto type that represents a type
+    <a href="07-policy-based-authz">AuthZClaim</a> and a UserClaimsDto that
+    wraps an ApplicationUser.Id and a collection of AuthZClaimDto items.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Create the AuthZClaimDto to represent an object of type
+    <a href="07-policy-based-authz">AuthZClaim</a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/01-authz-claim-dto.png"
+         alt="AuthZClaimDto." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Create the UserClaimsDto:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/02-user-claims-dto.png"
+         alt="UserClaimsDto." />
+</div>
+<p>
+    We created a UserDto type in last lesson to flatten a type
+    ApplicationUser. It wraps the ApplicationUser.Id and the
+    ApplicationUser.Email values:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/22-identity-user/25-user-dto.png"
+         alt="User DTO." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Application/Client/ApiServices/IRepositories IUsers
+    interface to expose the specific functionality (methods) to
+    the Application/Client and establish a contract (or protocol)
+    for the new features.
+</p>
+<p>
+    The new features will:
+</p>
+<ul>
+    <li>
+        Retrieve an application user using its Id.
+    </li>
+    <li>
+        Retrieve a sequence of user records in segments (or portions of
+        data).
+    </li>
+    <li>
+        Retrieve a collection of all the custom AuthZClaim items available
+        to control access to the application resources and flag the claims
+        assigned to a given user.
+    </li>
+    <li>
+        Assign or remove custom authorization claims to a given User.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/03-i-users-one.png"
+         alt="IUsers interface with required methods part one." />
+    <img src="Images/23-user-manager/04-i-users-two.png"
+         alt="IUsers interface with required methods part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the Application/Server-Api/Repositories EfUsers class to
+    implement the newly exposed functionality. This is the application's
+    business logic responsible for building the Linq queries and
+    operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore)
+    and the RESTful API service (Application/Sever-Api):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/05-ef-users-one.png"
+         alt="EfUsers class with functionality part one." />
+    <img src="images/23-user-manager/06-ef-users-two.png"
+         alt="EfUsers class with functionality part two." />
+    <img src="images/23-user-manager/07-ef-users-three.png"
+         alt="EfUsers class with functionality part three." />
+    <img src="images/23-user-manager/08-ef-users-four.png"
+         alt="EfUsers class with functionality part four." />
+    <img src="images/23-user-manager/08-ef-users-five.png"
+         alt="EfUsers class with functionality part five." />
+    <img src="images/23-user-manager/08-ef-users-six.png"
+         alt="EfUsers class with functionality part six." />
+    <img src="images/23-user-manager/08-ef-users-seven.png"
+         alt="EfUsers class with functionality part seven." />
+    <img src="images/23-user-manager/09-ef-users-eight.png"
+         alt="EfUsers class with functionality part eight." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the Application/Client/ApiServices/ApiManager ApiUsers class to
+    implement the newly exposed functionality. This is the application's
+    layer responsible for creating the Http requests/responses that
+    serialize-deserialize the data and build the endpoint's route
+    template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/10-api-users-one.png"
+         alt="ApiUsers implementation part one." />
+    <img src="Images/23-user-manager/11-api-users-two.png"
+         alt="ApiUsers implementation part two." />
+    <img src="Images/23-user-manager/12-api-users-three.png"
+         alt="ApiUsers implementation part three." />
+    <img src="Images/23-user-manager/13-api-users-four.png"
+         alt="ApiUsers implementation part four." />
+    <img src="Images/23-user-manager/14-api-users-five.png"
+         alt="ApiUsers implementation part five." />
+    <img src="Images/23-user-manager/15-api-users-six.png"
+         alt="ApiUsers implementation part six." />
+    <img src="Images/23-user-manager/16-api-users-seven.png"
+         alt="ApiUsers implementation part seven." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The argument passed to satisfy the
+    formal input parameter of type <code>JWTOptions</code> for each <a href="05-api">
+        resource method
+    </a>
+    invokes the <a href="06-security-protect-api">typed HttpClient</a>
+    that does not attach a JWT because we have not secured the
+    Application/Sever-Api/Controllers UsersController resources nor have we secured
+    the Application/Client Users routable components.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Use the Application/Server-Api/Controllers UsersController to create
+    the actions (controller methods) responsible for responding to the HttpRequests
+    produced in last step. It mediates between the client layer
+    (Application/Client) and the business logic layer
+    (Application/Server-Api/Repositories).
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/17-users-controller-one.png"
+         alt="Users controller part one." />
+    <img src="Images/23-user-manager/18-users-controller-two.png"
+         alt="Users controller part two." />
+    <img src="Images/23-user-manager/19-users-controller-three.png"
+         alt="Users controller part three." />
+    <img src="Images/23-user-manager/20-users-controller-four.png"
+         alt="Users controller part four." />
+    <img src="Images/23-user-manager/21-users-controller-five.png"
+         alt="Users controller part five." />
+    <img src="Images/23-user-manager/22-users-controller-six.png"
+         alt="Users controller part six." />
+    <img src="Images/23-user-manager/23-users-controller-seven.png"
+         alt="Users controller part seven." />
+    <img src="Images/23-user-manager/24-users-controller-eight.png"
+         alt="Users controller part eight." />
+</div>
+<p>
+    We have prepared the <a href="02-application-user-api">
+        web server API
+    </a> to be able to handle <code>ApplicationUser</code> objects
+    through data transfer objects and we have defined the required
+    functionality for retrieving the available user(s) in the data store,
+    assigning, and removing custom authorization claims to a given User.
+</p>
+<p>
+    We have also configured the ApiUsers class to build Http
+    requests/responses; i.e., to provide the Application/Client
+    a way to communicate with the back-end of the application.
+</p>
+<p>
+    It is time to work on the front-end. Let's build a routable component
+    (IndexUsers) to display all the Users and allow to select either one of
+    them to redirect the user to the EditUser routable component where an
+    administrator can assign/remove custom authorization claims.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Inject an instance of the IApiService to a Razor component to
+    consume the recently added functionality.
+</p>
+<p>
+    As we mentioned before, the procedure is very similar to the one followed
+    with the Genre, Person, and Movie data entities. We need to create an
+    Application/Client/Pages Users directory and add an IndexUsers and an
+    EditUser routable component.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1</span>
+    Create an Application/Client/Pages IndexUsers component. It should display
+    all the application users available in the data store in a paginated format
+    and it should provide an edit button element that redirects the user to the
+    UserEdit routable component.
+</p>
+<p>
+    IndexUsers view file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/25-index-users-view-file-one.png"
+         alt="View file of the IndexUser routable component part one." />
+    <img src="Images/23-user-manager/26-index-users-view-file-two.png"
+         alt="View file of the IndexUser routable component part two." />
+</div>
+<p>
+    IndexUsers code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/27-index-users-code-file-one.png"
+         alt="Code file of the IndexUser routable component part one." />
+    <img src="Images/23-user-manager/28-index-users-code-file-two.png"
+         alt="Code file of the IndexUser routable component part two." />
+    <img src="Images/23-user-manager/29-index-users-code-file-three.png"
+         alt="Code file of the IndexUser routable component part three." />
+</div>
+<p>
+    If you run the application and navigate to Application/Client/Users
+    IndexUser routable component, you should see something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/30-index-users-ui.png"
+         alt="IndexUsers UI." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2</span>
+    Create an Application/Client/Pages UserEdit routable component. It should allow
+    an administrator to select/deselect custom authorization claims for a given
+    application user.
+</p>
+<p>
+    UserEdit view file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/31-user-edit-view-file-one.png"
+         alt="View file of the UserEdit routable component." />
+</div>
+<p>
+    UserEdit code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/23-user-manager/32-user-edit-code-file-one.png"
+         alt="Code file of the UserEdit routable component part one." />
+    <img src="Images/23-user-manager/33-user-edit-code-file-two.png"
+         alt="Code file of the UserEdit routable component part two." />
+</div>
+<p>
+    If you run the application, login with an application user that has full admin
+    credentials (e.g., admin@@email.com password: 123$), navigate to Application/Client/Users
+    IndexUser routable component, and select any "Edit" button element,
+    you are redirected to the UserEdit routable component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/23-user-manager/58-user-edit.png"
+         alt="UserEdit GUI." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Checkboxes are bound to
+    the AuthZClaimDto.IsSelected property value. Recall that
+    <a href="02-components-part-one">data binding</a> allows you to
+    synchronize a variable (field, property, or Razor expression value)
+    with an HTML element or a component so that any changes that you
+    make in either end of the data binding are reflected.
+</p>
+<p>
+    The basic functionality and the GUI for the User Manager are working as
+    intended. It is time to secure them to prevent unwanted application users
+    from accessing these resources.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        Episode 95.
+        <a href="https://www.udemy.com/share/102l0i3@eB00K6Vt0x-rHay8bdpHvFNbacM2xidG8EIcbdh51oAmVpq6kwxoTwDgZPktU9Ee/">
+            Implementing Roles
+        </a> of Udemy course: "Programming in Blazor - ASP.Net Core 5" by
+        Felipe Gavilan.
+    </li>
+    <li>
+        Episode 93.
+        <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU">
+            Manage user claims in asp net core
+        </a> of YouTube course: "ASP.Net core tutorial for beginners" by Kudvenkat
+    </li>
+</ul>

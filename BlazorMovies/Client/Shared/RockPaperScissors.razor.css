@@ -1,0 +1,9 @@
+﻿
+img {
+    transition: all .1s linear;
+}
+
+.selectable-image:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+}

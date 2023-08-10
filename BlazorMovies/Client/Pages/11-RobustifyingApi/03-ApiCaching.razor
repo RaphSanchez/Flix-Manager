@@ -1,0 +1,1267 @@
+﻿@page "/03-api-caching"
+<PageTitle>API Caching</PageTitle>
+
+<h2>Robustifying the API - HTTP Caching</h2>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This lesson is for educational purposes only because we will eventually
+        configure our application to adhere to the Progressive Web Application (PWA)
+        standard which employs <dfn>service workers</dfn> that also cache content
+        with the added benefit to optionally make it available offline. If you 
+        intend to convert your application to a PWA, it is advisable to disable the
+        caching service at the end of this lesson.
+    </p>
+</div>
+<p>
+    The Http cache stores a response associated with a request and reuses the stored
+    response for subsequent requests. Some advantages are:
+</p>
+<ul>
+    <li>
+        Since there is no need to deliver the request to the origin server, the closer
+        the client and cache are, the faster the response will be. The most typical
+        example is when the browser itself stores a cache for browser requests.
+    </li>
+    <li>
+        When a response is reusable, the origin server does not need to process the
+        request; i.e., it does not need to parse and route the request, restore the
+        session based on the cookie, query the database for results, etc. This reduces
+        the load on the server.
+    </li>
+</ul>
+<h4>Types of caches</h4>
+<p>
+    In the <a href="https://httpwg.org/specs/rfc9111.html">Http caching</a> specification,
+    there are two main types of caches: <dfn>private caches</dfn> and <dfn>shared caches</dfn>.
+</p>
+<dl>
+    <dt>Private cache</dt>
+    <dd>
+        A <dfn>private cache</dfn> is a cache tied to a specific client; typically a
+        browser cache. Since the stored response is not shared with other clients, a
+        private cache can store a personalized response for that user.
+    </dd>
+    <dd>
+        On the other hand, if personalized contents are stored in a cache other than a
+        private cache, then other users may be able to retrieve those contents. This
+        may cause unintentional information leakage.
+    </dd>
+    <dd>
+        Personalized contents are usually controlled by cookies but the presence of a
+        cookie does not always indicate that the content is private, and thus the presence
+        of a cookie alone does not make the response private.
+    </dd>
+    <dd>
+        <span class="badge bg-info">Notice:</span>
+        If the response has an <code>Authorization</code> header, it cannot be stored
+        in the private cache (or a shared cache, unless <code>public</code> is specified).
+    </dd>
+    <dt>Shared cache</dt>
+    <dd>
+        <p>
+            The <dfn>shared cache</dfn> is located between the client and the server and
+            can store responses that can be shared among users. Shared caches be can be
+            further sub-classified into <dfn>proxy caches</dfn> and <dfn>managed caches</dfn>:
+        </p>
+        <div class="alert alert-info" role="alert">
+            <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+                In the .Net world, a shared cache is referred to as a
+                <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-7.0">
+                    distributed cache
+                </a>.
+            </p>
+        </div>
+        <ul>
+            <li>
+                <p><strong>Proxy cache</strong></p>
+                <ul>
+                    <li>
+                        In addition to the function access control, some proxies implement
+                        caching to reduce traffic out of the network. This is usually not
+                        managed by the service developer so <strong>
+                            it must be controlled by appropriate HTTP headers.
+                        </strong>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p><strong>Managed cache</strong></p>
+                <ul>
+                    <li>
+                        Managed caches are explicitly deployed by service developers to
+                        offload the origin server and to deliver content efficiently.
+                        Examples include reverse proxies, CDNs, and service workers in
+                        combination with the <strong>Cache API</strong>.
+                    </li>
+                    <li>
+                        In most cases you can control a <dfn>managed cache's</dfn> behaviour
+                        through the <code>Cache-Control</code> header and your own
+                        configuration files or dashboards.
+                    </li>
+                    <li>
+                        For example, the HTTP Caching specification essentially does not define
+                        a way to explicitly delete a cache but with a <dfn>managed cache</dfn>,
+                        the stored response can be deleted at any time through dashboard
+                        operations, API calls, restarts, and so on. This approach allows for
+                        a more proactive caching strategy.
+                    </li>
+                    <li>
+                        A <dfn>managed cache</dfn> makes it possible to <strong>
+                            ignore the standard HTTP Caching specification protocols in favor
+                            of explicit manipulation within the application itself (source
+                            code).
+                        </strong>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </dd>
+</dl>
+<h4>Application Request Routing (ARR) cookie</h4>
+<p>
+    Azure app service allows auto scaling a web application by dynamically adding
+    web server instances to handle the traffic to the web app. Azure app service
+    uses Application Request Routing (ARR) IIS Extension to distribute the application
+    traffic by connecting users among the active web server instances serving up the
+    content.
+</p>
+<p>
+    ARR identifies each user by assigning a special and unique cookie, known
+    as <dfn>affinity cookie</dfn>, which allows the service to choose the right
+    instance the user was using to serve subsequent requests made by that
+    user.
+</p>
+<p>
+    This means that a client establishes a session with a server instance and it
+    will keep talking to the same instance until the session has expired.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the Flix-Manager web app and the web browser's dev tools to identify the
+    <dfn>affinity cookie</dfn> assigned.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use a web browser to access the <a href="https://app.flix-manager.com">
+        Flix-Manager
+    </a> web app hosted in the cloud (Azure App Service), open the Network tab of
+    the web browser's dev tools, and navigate to the Flix-Manager endpoint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/01-network-headers.png"
+         alt="ARR Affinity cookie." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Select the "Cookies" section of the Network tab to visualize the Application
+    Request Routing (ARR) Cookie:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/02-network-cookies.png"
+         alt="ARR Affinity cookie." />
+</div>
+<p>
+    Although <strong>this is not the case for our application</strong>, there could
+    be situations where keeping the affinity is not desired. For example, if the
+    application is getting too many requests from a single user and the requests going
+    to the same web server instance can overload it. If maintaining session affinity
+    is not important and you want better load balancing, it is recommended to disable
+    session affinity cookie.
+</p>
+<p>
+    Without the ARR cookie, the HTTP requests for the web app would be distributed
+    evenly across all the instances serving your web app content. Depending on the
+    requirements for your application, this could be a desired feature or not. You
+    can refer to <a href="https://azure.github.io/AppService/2016/05/16/Disable-Session-affinity-cookie-(ARR-cookie)-for-Azure-web-apps.html">
+        Disable Session affinity cookie (ARR cookie) for Azure web apps
+    </a> and <a href="https://azure.microsoft.com/es-mx/blog/disabling-arrs-instance-affinity-in-windows-azure-web-sites/">
+        Disabling ARR's Instance Affinity in Windows Azure Web Sites
+    </a> for more info.
+</p>
+<h3>Caching in ASP.Net Core</h3>
+<p>
+    As mentioned earlier, caching can significantly improve the performance and
+    scalability of an application by reducing the work required to generate
+    content because it makes a copy of data that can be returned much faster than
+    from the source.
+</p>
+<ul>
+    <li>
+        Caching works best with data that is expensive to generate and <strong>
+            that changes infrequently.
+        </strong>
+    </li>
+    <li>
+        Apps should be written and tested to <strong>never</strong> depend on cached
+        data.
+    </li>
+</ul>
+<h4>In-memory caching</h4>
+<p>
+    In-memory caching uses server memory to store cached data. This type of caching
+    is suitable for a single server or multiple servers using <strong>
+        <dfn>
+            session affinity
+        </dfn>
+    </strong>. Session affinity is also known as <strong><dfn>sticky sessions</dfn></strong>
+    and it means that the requests from a client are always routed to the same server
+    for processing.
+</p>
+<p>
+    As explained earlier, Azure App Service uses Application Request Routing (ARR)
+    cookies to identify each user by assigning a special and unique cookie, known as
+    <dfn>affinity cookie</dfn>, which allows the service to choose the right instance
+    the user was using to serve subsequent requests made by that user.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/"
+         alt="" />
+</div>
+<h4>Distributed Cache</h4>
+<p>
+    A distributed cache should be supplied to store data in memory when the app is
+    hosted in a cloud or server farm. The cache is shared across the servers that
+    process requests.
+</p>
+<p>
+    A client can submit a request that is handled by any server in the group if cached
+    data for the client is available. ASP.Net Core works with SQL Server, <a href="https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis">
+        Redis
+    </a>, and
+    <a href="https://www.nuget.org/packages/Alachisoft.NCache.OpenSource.SDK/">
+        NCache
+    </a> distributed caches.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Our application is hosted in Azure App Service with employs the ARR cookie
+    to pair users with the right server instance to serve subsequent requests made
+    by that user. For this reason, it does not require a distributed cache.
+</p>
+<p>
+    Nevertheless, as the web application handles higher loads, it may come to a point
+    where dynamically scaling is a must. In such scenario, you might consider implementing
+    a distributed cache. Given the case, you can refer to <a href="https://blog.christian-schou.dk/how-to-implement-azure-redis-cache-in-net-core-web-api/">
+        How to implement Azure Cache for Redis in a .NET Core Web API?
+    </a>
+</p>
+<h4>Response caching vs. Output caching</h4>
+<p>
+    Response caching has been around for a while in .Net and although it enables
+    caching, it is fairly limited to reacting to client and server headers (HTTP Headers).
+    Based on this headers that are sent or received from the server, the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/response?view=aspnetcore-7.0">
+        response caching middleware
+    </a> will store the result to serve it back again instead of producing a new
+    response completely.
+</p>
+<p>
+    With response caching, clients, intermediate proxies, and servers should honor
+    the header for caching responses; i.e., cache is based on HTTP cache headers
+    but there might be times where you do not want to take them into account, at all.
+</p>
+<p>
+    Output caching is a <a href="https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-7.0?view=aspnetcore-7.0#output-caching-middleware">
+        new middleware
+    </a> that comes with .Net 7 that allows to programmatically configure exactly how
+    you want your cache to behave without taking into consideration the HTTP cache
+    headers. In summary:
+</p>
+<p><strong>Response caching</strong></p>
+<ul>
+    <li>
+        Enables caching server responses based on HTTP cache headers like proxies
+        do. It implements the standard HTTP caching semantics.
+    </li>
+    <li>
+        Is typically not beneficial for UI apps such a Razor Pages because browsers
+        generally set request headers that prevent caching. Output caching, which is
+        available in ASP.Net Core 7.0 and later, benefits UI apps.
+    </li>
+</ul>
+<p><strong>Output caching</strong></p>
+<ul>
+    <li>
+        <p>The caching behaviour is configurable on the server.</p>
+        <p>
+            Response caching behaviour is defined by HTTP headers. For example, when
+            you visit a website with Chrome or Edge, the browser automatically
+            sends a <strong><code>Cache-control: max-age=0</code></strong> header.
+            This header effectively disables response caching, since the server
+            follows the directions provided by the client.
+        </p>
+        <p>
+            A new response is then returned for every request, even if the server
+            has a fresh cached response. With output caching, the client does not
+            override the caching behaviour that is programmatically configured on
+            the server (from the application's source code).
+        </p>
+    </li>
+    <li>
+        <p>
+            The cache storage medium is extensible. Unlike response caching which is
+            limited to memory. Output caching provides the ability to store cache
+            entries into different stores; for instance, the disk, blob storage, REDIS,
+            etc.
+        </p>
+    </li>
+    <li>
+        <p>
+            Programmatically invalidates selected cache entries. Response caching's
+            dependence on HTTP headers provides very few options for invalidating cache
+            entries.
+        </p>
+        <p>
+            Output caching enables to selectively define what you want to invalidate
+            using <dfn>tagged</dfn> cache entries. With tagging, the developer can
+            determine which part(s) of the site have to be refreshed (or revoked) and
+            regenerated as a result of a given action.
+        </p>
+        <p>
+            For example, a cached entry for a GetAll controller action should be
+            refreshed after an Update or Delete controller action is executed.
+        </p>
+    </li>
+    <li>
+        <p>
+            Includes a <dfn>resource locking</dfn> feature that mitigates the risk of <dfn>
+                cache stampede
+            </dfn> and <dfn>thundering herd</dfn>.
+            <ul>
+                <li>
+                    <p>
+                        <dfn>Cache stampede</dfn> happens when a frequently used cache
+                        entry is revoked and too many requests try to repopulate the
+                        same cache entry at the same time. Suppose your API serves
+                        a couple thousand users or more every second and you can see
+                        why this can become a problem. In some cases it can even
+                        result in bringing down the application's web server.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <dfn>Thundering herd</dfn> is similar to cache stampede in the
+                        sense that it represents a burst of requests for the same
+                        response that is not already in a cache entry.
+                    </p>
+                </li>
+            </ul>
+        </p>
+        <p>
+            Resource locking ensures that all requests for a given response wait for
+            the first request to populate the cache. Response caching does not have
+            a resource locking feature.
+        </p>
+    </li>
+    <li>
+        <p>
+            Provides <dfn>cache revalidation</dfn> to minimize bandwith usage. Cache
+            revalidation means the server can return a <strong><code>304 Not Modified</code></strong>
+            Http status code instead of a cached response body.
+        </p>
+        <p>
+            This status code informs the client that the response to the request is
+            unchanged from what was previously received. Response caching does not
+            have cache revalidation.
+        </p>
+
+    </li>
+</ul>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Controller actions decorated with the <code>GET</code> HTTP verb are known
+        as <dfn>accessors</dfn>. Controller actions decorated with the <code>POST</code>,
+        <code>PUT</code>, or <code>DELETE</code> HTTP verbs are known as <dfn>
+            mutators
+        </dfn> because they are used to change or mutate data. Mutator endpoints are
+        uncacheable as they will always be dynamic. In other words, <span>
+            <strong>
+                <code>GET</code> endpoints can be cached but <code>PUT</code>,
+                <code>POST</code> or <code>DELETE</code> endpoints cannot.
+            </strong>
+        </span>
+    </p>
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching">
+            Http caching
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.github.io/AppService/2016/05/16/Disable-Session-affinity-cookie-(ARR-cookie)-for-Azure-web-apps.html">
+            Disable Session affinity cookie (ARR cookie) for Azure web apps
+        </a>
+    </li>
+    <li>
+        <a href="https://azure.microsoft.com/es-mx/blog/disabling-arrs-instance-affinity-in-windows-azure-web-sites/">
+            Disabling ARR's Instance Affinity in Windows Azure Web Sites
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/overview?view=aspnetcore-7.0">
+            Overview of caching in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/memory?view=aspnetcore-7.0">
+            Cache in-memory in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.christian-schou.dk/how-to-implement-azure-redis-cache-in-net-core-web-api/">
+            How to implement Azure Cache for Redis in a .NET Core Web API?
+        </a>
+    </li>
+</ul>
+<h4>Configuring Output Caching</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the ASP.Net Core performance <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0">
+        documentation
+    </a> to enable output caching middleware in the application.
+</p>
+<p>
+    The output caching middleware can be used in all types of ASP.Net Core apps; e.g.,
+    minimal API, web API with controllers, MVC, and Razor Pages. It is <strong>strongly</strong>
+    suggested to view the YouTube video
+    <a href="https://youtu.be/RYw2pyG74YM">
+        Output Caching in ASP.Net Core 7 | OD114
+    </a> which was created as an introduction to the preview version of the Output Caching
+    feature that was ultimately shipped with ASP.Net Core 7 and YouTube video
+    <a href="https://youtu.be/0WvGwOoK-CI">
+        The New caching you should be using in .Net 7
+    </a> by Nick Chapsas.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Server-Api/Helpers/ServiceExtensions directory, created in the
+    lesson on <a href="02-api-rate-limiting">Api Rate Limiting</a> to extend the dependency
+    injection container, and add a CachingServices file with a CachingServices static class.
+    The CachingServices class must include a ConfigureOutputCachingServices extension method
+    that will be used to configure the output caching services during app build up.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the built-in <code>OutputCacheServiceCollectionExtensions.AddOutputCache</code>
+    extension method to register the cache output services into the
+    <dfn>IServiceCollection</dfn> of the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/03-caching-services.png"
+         alt="AddOutputCache service configuration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Call the ConfigureOutputCachingServices() extension method we just created from
+    the dependency injection container to register caching services during the web
+    application build up:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/04-caching-services-registry.png"
+         alt="Dependency injection container registers output caching services." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Configure the Http request pipeline with the built-in UseOutputCache() extension
+    method to enable caching for the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/05-caching-services-pipeline.png"
+         alt="Http request pipeline configuration." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Ensure that the following considerations are met when registering the output
+    caching services and configuring its middleware:
+</p>
+<ul>
+    <li>
+        In apps that use <a href="https://learn.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-7.0">
+            CORS middleware
+        </a>, <code>UseOutputCache</code> must be called after <code>UseCors</code>.
+    </li>
+    <li>
+        In Razor pages apps and apps with controllers, <code>UseOutputCache</code>
+        must be called after <code>UseRouting</code>.
+    </li>
+    <li>
+        In applications that implement some sort of <a href="01-api-documentation">
+            API documentation
+        </a> such as Swagger, <code>UseOutputCache</code> should be called after the
+        API documentation configuration in the HTTP request pipeline; e.g., after
+        <code>UseOpenApi</code> and <code>UseSwaggerUi3</code>.
+    </li>
+</ul>
+<p>
+    We have configured the application to support output caching but this does not
+    start caching behaviour. Caching response data must be defined.
+</p>
+<h3>Enabling & Disabling Output Caching</h3>
+<p>
+    You enable output caching by adding an <strong><code>[OutputCache]</code></strong>
+    attribute to either an individual controller action, an entire controller class,
+    and/or to a Razor page class (PageModel).
+</p>
+<p>
+    You can disable output caching by creating a custom named policy with the
+    <code>OutputCacheOptions.AddPolicy</code> extension method and using its
+    identifier to pass it as an argument to the <strong><code>[OutputCache]</code></strong>
+    attribute used to decorate an individual controller action, an entire controller class,
+    and/or to a Razor page class (Page Model).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#configure-one-endpoint-or-page">
+        documentation
+    </a> to configure the Flix-Manager endpoint in the Application/Server-Api/Controllers
+    Movies controller to cache the response content.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Put a breakpoint in the GetFlixManagerDtoTask action of the MoviesController, run
+    the application in debug mode (<code>F5</code>), and navigate to the Flix-Manager
+    routable component. Alternatively, you can use the Postman platform to send an
+    Http request. In either case, you should hit the breakpoint:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/07-breakpoint.png"
+         alt="Breakpoint hit." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Press <code>F5</code> to continue running the application and either refresh the
+    page or resend an HTTP request to the Flix-Manager endpoint using Postman. The
+    breakpoint should be hit again. In fact, it should be hit every time you send
+    an Http request to the Flix-Manager endpoint because caching behaviour has not
+    been configured yet.
+</p>
+<p>
+    We can improve the Flix-Manager endpoint performance significantly by implementing
+    caching.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Decorate the GetFlixManagerDtoTask action with an <strong><code>[OutputCache]</code></strong>
+    attribute:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/06-output-cache-attribute.png"
+         alt="OutputCache attribute on Flix-Manger endpoint." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Repeat steps one and two. This time the breakpoint should be hit only once when
+    the Http response content is loaded into the cache (into memory) and that's it.
+    Subsequent requests should not hit the endpoint because they are served from
+    the cache.
+</p>
+<p>
+    Under these circumstances, <strong>
+        the API rate limiting configuration implemented in
+    </strong>
+    <a href="02-api-rate-limiting">last lecture</a> <strong>would not be activated</strong>
+    because the Http response for the Flix-Manager endpoint is not produced by the server,
+    it is delivered from the cache.
+</p>
+<h4>Caching multiple endpoints or pages</h4>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#configure-multiple-endpoints-or-pages">
+        documentation
+    </a> on configuring multiple endpoints to cache the response content as
+    specified:
+</p>
+<ul>
+    <li>
+        <p>
+            Include a default output caching policy (BasePolicy) that applies to every
+            Http request that does not violate the default caching configuration rules
+            of the <code>AddBasePolicy</code> extension method.
+        </p>
+    </li>
+    <li>
+        <p>
+            Do <strong>not</strong> include a custom caching policy that disables caching
+            logic for the ASP.Net Core Identity UI (Razor pages) responsible for user
+            authentication and authorization operations. As explained in the introductory
+            lesson on <a href="01-security-fundamentals">Security</a>, ASP.Net Core
+            incorporates Identity as a Razor class library.
+        </p>
+        <p>
+            One's first instinct would be to create a custom caching policy responsible
+            for disabling caching on any Http request to the Application/Server-Api/Areas/Identity
+            Pages directory but it is not necessary because the Duende IdentityServer
+            engine is not enabled for caching by default. Refer to "ASP.Net Core
+            Identity caching" at the end of this lesson for more info.
+        </p>
+    </li>
+</ul>
+<p>
+    You can use the <code>AddOutputCache</code> extension method to create policies
+    that allow you to specify caching configuration options that apply to multiple
+    endpoints.
+</p>
+<p>
+    The <code>AddBasePolicy</code> method defines the default output caching policy
+    configuration for all of the app's endpoints. The <code>AddPolicy</code> method
+    allows to define a custom policy that can be selected (or consumed) for specific
+    endpoints.
+</p>
+<p>
+    The <strong>
+        default output caching configuration of the <code>AddBasePolicy</code> method
+        follows these rules
+    </strong>:
+</p>
+<ul>
+    <li>Only HTTP 200 responses are cached.</li>
+    <li>Only HTTP GET or HEAD requests are cached (accessor endpoints).</li>
+    <li>Responses that set cookies are not cached.</li>
+    <li>Responses to authenticated requests are not cached.</li>
+</ul>
+<p>
+    <span>Notice:</span>
+    You can <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#override-the-default-policy">
+        override the default policy
+    </a> rules by deriving a custom policy
+    from <strong><code>IOutputCachePolicy</code></strong>.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Declare an <code>AddBasePolicy</code> method to define a default output caching
+    policy (BasePolicy) that applies to every Http request, except when any of the
+    rules mentioned before are encountered:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/08-base-policy.png"
+         alt="BasePolicy declaration." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the application, login with the admin user created in the
+    <a href="04-secure-user-manager">Secure User Manager</a> lesson, and test the
+    BasePolicy by placing a breakpoint on the "Get" action of the
+    Application/Server-Api/Controllers Genres controller and invoking its endpoint
+    multiple times by hitting the Refresh/Reload button in the browser repeatedly
+    from a web browser (https://localhost:7077/genres).
+</p>
+<p>
+    The breakpoint should be hit only once when the Http response is loaded into
+    the cache (into memory) and that's it. Subsequent requests should not hit the
+    endpoint for the next 180 seconds because they are served from the cache:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/09-age-response-header.png"
+         alt="Age response header" />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#configure-multiple-endpoints-or-pages">
+        documentation
+    </a> on configuring multiple endpoints to create a custom (named) policy to
+    specify a caching configuration that disables caching and apply it to the
+    Flix-Manager endpoint in the Application/Server-Api/Controllers Movies controller.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the CachingServices class to create a class level property that represents
+    the name for the custom cache policy intended to disable output caching for Http
+    requests. The property can be used to reference the policy from different instances;
+    e.g., from controllers, controller actions, and/or Razor pages.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/10-no-cache-policy-property.png"
+         alt="Class level property named NoCachePolicy." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the <code>ConfigureOutputCachingServices</code> method created earlier and use
+    the <code>OutputCacheOptions.AddPolicy</code> extension method to add a custom policy
+    that disables caching with the NoCache method of the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.outputcaching.outputcachepolicybuilder?view=aspnetcore-7.0">
+        OutputCachePolicyBuilder
+    </a> class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/11-no-cache-policy.png"
+         alt="NoCache policy." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the GetFlixManagerDtoTask action in the Application/Server-Api/Controllers
+    Movies controller and pass the NoCachePolicy as an argument to its OutputCache
+    attribute assigned earlier:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/12-movies-controller.png"
+         alt="GetFlixManagerDtoTask with NoCachePolicy applied." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Run the application and test the custom NoCachePolicy we just created by placing a
+    breakpoint on the GetFlixManagerDtoTask action of the Application/Server-Api/Controllers
+    Movies controller and invoking its endpoint multiple times by hitting the Refresh/Reload
+    button in the browser repeatedly from a web browser (https://localhost:7077/movies).
+</p>
+<p>
+    The breakpoint should be hit on every Http request because caching has been disabled
+    for the GetFlixManagerDtoTask action.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Put a breakpoint on the GetMovieBulletinDtoTask action of the Application/Server-Api/Controllers
+    Movies controller and invoke its endpoint multiple times by hitting the Refresh/Reload
+    button in the browser repeatedly from a web browser; e.g.,
+    https://localhost:7077/movies/bulletin/2/wonder-woman.
+</p>
+<p>
+    The breakpoint should be hit only once when the content is loaded into memory (cache)
+    because default caching rules are still enforced for the rest of the accessor endpoints
+    by the default output caching policy (BasePolicy).
+</p>
+<p>
+    Given the structure of our application, the Flix-Manager routable component which
+    is the index or home of the application, is likely to be one of the most consumed
+    endpoints. It would be a good idea to <strong>increase the caching expiration time</strong>
+    for this endpoint in particular. Just <strong>
+        make sure to use a tag to evict its cache entry
+    </strong> when needed as we will demonstrate soon.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Bring back the cached expiration time of the BasePolicy to its default (60 seconds),
+    create a custom policy named "OneDayCachePolicy" with an expiration time of one day,
+    and apply it to the GetFlixManagerDtoTask action in the Movies controller.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the CachingServices class to create a class level property that represents
+    the name for the OneDayCachePolicy intended for Application/Server-Api endpoint(s)
+    that should retain data in memory for 24 hours. The property can be used to reference
+    the policy from different instances; e.g., from controllers, controller actions,
+    Razor pages, or the Http cache configuration pipeline in the Application/Server-Api
+    Program class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the ConfigureOutputCachingServices method to modify the default expiration time
+    of the BasePolicy and to create the OneDayCachePolicy custom policy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/13-one-day-cache-policy-one.png"
+         alt="OneDayCachePolicy part one." />
+    <img src="Images/35-api-caching/14-one-day-cache-policy-two.png"
+         alt="OneDayCachePolicy part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the GetFlixManagerDtoTask action in the Application/Server-Api/Controllers
+    Movies controller to apply the OneDayCachePolicy:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/15-one-day-caching-flix-manager.png"
+         alt="GetFlixManagerDtoTask action decorated with OneDayCachePolicy." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    This is not the final version of the GetFlixManagerDtoTask action of the
+    Movies controller. In fact, we will later use a "NoCache" policy.
+</p>
+<p>
+    At this point, we have configured a BasePolicy that enforces output cache
+    default rules to <dfn>accessor</dfn> endpoints of the application and a custom
+    policy named OneDayCachePolicy that sets the <dfn>cached response expiration</dfn>
+    to one day.
+</p>
+<h4>Use Tags to Evict Cache Entries</h4>
+<p>
+    We have significantly improved the performance of the application by maximizing
+    the output cache. Nevertheless, with the current state of the cache configuration,
+    we could run into some issues because the data displayed to the user might be
+    outdated under certain circumstances. Imagine the following scenario:
+</p>
+<ul>
+    <li>
+        You run the application and navigate to the Flix-Manager routable component.
+    </li>
+    <li>
+        The first time its endpoint is invoked, the Http response content is loaded
+        into memory (cache). With the current cache configuration, any subsequent
+        requests to the Flix-Manager endpoint will be served from the cache for the
+        next 24 hours.
+    </li>
+    <li>
+        Then you decide to make a simple change to a Movie object and persist those
+        changes to the database.
+    </li>
+    <li>
+        If you were to navigate to the Flix-Manager routable component, the content
+        for the Http response would be served from the cache, not from the database.
+    </li>
+    <li>
+        This means that the content displayed to the user would be <strong>
+            outdated.
+        </strong>
+    </li>
+</ul>
+<p>
+    We need to establish a mechanism responsible for dropping the outdated data from
+    the cache when a controller action decorated with a <code>POST</code>, <code>PUT</code>,
+    or <code>DELETE</code> verb is invoked. <strong>
+        ASP.Net output cache uses <dfn>tags</dfn> to evict outdated cache entries.
+    </strong>
+</p>
+<p>
+    <dfn>Cache Eviction</dfn> refers to the process by which old, obsolete, or excessively
+    voluminous data can be dropped from the cache. You can use tags to identify a group of
+    endpoints and evict all cache entries for the group.
+</p>
+<p>
+    You can use the <code>IOutputCacheStore.EvictByTagAsync</code> method to evict
+    cached responses by tag. The <dfn>Microsoft.AspNetCore.OutputCaching.IOutputCacheStore</dfn>
+    is a built-in service that represents a store for the application cached responses. As
+    any other service, it can be injected to an Application/Server-Api/Controller
+    controller to be consumed as required.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#use-tags-to-evict-cache-entries">
+        use tags to evict cache entries
+    </a> documentation to define a base policy that uses the Http request context to
+    tag (or identify) all the Movies controller endpoints as a group and use that group
+    to evict the cache entries for its endpoints when a mutation operation is performed;
+    i.e., when a create, update, or delete operation takes place.
+</p>
+<p>
+    Recall from the <a href="05-api">Server-Api</a> lesson, that a Uri consists of up to
+    five segments:
+</p>
+<p>
+    scheme <code>://</code> authority <code>/</code> path <code>?</code> query <code>#</code> fragment
+</p>
+<p>
+    https: <code>//</code> app.flix-manager.com <code>/</code> api/movies/search <code>?</code> paginationpagenumer=1
+</p>
+<p>
+    We also explained in the <a href="08-api-controllers">Api Controllers</a> lecture
+    that the application establishes a REST API that uses attribute routing to model
+    the app's functionality as a set of resources where operations are represented
+    by Http verbs. Attribute routing uses a set of attributes to map route templates
+    directly to actions (controller methods):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/18-controller-route.png"
+         alt="Movies controller route." />
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the CachingServices class to create a class level property that represents the
+    tag (or identifier) for the group of endpoints in the Movies controller. The property
+    will be passed as an argument to the <code>IOutputCacheStore.EvictByTagAsync</code>
+    method to evict cached responses of the group of endpoints that the tag represents.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the ConfigureOutputCachingServices method to create an additional BasePolicy
+    to identify (or tag) the Movies controller endpoints as a group. You can use the
+    <strong><code>OutputCacheContext.HttpContext</code></strong> to retrieve the Http
+    request path and the <strong><code>PathString.StartsWithSegments</code></strong>
+    method to determine whether the beginning of the request path matches the controller
+    route:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/16-movies-tag-base-policy-one.png"
+         alt="BasePolicy with tag of Movies controller actions part one." />
+    <img src="Images/35-api-caching/17-movies-tag-base-policy-two.png"
+         alt="BasePolicy with tag of Movies controller actions part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Application/Server-Api/Controllers Movies controller to inject the
+    <code>IOutputCacheStore</code> service and invoke its <code>EvictByTagAsync</code>
+    method to evict the cached entries of the Movies controller endpoints when a
+    mutator operation (POST, PUT, or DELETE) takes place and is successfully
+    persisted to the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/19-movies-controller-evict-one.png"
+         alt="Movies controller with eviction invocations part one." />
+    <img src="Images/35-api-caching/20-movies-controller-evict-two.png"
+         alt="Movies controller with eviction invocations part two." />
+    <img src="Images/35-api-caching/21-movies-controller-evict-three.png"
+         alt="Movies controller with eviction invocations part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use one of the Movies controller mutator actions to test if its cached entry is
+    evicted after successfully executed.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1</span>
+    Run the application, navigate to the Flix-Manager endpoint to load the content
+    into cache, login with the admin user created in the<a href="04-secure-user-manager">
+        Secure User Manager
+    </a> lesson and change the name of a Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/22-modified-name.png"
+         alt="Modified movie object name." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2</span>
+    Go back to the Flix-Manager routable component, the modifications on the Movie object
+    should be reflected; i.e., the cached entries should have been evicted and the Http
+    content should have been served from the data store (database):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/23-flix-manager-updated-data.png"
+         alt="Flix-Manager with updated content." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3</span>
+    Bring back the name of the Movie object to its original state and ensure the
+    Flix-Manager is served the update data once more.
+</p>
+<p>
+    The <code>EvictByTagAsync</code> call is repeated in every mutator action of the
+    Movies controller. We can improve its implementation by creating a helper method
+    within the Movies controller to invoke the <code>EvictByTagAsync</code> method
+    and satisfy its formal input parameter from a single location. This way we can
+    honor the DRY principle.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Go to the Movies controller mutator actions and replace the call to the built-in
+    <code>EvictByTagAsync</code> method with a call to a custom <code>EvictCacheEntriesAsync</code>
+    helper method that allows adhering to the DRY principle.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Movies controller and create an <code>EvictCacheEntriesAsync</code>
+    helper method responsible for invoking the built-in <code>EvictByTagAsync</code>
+    method and satisfying its formal input parameters:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/24-custom-evict-cache-entries-method.png"
+         alt="Custom EvictCacheEntriesAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Replace the call to the built-in <code>EvictByTagAsync</code> method with a call
+    to our custom EvictCacheEntriesAsync helper method we just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/25-call-to-custom-evict.png"
+         alt="Post action with call to custom EvictCacheEntriesAsync method." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Make sure to declare a call in each Movies controller action that performs any sort
+    of modification to the data store (e.g., POST, PUT, DELETE).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Add a separate tag (or group identifier) for all the Genres and People actions. Then
+    use the group tags to evict the cache entries for their corresponding endpoints when
+    a mutation operation is performed.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the CachingServices class to create two class level properties that represent
+    the tag (or identifier) for the group of endpoints in the Genres and the People
+    controllers. These properties will be passed as an argument to the <code>
+        IOutputCacheStore.EvictByTagAsync
+    </code> method to evict cached responses of the group of endpoints that each tag
+    represents.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the BasePolicy we defined earlier in the ConfigureOutputCachingServices method of
+    the Application/Server-Api/Helpers/ServiceExtensions CachingServices class to use the
+    Http request context to tag (or identify) all the Movies controller endpoints as a group
+    and use the <code>PolicyBuilderOptions</code> to add a tag for the Genres and for the
+    People controllers:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/27-genres-people-tags-one.png"
+         alt="Genres and People tags part one." />
+    <img src="Images/35-api-caching/28-genres-people-tags-two.png"
+         alt="Genres and People tags part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the Genres and People controllers to define a custom
+    <code>EvictCacheEntriesAsync</code> helper method responsible from calling the
+    built-in <code>EvictByTagAsync</code> method and satisfying its formal input parameters.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Call the custom <code>EvictCacheEntriesAsync</code> helper method from the mutator
+    actions of the Genres controller:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/30-genres-controller-one.png"
+         alt="Genres controller with custom EvictCacheEntriesAsync method part one." />
+    <img src="Images/35-api-caching/31-genres-controller-two.png"
+         alt="Genres controller with custom EvictCacheEntriesAsync method part two." />
+    <img src="Images/35-api-caching/32-genres-controller-three.png"
+         alt="Genres controller with custom EvictCacheEntriesAsync method part three." />
+</div>
+<p>
+    <span class="badge bg-dark">Step five:</span>
+    Call the custom <code>EvictCacheEntriesAsync</code> helper method from the mutator
+    actions of the People controller.
+</p>
+<p>
+    You might want a way to <strong>evict all cache entries for all endpoints.</strong>.
+    To do that, you can follow the <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#use-tags-to-evict-cache-entries">
+        use tags to evict cache entries
+    </a> documentation to create a base policy for all endpoints that enables you to
+    use a "tag-all" tag to evict everything in cache.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        After some testing, it turns out that <dfn>cache revalidation</dfn> (server returns
+        a 304 Not Modified Http status code instead of a cached response body) prevents the
+        server from sending a fresh response to a routable component that was indirectly
+        modified by a mutator action.
+    </p>
+</div>
+<h4>Cache Revalidation</h4>
+<p>
+    As we explained in the Lazy Loading Assemblies section of the <a href="03-routing">
+        03. Routing
+    </a> lesson, Blazor WebAssembly downloads .dll files into the user's browser. The
+    loaded assemblies are cached and reused for future navigation. Keep in mind that
+    Blazor server apps do not download assemblies to the client (web browser).
+</p>
+<p>
+    Besides caching the Http response, .Net implements by default cache revalidation
+    which means the server can return a <strong><code>304 Not Modified</code></strong>
+    HTTP status code instead of the full response body. This status code informs the
+    client that the response to the request is unchanged from what the client previously
+    received.
+</p>
+<p>
+    A unique <strong><code>ETag</code></strong> value is generated for each Http response.
+    If the resource at a given URL changes, a new ETag value must be generated. A comparison
+    between them can determine whether two representations of a resource are the same:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/33-cache-revalidation.png"
+         alt="Cache revalidation returns 304 Not Modified status code." />
+</div>
+<p>
+    Cache revalidation is automatic in response to headers sent from the client. No
+    special configuration is required on the server to enable this behaviour, aside
+    from enabling output caching.
+</p>
+<p>
+    In our last exercise, cache eviction is working as expected after an update or delete
+    action but the FlixManager routable component is marked as "unchanged" by <dfn>
+        cache
+        revalidation
+    </dfn> even though the data it is responsible for displaying has been modified. This
+    results in the FlixManager routable component presenting stale (or outdated) data.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        When caching, it is important to avoid implementing caching logic in your data
+        access logic.
+    </p>
+</div>
+<p>
+    In other words, there are certain controllers and/or controller actions that might not
+    be ideal for caching. For example:
+</p>
+<ul>
+    <li>
+        <p>Controller actions that serve the following routable components:</p>
+
+        <ul>
+            <li>FlixManager</li>
+            <li>IndexGenres</li>
+            <li>IndexPeople</li>
+        </ul>
+    </li>
+    <li>
+        <p>Controllers:</p>
+        <ul>
+            <li>
+                MovieScores controller responsible for persisting to the database
+                the movie score selected by a given user.
+            </li>
+            <li>
+                Users controller responsible for handling ApplicationUser
+                authentication and authorization operations.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Apply the NoCachePolicy to:
+</p>
+<ol>
+    <li>
+        Application/Server-Api/Controllers MovieScores controller.
+    </li>
+    <li>
+        Application/Server-Api/Controllers Users controller.
+    </li>
+    <li>
+        GetFlixManagerDtoTask <dfn>action</dfn> of the
+        Application/Server-Api/Controllers/Movies controller that serves the
+        FlixManager routable component.
+    </li>
+    <li>
+        GetPeoplePaginatedTask <dfn>action</dfn> of the
+        Application/Server-Api/Controllers/People controller that serves the
+        PeopleIndex routable component.
+    </li>
+    <li>
+        Get <dfn>action</dfn> of the
+        Application/Server-Api/Controllers/Genres controller that serves the
+        GenresIndex routable component.
+    </li>
+</ol>
+<p>No Cache policy at the controller level:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/29-no-cache-policy.png"
+         alt="NoCachePolicy to MovieScores and Users controllers." />
+</div>
+<p>No Cache policy at the controller <dfn>action</dfn> level:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/34-no-cache-policy-action.png"
+         alt="NoCachePolicy at the controller action level." />
+</div>
+<h4>Specify the Cache Key</h4>
+<p>
+    By default, every part of the URL is included as the key to a cache entry, that is,
+    the scheme, host, port, path, and query string. However, you might want to explicitly
+    control the cache key.
+</p>
+<p>
+    For example, suppose you have an endpoint that returns a unique response only for each
+    unique value of the <code>culture</code> query string. Variation in other parts of the
+    URL, such as other query strings, should not result in different cache entries. You can
+    follow the documentation to <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0#specify-the-cache-key">
+        specify the cache key
+    </a> to specify such rules in a policy.
+</p>
+<p>Some of the options for controlling the cache key are:</p>
+<ul>
+    <li>
+        <strong><code>SetVaryByQuery</code></strong>: Specifies one or more query string
+        names to add to the cache key.
+    </li>
+    <li>
+        <strong><code>SetVaryByHeader</code></strong>: Specifies one or more HTTP headers
+        to add to the cache key.
+    </li>
+    <li>
+        <strong><code>VaryByValue</code></strong>: Specifies a value to add to the cache key.
+    </li>
+</ul>
+<h4>ASP.Net Core Identity Caching</h4>
+<p>
+    Recall from the introductory lecture on <a href="01-security-fundamentals">Security</a>
+    that ASP.Net Core Identity is a membership system that provides a framework for
+    managing and storing user accounts in ASP.Net Core applications. It allows to create,
+    read, update, and delete user accounts, perform account confirmation, authentication
+    & authorization, two-factor authentication, etc.
+</p>
+<p>
+    It is about adding functionality to the user interface (UI) for login, logout, and
+    register operations among other security related concerns. ASP.Net Core incorporates
+    Identity as a Razor class library that comes with built-in full Identity UI templates.
+</p>
+<p>
+    We also explained that the <dfn>Microsoft.AspNetCore.Components.WebAssembly.Authentication</dfn>
+    library integrates ASP.Net Core Identity with API AuthZ support built on top
+    of Duende IdentityServer engine which is the issuer or identity provider. Although
+    the IdentityServer engine is hosted in the Application/Server-Api project, it
+    operates as a totally independent service.
+</p>
+<p>
+    The IdentityServer engine uses <a href="https://docs.duendesoftware.com/identityserver/v6/data/configuration/">
+        configuration data
+    </a> that models the information for clients and resources. These configuration data
+    are not enabled for caching by default. if you were to require caching related data,
+    Duende IdentityServer provides <a href="https://docs.duendesoftware.com/identityserver/v6/reference/di/#caching-configuration-data">
+        convenience methods
+    </a> to <a href="https://docs.duendesoftware.com/identityserver/v6/data/configuration/#caching-configuration-data">
+        enable caching
+    </a> data from the various stores. You can
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The Application/Server-Api/Controllers Users controller handles user account operations.
+    Although caching is not enabled by default, it is <span class="mark">
+        <strong>
+            strongly suggested
+        </strong>
+    </span> to decorate the Users controller with an <code>[OutputCache]</code>
+    attribute and pass the <strong><code>CachingServices.NoCachePolicy</code></strong> created
+    earlier.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        This lesson is for educational purposes only because we will eventually
+        configure our application to adhere to the Progressive Web Application (PWA)
+        standard which employs <dfn>service workers</dfn> that also cache content
+        with the added benefit to optionally make it available offline. If you 
+        intend to convert your application to a PWA, it is advisable to disable the
+        caching service.
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/35-api-caching/26-no-cache-policy-users-controller.png"
+         alt="NoCachePolicy applied to Users controller." />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-7.0">
+            Output caching middleware in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/RYw2pyG74YM">
+            Output Caching in ASP.Net 7 | OD114
+        </a> from Microsoft Developer channel.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/0WvGwOoK-CI">
+            The New caching you should be using in .Net 7
+        </a> by Nick Chapsas.
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/WKG4ZwVymqE">
+            Cache con OutputCache | Temas Avanzados | Programando en ASP.Net MVC 5
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.outputcaching?view=aspnetcore-7.0">
+            Microsoft.AspNetCore.OutputCaching Namespace
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/mvc/overview/older-versions-1/controllers-and-routing/improving-performance-with-output-caching-cs#enabling-output-caching">
+            Improving Performance with Output Caching (C#)
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.christian-schou.dk/how-to-implement-azure-redis-cache-in-net-core-web-api/">
+            How to implement Azure Cache for Redis in a .Net Core Web API?
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/response?view=aspnetcore-7.0">
+            Response caching in ASP.Net Core
+        </a>
+    </li>
+</ul>

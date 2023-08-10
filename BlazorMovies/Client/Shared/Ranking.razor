@@ -1,0 +1,20 @@
+﻿
+@for (int i = 1; i <= MaxScore; i++)
+{
+    <!-- Captures the value of 'i' because the iterator cannot be passed as -->
+    <!-- a parameter. -->
+    int starNumber = i;
+
+    <!-- Uses FontAwesome to create star elements. Custom CSS rule named    -->
+    <!-- 'star-color' is defined in the global css file.                    -->
+    <span @onclick="@(() => OnClickHandler(starNumber))"
+      @onmouseover="@(() => OnMouseOverHandler(starNumber))"
+      style="cursor: pointer;"
+      class="fa fa-star @(SelectedScore >= i ? "star-color" : null)">
+    </span>
+}
+
+@code {
+
+}
+

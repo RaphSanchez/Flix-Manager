@@ -1,0 +1,706 @@
+﻿@page "/01-movie-score"
+<PageTitle>Movie Scoring System</PageTitle>
+
+<h2>Miscellaneous - Movie Scoring System</h2>
+<p>
+    The purpose of this lesson is to create a scoring system for
+    Movie items that allows authenticated application users to
+    select a value from one to five stars for a given Movie object.
+</p>
+<p>
+    The idea is to upgrade the Application/Client/Pages/Movies
+    MovieBulletin routable component to be capable of handling
+    a type MovieScore that represents a record in the database
+    table that stores a Movie score selected by an specific
+    ApplicationUser.
+</p>
+<p>
+    Besides upgrading the MovieBulletin routable component, we
+    need to create a Ranking component responsible for creating the
+    visual representation of the movie score in the form of
+    golden stars and for capturing the selected score by the
+    current user for the Movie object presented in the MovieBulletin.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create an Application/Client/Shared Ranking component that creates
+    star elements that represent a MovieScore value selected by the
+    current application user. It should capture the SelectedScore and
+    pass it to its parent component (to its consumer).
+</p>
+<p>
+    You might recall that we demonstrated how to <a href="https://fontawesome.com/docs">
+        set up
+    </a> and utilize <a href="https://fontawesome.com/">Font Awesome</a>
+    in the lesson on <a href="10-external-id-providers">
+        External Identity Providers
+    </a>. We used its icon library to customize the button elements of
+    the social media login providers displayed in the
+    Application/Server-Api/Areas/Identity/Pages Account/Login page.
+</p>
+<p>
+    We can utilize the Font Awesome library to create the star elements
+    that represent the score value for a Movie object.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Set up the Font Awesome library in the Application/Client project:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="images/24-ranking-system/01-font-awesome-script.png"
+         style="max-width: 110%"
+         alt="Font Awesome script in html root file." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Create the view file for the Ranking component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/02-ranking-view-file.png"
+         alt="View file for the ranking component." />
+</div>
+<p>
+    The "fa fa-star" class attributes stand for font-awesome
+    font-awesome-star.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the global CSS file and create the CSS rule that
+    dynamically sets the fill color for the star elements based on
+    the score selected by the user:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/03-global-css-class.png"
+         alt="CSS rule named star-color." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Create the code file for the Ranking component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/04-ranking-code-file-one.png"
+         alt="Ranking code file part one." />
+    <img src="images/24-ranking-system/05-ranking-code-file-two.png"
+         alt="Ranking code file part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The Ranking component is completely independent of the type
+    of items being scored. It simply creates a visual representation
+    of the scoring system and captures the indexed value of the
+    star selected by the user.
+</p>
+<p>
+    When a new value is selected, it uses the OnScoreSelected
+    event callback to notify the parent component (consumer) that
+    a new value has been selected and supplies the value in the
+    same action.
+</p>
+<p>
+    It is the responsibility of the parent component (MovieBulletin
+    routable component) to determine what to do with the new value. For
+    example, it can store the score value selected by the authenticated
+    application user for a given Movie object.
+</p>
+<p>
+    Nevertheless, before upgrading the MovieBulletin routable component,
+    we need a way to link the application user with the score value
+    selected by the application user, and with the movie object for
+    which the score was selected. The solution is to create a <a href="06-api-db-support">
+        join table
+    </a> (also known as a linking or relational table).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Add a new root entity to the Entity Domain Model (EDM) named
+    MovieScore with an optional (nullable) reference navigation
+    property to a Movie and to an ApplicationUser type.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The reference navigation property of type <code>Movie</code> has a global query
+    filter because it is decorated with an IsAuditable custom attribute. The
+    <code>MovieScore</code> type must either be decorated with an IsAuditable custom
+    attribute or its navigation property of type <code>Movie</code> should be
+    nullable (optional) to avoid any unexpected querying behaviour.
+</p>
+<p>
+    In other words, MovieScore will not be part of the <a href="10-ef-soft-delete-audit">
+        Soft Delete and Audit
+    </a> system. Therefore, <strong>
+        its properties must be optional (nullable) because it will interact with
+        other entities that are auditable.
+    </strong> This means they have been applied a global query filter which can produce
+    unexpected results because they won't be 'query compatible' with the related entity
+    they belong to.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Shared/EDM directory and add a new root entity
+    named MovieScore with an optional (nullable) reference navigation
+    property to the Movie object it belongs to and an additional
+    nullable reference navigation property to the ApplicationUser
+    it also belongs too:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/24-ranking-system/06-movie-score-one.png"
+         alt="MovieScore data entity part one." />
+    <img src="Images/24-ranking-system/07-movie-score-two.png"
+         alt="MovieScore data entity part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The MovieScore type:
+</p>
+<ul>
+    <li>
+        Does not include the <a href="06-api-db-support">
+            inverse navigation properties
+        </a> because we do not plan to load the data from both ends of the
+        relationship.
+    </li>
+    <li>
+        Was not given any database configuration settings
+        with an Application/Server-Api/DataStore/EntityConfigurations <a href="06-api-db-support">
+            EntityConfiguration
+        </a>
+        class that implements the <code>IEntityTypeConfiguration&lt;TEntity&gt;</code>
+        interface to bind it to the corresponding root entity type of the EDM.
+    </li>
+    <li>
+        Does not include the actual ApplicationUser entity type, it
+        only defines its primary key because we are optimizing the
+        data entity type to be as basic as possible.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Expose a DbSet&lt;MovieScore&gt; property in the
+    Application/Server-Api/DataStore AppDbContext derived class to
+    include the MovieScore in the conceptual model and map it to a
+    database table:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/08-app-db-context.png"
+         alt="AppDbContext class with MovieScore DbSet." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the package manager console to update the database to ensure
+    there are no pending migrations to update. <a href="06-api-db-support">
+        Add a migration
+    </a> named MovieScore and update the database with the new table:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/09-movie-score-migration.png"
+         alt="MovieScore migration." />
+</div>
+<p>
+    We defined a MovieScore data entity type that represents a score
+    for a given Movie object selected by an application user and we
+    also developed a Ranking component responsible for creating a
+    visual representation of the Movie score and capturing the score
+    value when the application user selects a new one.
+</p>
+<p>
+    It is time to prepare the Application/Server-Api to handle
+    any MovieScore related functionality. For example, it should have
+    an API resource responsible for either creating or updating a new
+    MovieScore database record when called upon.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Implement the new features that are specific for the entity type MovieScore. As
+    usual, you can follow the procedure to add new functionality for a specific data
+    entity type as demonstrated in the <a href="03-create-complex-data">
+        Create Data
+    </a>, <a href="04-load-complex-data">Load Data</a>,
+    <a href="06-update-complex-data">Update Data</a>, <a href="07-delete-data">
+        Delete Data
+    </a>, or <a href="03-user-manager">User Manager</a> lessons.
+</p>
+<h4>Procedure to add new functionality for a specific data entity type:</h4>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>Dto</dfn>
+        to encapsulate the property values that can be directly related to one or
+        more properties of the data entity type to work with.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface
+        to expose the specific functionality (method) to the Application/Client and
+        establish a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement
+        the newly exposed functionality. This is the application's business logic
+        responsible for building the Linq queries and operations that act on the
+        model (data entity). It mediates between the data source layer
+        (Application/Server-Api/DataStore) and the RESTful API service
+        (Application/Sever-Api).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to
+        implement the newly exposed functionality. This is the application's layer
+        responsible for creating the Http requests/responses that serialize-deserialize
+        the data and build the endpoint's route template (route to the appropriate
+        controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntityNameController to create
+        the action (controller method) responsible for responding to the HttpRequest
+        produced in last step. It mediates between the client layer
+        (Application/Client) and the business logic layer
+        (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the
+        recently added functionality.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Although we explained in the <a href="04-forms-part-two">
+        Entities, Models, Data Transfer Objects (DTOs), and
+        Mapping
+    </a> section of the Forms part II module that <strong>
+        a web API should not expose database entities to the
+        client,
+    </strong> in this case it is not critical to create a DTO to
+    represent a MovieScore object because it is a very low priority
+    data entity so we can skip this step and work directly with the
+    MovieScore type.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Add an Application/Client/ApiServices/IRepositories IMovieScores
+    interface to expose the specific functionality (methods) to
+    the Application/Client and establish a contract (or protocol)
+    for the new features. Include a method responsible for creating a new MovieScore
+    database record or updating an existing one when called upon:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/10-i-movie-scores.png"
+         alt="IMovieScores interface." />
+</div>
+<p>
+    <span class="badge bg-info">Notice</span>
+    Since the MovieScore is secondary to a Movie object, it is not required to
+    include the resulting MovieScore object value in the Http response. Nevertheless,
+    it will be included because the <a href="09-api-connector-service">resource method</a>
+    (Application/Client/ApiService/ApiManager/ApiConnector InvokePostAsync&lt;T&gt;)
+    that serializes/deserializes the .Net objects to JSON format expects an object
+    value to be returned within the Http response.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Go to the Application/Client/ApiServices/IRepositories
+    <a href="07-api-repository">IUnitOfWork</a>
+    interface and register an IMovieScores property that represents
+    a data entity that the Application/Server-Api/Controllers
+    MovieScores controller can use to access business logic operations
+    and persist to the database any changes made to in-memory objects:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/19-i-unit-of-work.png"
+         alt="IUnitOfWork interface part one." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3:</span>
+    Go to the Application/Server-Api/Repositories
+    <a href="07-api-repository">UnitOfWork</a> class
+    and define an IMoviesScore property that represents an instance
+    of a data entity mapped to the database and initialize it with
+    a concrete instance of the EfMovieScores class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/20-unit-of-work-one.png"
+         alt="UnitOfWork class part one." />
+    <img src="images/24-ranking-system/21-unit-of-work-two.png"
+         alt="UnitOfWork class part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.4:</span>
+    Go to the Application/Client/ApiServices/ApiManager
+    <a href="09-api-connector-service">IApiService</a> interface and
+    register an IMovieScores interface that represents a data entity
+    that the Application/Client can consume to invoke
+    Application/Server-Api endpoints to send/receive Http
+    requests/responses safely:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/45-i-api-service-interface.png"
+         alt="IApiService interface." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.5:</span>
+    Go to the Application/Client/ApiServices/ApiManager
+    <a href="09-api-connector-service">ApiService</a> class and define
+    an IMoviesScores property that the Application/Client can consume
+    to invoke Application/Server-Api MovieScores controller endpoints
+    to send/receive Http requests/responses safely:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/46-api-service-one.png"
+         alt="ApiService class part one." />
+    <img src="images/24-ranking-system/47-api-service-two.png"
+         alt="ApiService class part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use an Application/Server-Api/Repositories EfMovieScores class to
+    implement the newly exposed functionality. This is the application's
+    business logic responsible for building the Linq queries and
+    operations that act on the model (data entity). It mediates
+    between the data source layer (Application/Server-Api/DataStore)
+    and the RESTful API service (Application/Sever-Api):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/11-ef-movie-scores-one.png"
+         alt="EfMovieScores class part one." />
+    <img src="images/24-ranking-system/12-ef-movie-scores-two.png"
+         alt="EfMovieScores class part two." />
+    <img src="images/24-ranking-system/13-ef-movie-scores-three.png"
+         alt="EfMovieScores class part three." />
+    <img src="images/24-ranking-system/14-ef-movie-scores-four.png"
+         alt="EfMovieScores class part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use an Application/Client/ApiServices/ApiManager ApiMovieScores
+    class to implement the newly exposed functionality.
+</p>
+<p>
+    This is the application's layer responsible for creating the Http
+    requests/responses that serialize-deserialize the data and build
+    the endpoint's route template (route to the appropriate controller
+    action). It also determines the <a href="06-security-protect-api">
+        typed Http client
+    </a> service to invoke; e.g., with or without a JWT:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/16-api-movie-scores-one.png"
+         alt="ApiMovieScores class part one." />
+    <img src="images/24-ranking-system/17-api-movie-scores-two.png"
+         alt="ApiMovieScores class part two." />
+    <img src="images/24-ranking-system/18-api-movie-scores-three.png"
+         alt="ApiMovieScores class part three." />
+</div>
+<p>
+    As explained earlier, the MovieScore is secondary to a Movie object and
+    it is not required to include the resulting MovieScore object value in the
+    Http response. Nevertheless, it is included because the <a href="09-api-connector-service">
+        resource method
+    </a> (Application/Client/ApiService/ApiManager/ApiConnector InvokePostAsync&lt;T&gt;),
+    that serializes/deserializes the .Net objects to JSON format, expects an object
+    value to be returned within the Http response.
+</p>
+<p>
+    The HandleScoreAsync resource method requests a typed Http client
+    service that includes the JWT because only authenticated users
+    can vote. Unauthenticated users cannot be identified.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use an Application/Server-Api/Controllers MovieScoresController to
+    create the actions (controller methods) responsible for responding
+    to the HttpRequests produced in last step. It mediates between the
+    client layer (Application/Client) and the business logic layer
+    (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/22-movie-scores-controller-one.png"
+         alt="MovieScores controller part one." />
+    <img src="images/24-ranking-system/23-movie-scores-controller-two.png"
+         alt="MovieScores controller part two." />
+    <img src="images/24-ranking-system/24-movie-scores-controller-three.png"
+         alt="MovieScores controller part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The MovieScores controller is decorated with an <code>[Authorize]</code>
+    authorization attribute. As we mentioned in the lesson on how to
+    <a href="06-security-protect-api">Secure API</a>, in its most basic
+    form, applying the <code>[Authorize]</code> attribute to a controller
+    or to an action, limits access to that Api resource to authenticated
+    Users. You can also use the <code>[AllowAnonymous]</code> attribute to
+    allow access by non-authenticated Users to individual actions.
+</p>
+<p>
+    We have prepared the <a href="02-application-user-api">
+        web server API
+    </a> to be able to handle <code>MovieScore</code> objects and
+    we have defined the required functionality for persisting MovieScore
+    records selected by an application user for a specific Movie
+    item.
+</p>
+<p>
+    Then we configured the ApiMovieScores class to build Http
+    requests/responses; i.e., to provide the Application/Client a way to
+    communicate with the back-end of the application. It is time to work
+    on the front-end.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Inject an instance of the IApiService to a Razor component to
+    consume the recently added functionality. Upgrade the
+    Application/Client/Pages/Movies MovieBulletin routable component to
+    be capable of:
+</p>
+<ul>
+    <li>
+        Displaying the average score for the Movie object requested.
+    </li>
+    <li>
+        Displaying the Ranking component to allow the users to cast
+        their vote on the Movie object.
+    </li>
+    <li>
+        Redirecting unauthenticated users to the login page and provide
+        a return URL if authentication is successful.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Under these circumstances, the MovieBulletin component is required
+    to differentiate between authenticated/unauthenticated users and act
+    accordingly. In principle, the MovieBulletin must be available
+    regardless of the authentication state of the user.
+</p>
+<p>
+    If the user is not authenticated, the MovieBulletin should
+    display all the related data for a given Movie object, including
+    the value for the MovieScore <strong>average</strong>. In this scenario, the
+    MoviesController action responsible for serving the Http request
+    (GetMovieBulletinDtoTask) must be decorated with an
+    <strong><code>[Anonymous]</code></strong> <a href="05-security-protect-client">
+        authorization attribute
+    </a> to bypass any authorization rules.
+</p>
+<p>
+    If the user is authenticated, the MovieBulletin should display
+    all the related data for a given Movie object, including the
+    value for the MovieScore average, <strong>and</strong> the value
+    for the MovieScore selected by the authenticated user, if any.
+</p>
+<p>
+    In this scenario, we need to force the user to authenticate; i.e.,
+    the MoviesController action responsible for serving the Http
+    request must be decorated with an <strong>
+        <code>[Authorize]</code>
+    </strong> <a href="05-security-protect-client">authorization attribute</a>.
+    This way we can ensure that we have a primary key to query the
+    data store for the current user and any related MovieScore.
+</p>
+<p>
+    We need two Application/Server-Api resources (or controller
+    endpoints), one that handles unauthenticated usesrs (e.g.,
+    GetMovieBulletinDtoTask) and one that handles authenticated users
+    (e.g., GetMovieBulletinWithUserScoreDtoTask).
+</p>
+<p>
+    Since we are adding new functionality, we need to adhere to the
+    procedure to add new functionality for a specific data entity type
+    outlined earlier.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1</span>
+    Extend the Application/Shared/EntityDtos MovieBulletinDto to include
+    a property that represents the movie score average and another one
+    that represents the user score:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/25-upgraded-movie-bulleting-dto.png"
+         alt="MovieBulletinDto with added properties." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2</span>
+    Use the Application/Client/ApiServices/IRepositories IMovies interface
+    to expose the specific functionality (method) and establish a contract
+    (or protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/26-i-movies-part-one.png"
+         alt="IMovies interface exposes new methods part one." />
+    <img src="images/24-ranking-system/27-i-movies-part-two.png"
+         alt="IMovies interface exposes new methods part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.3</span>
+    Use the Application/Server-Api/Repositories/EfMovies class to implement
+    the newly exposed functionality. This is the application's business logic
+    responsible for building the Linq queries and operations that act on the
+    model (data entity). It mediates between the data source layer
+    (Application/Server-Api/DataStore) and the RESTful API service
+    (Application/Sever-Api):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/28-ef-movies-one.png"
+         alt="EfMovies repository part one." />
+    <img src="images/24-ranking-system/29-ef-movies-two.png"
+         alt="EfMovies repository part two." />
+    <img src="images/24-ranking-system/30-ef-movies-three.png"
+         alt="EfMovies repository part three." />
+    <img src="images/24-ranking-system/31-ef-movies-four.png"
+         alt="EfMovies repository part four." />
+    <img src="images/24-ranking-system/32-ef-movies-five.png"
+         alt="EfMovies repository part five." />
+    <img src="images/24-ranking-system/33-ef-movies-six.png"
+         alt="EfMovies repository part six." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The EfMovies repository has a new dependency injection of the
+    <code>UserManager&lt;T&gt;</code> which must be supplied. The implementation
+    of the IUnitOfWork class (UnitOfWork) is the entity responsible for creating
+    concrete instances for each IEntityName interface. This is where we can
+    serve the dependency:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/34-unit-of-work-one.png"
+         alt="UnitOfWork class serves the UserManager dependency part one." />
+    <img src="images/24-ranking-system/35-unit-of-work-two.png"
+         alt="UnitOfWork class serves the UserManager dependency part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.4</span>
+    Use the Application/Client/ApiServices/ApiManager/ApiMovies class to
+    implement the newly exposed functionality. This is the application's layer
+    responsible for creating the Http requests/responses that serialize-deserialize
+    the data and build the endpoint's route template (route to the appropriate
+    controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/36-api-movies-one.png"
+         alt="ApiMovies part one." />
+    <img src="images/24-ranking-system/37-api-movies-two.png"
+         alt="ApiMovies part two." />
+    <img src="images/24-ranking-system/38-api-movies-three.png"
+         alt="ApiMovies part three." />
+    <img src="images/24-ranking-system/39-api-movies-four.png"
+         alt="ApiMovies part four." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.5</span>
+    Use the Application/Server-Api/Controllers MoviesController to create
+    the actions (controller methods) responsible for responding to the
+    Http requests produced in last step. It mediates between the client
+    layer (Application/Client) and the business logic layer
+    (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/40-movies-controller-one.png"
+         alt="Movies controller part one." />
+    <img src="images/24-ranking-system/41-movies-controller-two.png"
+         alt="Movies controller part two." />
+    <img src="images/24-ranking-system/42-movies-controller-three.png"
+         alt="Movies controller part three." />
+    <img src="images/24-ranking-system/43-movies-controller-four.png"
+         alt="Movies controller part four." />
+    <img src="images/24-ranking-system/44-movies-controller-five.png"
+         alt="Movies controller part five." />
+</div>
+<p>
+    The MovieBulletin back-end is ready to handle requests for the
+    MovieScore average and the existing MovieScore record for
+    authenticated users. It is time to work on the front-side.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.6</span>
+    Refactor the view file of the Application/Client/Pages/Movies
+    MovieBulletin component to display the MovieScore average and
+    the ranking system to allow authenticated users to score a
+    Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/48-movie-bulletin-view-file-one.png"
+         alt="View file of the MovieBulletin component part one." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.7</span>
+    Refactor the code file of the Application/Client/Pages/Movies
+    MovieBulletin component with the required code logic to
+    distinguish the authentication state of the user and act
+    accordingly:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/50-movie-bulletin-code-file-one.png"
+         alt="Code file of the MovieBulletin component part one." />
+    <img src="images/24-ranking-system/51-movie-bulletin-code-file-two.png"
+         alt="Code file of the MovieBulletin component part two." />
+    <img src="images/24-ranking-system/52-movie-bulletin-code-file-three.png"
+         alt="Code file of the MovieBulletin component part three." />
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The support in <strong>.Net 7 </strong>for authentication in Blazor WebAssembly apps
+        changed to rely on <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/routing?view=aspnetcore-7.0#navigation-history-state">
+            navigation history state
+        </a> instead of query strings in the URL. As a result, <strong>
+            passing the return URL through the query string fails to redirect back
+            to the original page
+        </strong> after a successful login. You can refer to
+        the <a href="04-migrate-dot-net-seven">
+            Migrate to .Net 7
+        </a> lesson and to <a href="https://learn.microsoft.com/en-us/aspnet/core/migration/60-70?view=aspnetcore-7.0&tabs=visual-studio#blazor-webassembly-authentication-uses-history-state-for-redirects">
+            Blazor WebAssembly authentication uses history state for redirects
+        </a> for more info.
+    </p>
+</div>
+<p>
+    In an application that targets .Net 7, the <dfn>MovieBulletin</dfn> component
+    should look something like this:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/24-ranking-system/55-extension-options.png"
+         style="max-width: 102%"
+         alt="Extension options in MovieBulletin component markup file." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/24-ranking-system/56-navigate-to-login.png"
+         alt="NavigateToLogin call in MovieBulletin component code file." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    This is not the final version of the OnScoreSelectedAsync handler of the
+    MovieBulletin component. In next lesson on <a href="02-sweet-alert">Sweet Alert</a>
+    we will incorporate feedback to the application user and in lesson on
+    <a href="03-exception-handling">Exception Handling</a>, we will add an exception
+    handler mechanism.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Test the Ranking component and its consumer the MovieBulletin
+    routable component with authenticated and unauthenticated users.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.1</span>
+    Run the application, do not login, navigate to the Flix Manager,
+    and select a Movie to request its MovieBulletin:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/24-ranking-system/53-movie-bulletin-unauthent-ui.png"
+         alt="MovieBulletin unauthenticated user UI." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">6.2</span>
+    Click on any of the stars generated by the Ranking component to
+    try to cast a vote. You should be redirected to the login page
+    and sent back to the MovieBulletin after a successful
+    authentication:
+</p>
+<div class="imgae-lesson mb-3">
+    <img src="images/24-ranking-system/54-movie-bulletin-authent-ui.png"
+         alt="MovieBulletin UI for authenticated users." />
+</div>
+<p>
+    Success!!! This time the user is allowed to select a star of the
+    ranking system that represents the MovieScore value which is then
+    persisted to the database.
+</p>
+<p>
+    However, there is no feedback to the user. There is no way for
+    the user to know if the selected movie score was registered
+    correctly. This takes us to our next <a href="02-sweet-alert">lesson</a>.
+</p>

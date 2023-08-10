@@ -1,0 +1,277 @@
+﻿@page "/01-consuming-api"
+<PageTitle>Consuming the API</PageTitle>
+<h2>Consuming the API</h2>
+<p>
+    We have built an Application/Server-RESTful web API with a single controller
+    responsible for encapsulating code logic to perform database operations on a
+    specific data entity.
+</p>
+<p>
+    Although most of the lessons on configuring web API features were covered (Api
+    service, soft delete, auditing, custom data validation, etc.), we still have to
+    refactor our code in a way that the functionality that we have created with
+    the Application/Client/Razor components (which runs in the web browser - front
+    end) interacts with the Application/Server-Api (which runs in the server - back
+    end) to perform database operations as opposed to working exclusively with
+    in-memory objects.
+</p>
+<h4>Configuring the Web-Api Controllers</h4>
+<p>
+    The application only has a controller for the Genre data entity. We need the
+    basic configuration of the Application/Server-Api/Controllers for the Movie and
+    Person data entitties.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create an MVC controller for the
+    Movie and Person data entities. Each should have an action decorated with the
+    basic Http verbs (Post, Get, Put, and Delete) that are equivalent to CRUD
+    operations (Create, Read, Update, and Delete).
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Build the Movies controller.
+</p>
+<p>
+    Recall that our application implements the <a href="07-api-repository">
+        Repository and Unit of Work patterns
+    </a>. The Unit Of Work pattern keeps track of any in-memory changes during a
+    business transaction that can affect the database and the Repository pattern
+    defines the general functionality (basic CRUD operations):
+</p>
+<div class=" image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/01-movies-controller-one.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-two.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-three.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-four.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-five.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-seven.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-eight.png" />
+    <img src="Images/09-ConsumingApi/01-movies-controller-nine.png"
+         alt="Movies controller images." />
+</div>
+<p>
+    The "Get" action has no formal input parameters, the "GetById" and "Delete" actions have
+    a formal input parameter of type int, and the "Add" and "Update" actions expect a type
+    Genre to satisfy their formal input parameter.
+</p>
+<p>
+    In other words, the "Get" action does not implement model binding, the "GetById" and
+    "Delete" actions implement model binding of <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0#simple-types">
+        simple types
+    </a>, and the "Add" and
+    "Update" actions implement model binding of <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0#complex-types">
+        complex types
+    </a>
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is recommended to employ a <strong><code>[FromBody]</code></strong> binding source
+        attribute for the "Add" and "Update" actions. The [FromBody] parameter populates the
+        type's properties from the body of the HTTP request. It effectively delegates the
+        responsibility of reading the body to an input formatter. If the input formatter
+        finds a suitable value in the body of the request for a given property, that value is
+        used to populate the property.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> This is not the final version of the
+    MoviesController. It will continue to be improved as we encounter application
+    requirements.
+</p>
+<p>
+    As mentioned in the Application Architecture title of the <a href="05-api">
+        05. Server-Api
+    </a> section, the Application/Client makes a data request, and the IApiService
+    (abstract layer) sends the HttpRequest to the Application/Server-Api/Controllers.
+</p>
+<p>
+    The Application/Server-Api/Controller employs the 
+    Application/Client/ApiServices/IRepositories/IUnitOfWork (abstract layer) that exposes
+    business logic methods to query the Application/Server-Api/DataStore database and,if
+    necessary, persist any changes made to in-memory objects during the business transaction:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/08-ServerApi/00-application-diagram.svg"
+         alt="Application Diagram.">
+</div>
+<p>
+    We have configured the lower level layer and in section <a href="09-api-connector-service">
+        IApiService
+    </a>, we configured the implementation (ApiMovies class) to send Http requests to the
+    Application/Server-Api/Controllers/Movies controller. We still have not defined any
+    required functionality because it will be done as required. For the time being, this is
+    the ApiMovies class that implements the IApiMovies interface that will eventually define
+    specific functionality for entities of type Movie:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/02-movies-api-config-one.png" />
+    <img src="Images/09-ConsumingApi/02-movies-api-config-two.png"
+         alt="Movies Api service configuration images." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Repeat the process for the Person
+    controller and for any other remaining data entity lacking its MVC controller.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Use the <dfn>Postman</dfn> platform
+    to test the Application/Server-Api/Controllers we just created. Don't forget to
+    test success and failure states.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Wire up the
+    Application/Client/Pages/People/PersonCreate routable component to consume the
+    IApiService to create Person items and persist them to the database. Create a
+    new Person object and use the SQL Server Object Explorer to visually confirm that
+    the new Person object is persisted into the database table.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Configure the PersonCreate routable
+    component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/03-person-create-component.png"
+         alt="Wiring up the PersonCreate component consume the IApiService to create a Person object." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Test the application by creating a new
+    Person object. Name it Woman Initial and visually check the web browser's console.
+    Don't forget to also visually check the People table in the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/04-database-people-table.png"
+         alt="People table with newly created Person object." />
+</div>
+<p>
+    The new Person object with Person.Name "Woman Initial" was successfully inserted
+    into the People table in the database. However, you might recall that the
+    <a href="04-forms-part-one">UploadImage.razor</a> component converts any Person
+    image selected by the user to Base64 format.
+</p>
+<p>
+    What's more, if the user decides to store the selected image for the current Person
+    object, the Person.PictureUrl property value is persisted into the database as a
+    string with a Base64 encoding. This means that the Person.PictureUrl field (or
+    column) of the People table in the database has strings that can represent either
+    a URL or an actual image in Base64 format.
+</p>
+<p>
+    The next time the PersonEdit component retrieves the Person object from the database,
+    it will not be able to render the image in Base64 because the UploadImage component is
+    expecting a URL string:
+</p>
+<p>UploadImage.razor component:</p>
+<div class="image-lesson mb-3">
+    <img src="images/06-forms/74-upload-existing-image-fe.png" />
+    <img src="images/06-forms/75-upload-existing-image-be.png"
+         alt="UploadImage component." />
+</div>
+<p>PersonForm.razor component:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/06-forms/79-image-url-parameter.png"
+         alt="ImageUrl parameter satisfied with a Person.Picture">
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Refactor the UploadImage component to be
+    capable of determining if the string value stored in the Person.PictureUrl property is
+    a URL or a string encoded in Base64 format so it can appropriately render the image of
+    the current Person object passed as an argument by the PersonForm component to satisfy
+    the ImageUrl parameter of the UploadImage component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the
+    Application/Client/Helpers/StringExtensions class and create an extension method to
+    extend the functionality of any <dfn>string</dfn> type object. It should test if a
+    given string is a valid Base64 encoded string:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/05-is-base-64-extension-method.png"
+         alt="String extension method." />
+</div>
+<p>
+    For more info visit: <a href="https://stackoverflow.com/questions/6309379/how-to-check-for-a-valid-base64-encoded-string">
+        How to check for a valid Base64 encoded string
+    </a>
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the OnInitilized lifecycle method of
+    the UploadImage component to test if the Person.PictureUrl string is in a valid Base64
+    format to determine which conditional markup block should receive the current
+    Person.PictureUrl value to render and which should receive a null value:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/06-upload-image-component-part-one.png" />
+    <img src="images/09-ConsumingApi/06-upload-image-component-part-two.png" />
+    <img src="images/09-ConsumingApi/06-upload-image-component-part-three.png"
+         alt="Refactoring of the UploadImage component." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Wire up the
+    Application/Client/Pages/People/PersonEdit routable component to consume the IApiService
+    to retrieve the Person object to edit from the database. Test it with Person objects
+    that have a Person.PictureUrl string value that represents a URL and with a string value
+    that represents an image in Base64 format.
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/07-person-edit-database.png"
+         alt="PersonEdit component retrieved Person object from the database." />
+</div>
+<p>
+    The UploadImage component is now capable of rendering a Person picture whether it is a
+    URL that points to a location (or service) that provides the image or an actual string
+    representation of an image encoded in Base64 format.
+</p>
+<p>
+    We have demonstrated 2 options to store images selected (or uploaded) by the client:
+</p>
+<ol>
+    <li>
+        Using a <strong>reference</strong> that employs a <strong>URL</strong> that points
+        <strong>to a location (or service)</strong> that provides an image.
+    </li>
+    <li>
+        <strong>Encoding</strong> the image to a Base64 format. This approach <strong>
+            stores the actual image data;
+        </strong> i.e., stores the representation of the image in a string encoded with
+        Base64 format.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-info">Notice:</span> When attempting to render any objects that
+    build upon any data retrieved from the database,
+    <span class="mark">
+        <strong>
+            always remember to test for nullability in the markup section.
+        </strong>
+    </span>Otherwise, you will most likely get a <dfn>System.NullReferenceException</dfn>
+    due to some lag while retrieving the database data. 
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Whether storing a URL or a string representation
+    of the image, in both cases the data is stored in the Person.PictureUrl column of the
+    People table of the database.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> At this point, we are not loading any related
+    data from the database; i.e., we are not loading the collection of movies related to the
+    Person object and represented by a collection navigation property in the type Person. This
+    topic is explained in the <a href="03-create-complex-data">Create Complex Data</a> and
+    <a href="04-load-complex-data">Load Complex Data</a> sections.
+</p>
+
+@code {
+
+}

@@ -1,0 +1,65 @@
+﻿
+<CascadingAuthenticationState>
+
+    <Router AppAssembly="@typeof(App).Assembly"
+            OnNavigateAsync="OnNavigateAsync"
+            AdditionalAssemblies="@_lazyLoadedAssemblies">
+
+        <Found Context="routeData">
+
+            <AuthorizeRouteView RouteData="@routeData"
+                                DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <p role="alert">
+                            You are not authorized to access this resource.
+                        </p>
+                    }
+                </NotAuthorized>
+
+                <Authorizing>
+                    <div class="mt-4">
+                        <p class="text-center">
+                            <strong>
+                                Loading Content...
+                            </strong>
+                        </p>
+
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border"
+                                 style="color: #1b6ec2; width: 3rem;
+                                    height: 3rem;" role="status">
+                            </div>
+                        </div>
+                    </div>
+                </Authorizing>
+
+            </AuthorizeRouteView>
+
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+
+        </Found>
+
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+
+                <!-- Custom <button> element redirects the user to Home -->
+                <button @onclick="NavigateToIndex"
+                        type="button"
+                        class="btn btn-primary">
+                    Home
+                </button>
+            </LayoutView>
+        </NotFound>
+
+    </Router>
+
+</CascadingAuthenticationState>
+

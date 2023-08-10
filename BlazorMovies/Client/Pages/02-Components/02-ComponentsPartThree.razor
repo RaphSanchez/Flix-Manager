@@ -1,0 +1,1557 @@
+﻿@page "/02-components-part-three"
+@inject IRepository _inMemoryRepository
+@inject IJSRuntime _js
+<PageTitle>Blazor Components - III</PageTitle>
+
+<h2>Blazor Components - Part Three</h2>
+<br />
+<h3>Call JavaScript functions from .Net</h3>
+
+<p>
+    <em>Bootstrap</em> is the program that initializes the operating system (OS) during
+    startup. <a href="https://www.techopedia.com/definition/3328/bootstrap">
+        Bootstrapping
+    </a> is the process of loading a set of instructions when a computer is first
+    turned on or booted.
+</p>
+<p>
+    <a href="https://www.mono-project.com/">Mono</a> is a software platform
+    designed to allow developers to create cross platform applications. Sponsored by
+    Microsoft, Mono is an open source implementation of .Net Framework based on ECMA
+    standards for C# and the CLR.
+</p>
+<p>
+    Blazor uses JavaScript (JS) to bootstrap the .Net runtime. CSharp can call a JS
+    function/API and JS code can call any CSharp method. This ability to call a JS
+    method from CSharp code and viceversa is referred to as
+    <strong>JavaScript Interop</strong>. Blazor uses JS Interop to handle DOM
+    manipulation and browser API calls. JS Interop is the feature provided by
+    WebAssembly. Blazor runs on Mono and Mono is compiled to WebAssembly. Therefore,
+    Blazor can also implement this feature (JS interop).
+</p>
+
+<h5>Built-in JS functions</h5>
+<p>
+    The JavaScript (JS) <strong>Window</strong> interface represents a window
+    containing a DOM document; the <em>document</em> property points to the DOM document
+    loaded in that window. A global variable, <strong>window</strong>, representing the
+    window in which the script is running, is exposed to JS code.
+</p>
+<p>
+    The Window interface is home to a variety of properties, functions, namespaces,
+    objects, and constructors. Some of the <strong>JS Window Object Methods</strong>
+    allow you to interact with the user; for example you can use:
+</p>
+<ul>
+    <li>
+        <strong><code>window.alert()</code></strong> to display an alert box with a message and
+        an OK button.
+    </li>
+    <li>
+        <strong><code>window.confirm()</code></strong> to display a dialog box with a message
+        and an OK and Cancel button.
+    </li>
+    <li>
+        <strong><code>window.prompt()</code></strong> to display a dialog box that prompts the user
+        for input data.
+    </li>
+</ul>
+
+<p>
+    As mentioned in lesson
+    <a href="02-components-part-two">Dependency Injection (Services)</a>,
+    the Blazor framework templates include 3 default services that don't need to be configured:
+</p>
+
+<ol>
+    <li>HttpClient</li>
+    <li><strong>IJSRuntime</strong></li>
+    <li>NavigationManager</li>
+</ol>
+
+<p>
+    To call into JavaScript (JS) from .Net, use Dependency Injection to <strong>inject</strong>
+    the <strong><code>IJSRuntime</code></strong> service with an
+    <strong><code>@@inject</code></strong> Razor directive or an
+    <strong><code>[Inject]</code></strong> attribute on an explicit property, and call
+    one of the following .Net extension methods:
+</p>
+<ul>
+    <li>
+        Use <strong><code>JSRuntimeExtensions.InvokeVoidAsync()</code></strong> method
+        when .Net is <strong>not</strong> required to read the result of a JS call and/or
+        JS functions return <code>void(0)</code>/<code>void</code> or <code>undefined</code>.
+    </li>
+    <li>
+        Use <strong><code>JSRuntimeExtensions.InvokeAsync&lt;TValue&gt;()</code></strong>
+        method when .Net should read the result of a JS call.
+    </li>
+</ul>
+
+<p>
+    The <em>Microsoft.JSInterop.IJSRuntime</em> is an interface that represents an instance of
+    a JS runtime to which calls may be dispatched. As you know, an interface is a language
+    construct that contains abstract declarations of functionality that a class or struct can
+    implement:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/02-ijsruntime-interface.png" alt="IJSRuntime interface." />
+</div>
+<br />
+
+<p>
+    Interfaces are used to build loosely-coupled applications and to <strong>improve extensibility</strong>
+    and testability of your applications. Note that the built-in <em>IJSRuntime</em> interface
+    has only two members and both are generic. The type parameter &lt;TValue&gt; is the type of
+    the value that we expect to receive from the JS function.
+</p>
+<p>
+    The implementation (or functionality) for the <code>IJSRuntime</code> interface is available
+    in the form of extension methods that reside in the
+    <em>Microsoft.JSInterop.JSRuntimeExtensions</em> class. Some extension method overloads
+    allow specification of custom <em>timeouts</em> and <em>CancellationToken</em> but we will
+    not use them here. The signatures of the basic and most used extension methods (services)
+    of the <code>IJSRuntime</code> are:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/02-ijsruntime-extension-methods.png" alt="Signature of IJSRuntime extension methods." />
+</div>
+<br />
+
+<p>
+    As you can see, they are extension methods because they are static methods that reside
+    within a static class and their first parameter uses the keyword <em>this</em> on an
+    <em>IJSRuntime</em> type; i.e., they extend the functionality of the <em>IJSRuntime</em>
+    interface. These versions of the extension methods have two formal input parameters. The
+    <em>string identifier</em> is the name of the JS method or function you intend to call
+    and the <em>params object?[]? args</em> is an object array that can store any number of
+    arguments for the related JS function.
+</p>
+<p>
+    An important distinction is that even though the <code>IJSRuntime</code> interface defines
+    a contract or protocol for methods that have a return value of type
+    <code>ValueTask&lt;TValue&gt;</code>, the <code>JSRuntimeExtensions</code> class implements
+    this interface and it also <strong>extends</strong> its functionality with the extension
+    method overloads that do not return a value. These method overloads have a return type
+    <code>ValueTask</code>, and include "Void" in their identifier.
+</p>
+
+<p>
+    When using these extension methods, the
+    <strong>
+        <em>identifier</em> is typically a JS function (method) scoped to the global <em>window</em>
+        variable
+    </strong> but it is not necessary to include the word <em>window</em> in the
+    <em>identifier</em>. E.g., to invoke the <em>window.alert()</em> function, we only need
+    to specify <em>alert</em> as the identifier and pass any required arguments into the
+    object array.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Add a button that when clicked, will display an
+    alert box with a message and an OK button.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> We need the JS <code>window.alert()</code> function.
+    Before attempting to invoke the JS functionality using .Net, we should study its
+    <a href="https://www.w3schools.com/jsref/met_win_alert.asp">structure</a>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/01-js-alert-structure.png" alt="JS alert() function structure." />
+</div>
+<br />
+
+<p>
+    The <code>alert(message)</code> JS function takes one optional <em>string</em> parameter
+    to specify any text to display in the alert box and it does not have a return value. Now
+    we are ready to invoke its JS functionality using CSharp code.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Inject the <code>IJSRuntime</code> service,
+    create a &lt;button&gt; element, and use the <code>JSRuntimeExtensions.InvokeVoidAsync()</code>
+    extension method to call the JS <code>alert()</code> function:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/03-invoking-alert-function.png" alt="Invoking JS alert function with CSharp." />
+</div>
+<br />
+
+<p>
+    The <em>_js</em> local variable is used to call the <em>InvokeVoidAsync()</em> extension
+    method responsible for invoking the specified JS function. Note that it is asynchronous;
+    i.e., it requires an <em>await</em> keyword. If you run your application and raise
+    the <em>onclick</em> event of your button element, you get a <em>window</em> alert with
+    your message and an <em>OK</em> button:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/04-alert-window.png" alt="Window alert displayed." />
+</div>
+<br />
+
+<p>
+    You can also use an anonymous function with an <strong>async</strong> lambda wrapped in
+    an explicit Blazor expression:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/05-async-lambda-alert-js-function.png" alt="Async lambda invokes alert JS function." />
+</div>
+<br />
+
+<p>
+    Both approaches will produce the exact same result:
+</p>
+
+<div>
+    <button class="btn btn-primary"
+            @onclick="@(async () =>
+                          await _js.AlertDialogBox(
+                              "Message passed from CSharp code!"))">
+        Display Alert
+    </button>
+</div>
+<br />
+
+<p>
+    <span class="badge bg-primary">Task:</span> Make any necessary adjustments in the
+    application to display a dialog box with a message and an OK and Cancel button to
+    confirm or cancel the delete action of the Delete &lt;button&gt; element on each
+    movie displayed with the MoviesList component.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> We first have to decide where do we want
+    to implement the functionality to display a confirmation dialog box before deleting a
+    <em>Movie</em> item from the collection. The "delete movie" event is raised from the
+    <em>SingleMovie</em> (child) component but the actual logic to delete a movie is
+    defined in the DeleteMovie() method of the MoviesList (parent) component. This is where
+    we should include our JS method invocation to display the confirmation dialog box.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Let's make a little research on the
+    <a href="https://www.w3schools.com/jsref/met_win_confirm.asp">structure</a> of the
+    <strong><code>window.confirm()</code></strong> JS method:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/06-js-confirm-structure.png" alt="Signature of the JS window.confirm() function." />
+</div>
+<br />
+
+<p>
+    The <code>confirm(message)</code> JS function takes one optional <em>string</em> parameter
+    to specify any text to display in the confirm box and it has a return value. It returns a
+    <em>Boolean</em> that indicates whether "OK" (true) or "Cancel" (false) was clicked in the
+    dialog box. This means that we need the <code>JSRuntimeExtensions.InvokeAsync()</code>
+    extension method which is capable of reading the result of the JS call.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the MoviesList component and use DI
+    to inject the <code>IJSRuntime</code> service. Then use its <em>DeleteMovie()</em>
+    method to call the <code>window.confirm(message)</code> JS function with a
+    <code>JSRuntimeExtensions.InvokeAsync&lt;TValue&gt;()</code> .Net method to display
+    a confirmation dialog box before deleting a <em>Movie</em> item:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/07-confirm-js-function.png" alt="Calling window.confirm() JS function with CSharp." />
+</div>
+<br />
+
+<p>
+    The <code>JSRuntimeExtensions.InvokeAsync&lt;TValue&gt;()</code> is generic.
+    Its type parameter <code>TValue</code> is the (Java Script Object Notation)
+    JSON-serializable return type; i.e., the type of the data we are expecting
+    to receive from the JS function.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Create an instance of the
+    MoviesList component and test it to make sure it displays a confirmation
+    dialog box before deleting a <em>Movie</em> item from the collection.
+</p>
+<p>
+    <span class="badge bg-info">Note:</span> Currently the confirmation comes
+    in the form of a Bootstrap modal. You can go to the source code (MoviesList
+    component) and uncomment the code for the JS function to see it in action.
+</p>
+<div>
+    <MoviesList Movies="_movies"></MoviesList>
+</div>
+
+<h5>Custom JS functions</h5>
+<p>
+    Up to this point, we have been consuming built-in JS functions but there will be times
+    when you need to implement custom JS functions. Before going any further, it is important
+    to consider that Blazor maintains a representation of the DOM and <a href="01-blazor">
+        interacts
+    </a> directly with DOM objects.
+</p>
+<p>
+    If an element rendered by Blazor is modified externally using JS, the DOM may no longer
+    match Blazor's internal representation which can result in unexpected behaviour that
+    could introduce security risks to the application or server. This includes any JS
+    libraries such as a third-party framework like Bootstrap JS or jQuery.
+</p>
+<p>
+    Custom JS code can be loaded into Blazor using any of the following approaches:
+</p>
+<ul>
+    <li>Load a script in the &lt;head&gt; markup (not generally recommended).</li>
+    <li>Load a script in the &lt;body&gt; markup.</li>
+    <li>Load a script from an external JS file (.js).</li>
+    <li>Inject a script after Blazor starts.</li>
+</ul>
+
+<p>
+    Placing the actual JS script in a &lt;script&gt; tag or loading scripts from a
+    <strong>global .js file</strong> pollutes the client with global functions.
+    For production apps, it is recommended to <strong>
+        place JS into separate JavaScript modules
+    </strong> that can be imported as required. <strong>JS Isolation</strong> is a
+    simple process that will be explained very soon but we first have to understand
+    the basics.
+</p>
+
+<p><strong>Loading a script from the &lt;body&gt; markup</strong></p>
+<p>
+    You might recall from the <a href="02-components-part-two">Blazor Host Page</a>
+    section that besides the HTML root elements, the host page can also contain &lt;script&gt;
+    tags. This is the ideal location because given their nature, &lt;script&gt; tags get loaded
+    once and then cannot be changed. You should not place a &lt;script&gt; tag in a Razor
+    component file because it cannot be updated dynamically by Blazor.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Load a <code>window.alert()</code>
+    function from the host page to display a message before it loads the body of
+    a component:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/08-js-script.png" alt="JS Script tag in the host page." />
+</div>
+<br />
+
+<p>
+    The &lt;script&gt; tag should be placed before the closing tag of the &lt;/body&gt;
+    element markup of the <code>wwwroot/index.html</code> (Blazor WebAssembly)
+    or <code>Pages/_Host.cshtml</code> (Blazor Server). Make sure it is placed
+    <strong>after</strong> the <em>blazor.webassembly.js</em> script responsible
+    for downloading the .Net runtime, the application, the application's dependencies,
+    and for initialization of the runtime to run the app. Otherwise, the app will
+    fail to initialize.
+</p>
+<p>
+    If you run your application, you should see the alert dialog box before the body of a given
+    component is loaded.
+</p>
+
+<p><strong>Loading a script from an external JS file (.js)</strong></p>
+<p>
+    Placing JS scripts in external files permits separating the HTML markup from JS code
+    making it easier to read and maintain. External JS files are practical because you can
+    re-use the same code over and over again. JS files have the
+    <strong><span class="mark">.js</span></strong> file extension. Since this is an
+    introductory topic, we will demonstrate how to create a <strong>global</strong> JS file
+    but recall that it is recommended to create <strong>JS modules</strong> that can be loaded
+    as required.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a &lt;button&gt; element
+    with an <em>@@onclick</em> Blazor attribute directive that invokes an external
+    JS function that takes one string parameter and resides in the global .js
+    file. The JS function should display a <em>window.alert</em> with the message
+    passed from .Net to satisfy its formal input parameter.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> To load a JS function from a global .js file,
+    we first have to create the file that will contain the function. The <em>.js</em>
+    file is a static file asset and static files (css, images, videos, etc) are served
+    from the root folder (wwwroot). Create a folder named "js", right click the folder
+    to add a new item of type <em>JavaScriptFile</em> and name it "Utilities":
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/09-global-js-file.png" alt="Folder tree for global .js file." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define a custom JS function inside the global .js
+    file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/10-js-function-external.png" alt="JS function in global .js file." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> With the global JS file and your custom JS
+    function in place, we need to provide a way to load a script from the global JS file
+    into our application. As mentioned earlier, <strong>
+        script tags must be placed in the host page.
+    </strong> Place the open and close <em>script</em> tags with a script
+    <strong><span class="mark"><code>src</code></span></strong> path inside the closing
+    &lt;/body&gt; tag after the Blazor script reference:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/11-loading-script-external-js-file.png" alt="Script tags with src path to global external .js file." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Create a &lt;button&gt; element
+    with an <em>@@onclick</em> Blazor directive attribute that invokes the recently
+    created custom JS function using a <code>JSRuntimeExtensions.InvokeVoidAsync()</code>
+    extension method. Make sure you satisfy its formal input parameter by passing
+    a string 'message' that will be included in the alert dialog box:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/12-calling-external-js.png" alt="Button calls external JS custom function." />
+</div>
+<br />
+
+<p>
+    You should see an alert dialog box with a message defined inside the global .js
+    function concatenated with the message passed from CSharp code to satisfy your custom
+    global .js function:
+</p>
+
+<div>
+    <!-- Uses your custom extension method to invoke a custom JS function -->
+    <button class="btn btn-outline-primary"
+            @onclick="@(async () =>
+                          await _js.ExternalJSFunction(
+                              "Message from CSharp code!!"))">
+        External JS function
+    </button>
+</div>
+<br />
+
+<p>
+    Being able to load JS functionality in your Blazor application from JS code that
+    resides in external JS files is very important because it gives you the capability
+    to consume your custom JS libraries and/or third party libraries.
+</p>
+
+<h5>Extending <code>IJSRuntime</code> interface</h5>
+<p>
+    As you can imagine, the functionality provided by the JS functions could be
+    required or consumed over and over. For example, the <code>window.confirm()</code>
+    function might be displayed for every delete action within your application.
+    This is a perfectly valid approach for interacting with the user and for the
+    purpose of this lesson, we will demonstrate how to extend the IJSRuntime with
+    an extension method for a <code>window.confirm()</code> dialog box. However,
+    for this particular situation where you need a confirmation from the user before
+    a given action takes place, you should also check out next section on
+    <a href="02-components-part-four"> Capturing References to Components</a> that
+    utilizes a Bootstrap modal component for the same purpose.
+</p>
+<p>
+    Having said that, suppose that at some point in time, you decide to modify the
+    implementation for a confirmation dialog box. This would probably result in having
+    to manually update each <code>window.confirm()</code> JS function invocation
+    throughout your application. Instead, why not <strong>extend the functionality</strong>
+    of the <code>IJSRuntime</code> interface with our own extension methods that invoke
+    JS functions such as <em>window.confirm()</em>?
+</p>
+<p>
+    This way we can have <strong>
+        every commonly required JS function invocation integrated into a single class
+    </strong> that is available from everywhere in our application. Under these
+    circumstances, changing the implementation for JS function invocations could be
+    done from one place.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a class that extends the functionality
+    of the <em>IJSRuntime</em> interface with extension methods that encapsulate invocations
+    to the JS functions we have been working with; e.g., <code>window.alert</code>,
+    <code>window.confirm</code>, and external function <code>my_function</code>. Then replace
+    the direct JS invocations performed so far, with a call to the newly created extension
+    methods. These functions have been directly invoked from:
+</p>
+<ol>
+    <li><em>Display Alert</em> button control created inside this routable component.</li>
+    <li><em>DeleteMovie()</em> method of the MoviesList component.</li>
+    <li><em>External JS function</em> button control created inside this routable component.</li>
+</ol>
+
+<p>
+    Extending the functionality of a type (class or interface) is a very straightforward
+    process.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Define a static class that will contain the
+    extension methods. We have declared an <code>@@using</code> Razor directive inside
+    the <em>Client/_Imports</em> file for the Client/Helpers folder to make it accessible
+    throughout the Client project. This folder is a good location for our static class.
+</p>
+<p>
+    In .Net, the naming convention for the wrapper class that will contain the extension
+    methods is to name it with the name of the type it is extending and then add the postfix
+    "Extensions"; e.g., <strong><code>IJSRuntimeExtensions</code></strong> class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Implement the extension methods as static with their
+    first parameter specifying the type that the method operates on; i.e., the type that is
+    being extended. The parameter must be preceded with the keyword <code>this</code>. Note
+    that our <em>IJSRuntimeExtensions</em> class is very similar to .Net's
+    <em>JSRuntimeExtensions</em> class reviewed earlier.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/13-ijsruntime-extension-methods.png" alt="IJSRuntime extension methods." />
+</div>
+<br />
+
+<p>
+    The functionality (body) for the extension methods is exactly the same as the one
+    already used to invoke the JS functions. We are simply encapsulating the code logic:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/14-comparative-js-invocation.png" alt="Comparative of a JS invocation." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Replace the JS function invocations with the
+    extension methods that extend the functionality of the <em>IJSRuntime</em> interface
+    by encapsulating the invocations into CSharp methods:
+
+</p>
+
+<p><em>Display Alert</em> &lt;button&gt; element created inside this routable component:</p>
+<div class="image-lesson">
+    <img src="Images/03-components/15-alert-extension-method.png" alt="Alert dialog box extension method." />
+</div>
+<br />
+
+<p><em>DeleteMovie()</em> method of the MoviesList component:</p>
+<div class="image-lesson">
+    <img src="Images/03-components/16-confirmation-extension-method.png" alt="Confirmation dialog box extension method." />
+</div>
+<br />
+
+<p><em>External JS function</em> &lt;button&gt; element created inside this routable component:</p>
+<div class="image-lesson">
+    <img src="Images/03-components/17-external-extension-method.png" alt="Alert dialog box from external .js file invoked with extension method." />
+</div>
+<br />
+
+<p>
+    The <em>_js</em> and <em>_jsRuntime</em> variables are the names you defined when
+    injecting the <em>IJSRuntime</em> service into your components. Since the extension
+    methods extend the functionality of the <em>IJSRuntime</em> interface, you need
+    this variable to call your extension methods:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/18-ijs-variable.png" alt="IJSRuntime variable." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Test the three button controls to make sure
+    everything is working.
+</p>
+<p>
+    Having a desktop developer background, you might be quite used to include
+    semicolons at the end of almost every line of code. However, in Blazor you
+    must <strong>
+        pay special attention not to include semicolons when they are not required.
+    </strong> Otherwise, the browser will throw an exception and can be very
+    difficult to debug (find the problem). As a <strong>
+        rule of thumb, when declaring Blazor expressions, don't include semicolons
+    </strong> unless the compiler specifically requests it.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-5.0">
+        Blazor JavaScript interoperability (JS interop),
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-javascript-from-dotnet?view=aspnetcore-5.0">
+        Call JavaScript functions from .Net methods in ASP.Net Core Blazor,
+    </a>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window">
+        MDN Web Docs: Window,
+    </a>
+    <a href="https://www.w3schools.com/jsref/obj_window.asp">
+        W3 Schools: The Window Object,
+    </a> and
+    <a href="https://blazor-university.com/javascript-interop/calling-javascript-from-dotnet/">
+        Blazor University: Calling JavaScript from .Net
+    </a>
+</p>
+
+<h3>Call .Net methods from JS functions</h3>
+<p>
+    Recall that placing the actual JS script in a &lt;script&gt; tag or loading
+    scripts from a <strong>global .js file</strong> pollutes the client with global
+    functions. For production apps, it is recommended to <strong>
+        place JS into separate JavaScript modules
+    </strong> that can be imported as required. <strong>JS Isolation</strong> is a
+    simple process that will be explained very soon but we first have to understand
+    the basics.
+</p>
+
+<h5>Invoke Static CSharp Methods from JS</h5>
+<p>
+    There are two methods to call a .Net static method from JS code:
+</p>
+
+<ol>
+    <li><strong><code>DotNet.invokeMethod</code></strong></li>
+    <li><strong><code>DotNet.invokeMethodAsync</code></strong> (recommended for Blazor)</li>
+</ol>
+
+<p>
+    To invoke a .Net <strong>static</strong> method <strong>from JS</strong>, use
+    the <code>DotNet.invokeMethodAsync</code> method, pass in the name of the assembly
+    containing the method, the identifier of the static .Net method, and any arguments:
+</p>
+<p>
+    DotNet.invokeMethodAsync('{ASSEMBLY NAME}', '{.NET METHOD ID}', {ARGUMENTS});
+</p>
+<p>
+    The <strong>.Net method must:</strong>
+</p>
+<ul>
+    <li>Be decorated with a <strong><code>[JSInvokable]</code></strong> attribute.</li>
+    <li>Have a <code>public</code> access modifier.</li>
+    <li>Be <code>static</code></li>
+    <li>Be non-generic. Its return type can be generic but the method itself cannot.</li>
+</ul>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Create a <em>DotNetFromJSDemo</em>
+    component that will contain the .Net logic to demonstrate invoking (static
+    and instance) methods from JS code. Define a &lt;button&gt; element that
+    when clicked, targets a JS function that in turn invokes a .Net static method
+    that produces an int[] with a few items. The JS function should use this
+    int[] to render a dialog box with a message and the array items. Consider the
+    following specifications:
+</p>
+<ul>
+    <li>
+        The <em>onclick</em> HTML attribute of the &lt;button&gt; element should be
+        assigned a JS function as its handler. The JS function should reside in the
+        global .js file created earlier.
+    </li>
+    <li>
+        The JS-invokable .Net static method should be asynchronous and return an int[]
+        with a few items. It should not have any formal input parameters.
+    </li>
+
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a JS-invokable CSharp static method
+    that is async and returns an int array; i.e., make sure it returns a
+    Task&lt;int[]&gt;:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/19-net-invokable-static-method.png" alt=".Net static method JSInvokable." />
+</div>
+<br />
+
+<p>
+    The <code>[JSInvokable]</code> attribute is applied to the method to make it
+    invokable by JS code. Did you notice that the <em>ReturnIntArrayStaticAsync()</em>
+    method <strong>
+        returns the result of a <em>Task&lt;T&gt;</em> without the use of explicit
+        C# <code>async</code> and <code>await</code> keywords?
+    </strong>The <strong><code>Task.FromResult&lt;TResult&gt;(TResult)</code></strong>
+    method <strong>creates</strong> a <em>Task&lt;TResult&gt;</em> that is completed
+    successfully with the specified result passed as an argument; i.e., it returns the
+    completed task. This is significantly more efficient than explicitly requesting a
+    thread pool thread with <em>Task.Run()</em> method to perform the task.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the global .js file created earlier
+    (Utilities.js) and declare a JS function that invokes the <em>ReturnIntArrayStaticAsync()</em>
+    .Net static method, captures its return value (<em>Task&lt;int[]&gt;</em>), and
+    uses it as an argument for a <em>window.alert</em> JS function to render the result
+    into an alert dialog box:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/20-js-function-invokes-static-method.png" alt="JS function invokes .Net static method." />
+</div>
+<br />
+
+<p>
+    The <code>DotNet.invokeMethodAsync</code> method takes two formal input parameters,
+    the assembly name and the identifier of the .Net method you want to invoke. The
+    <strong><code>.then()</code></strong> property captures the <em>&lt;TResult&gt;</em>
+    and allows you to use it; i.e., it allows you to use whatever value the invoked method
+    returns. If the invoked method does not return anything, you can simply omit the
+    <code>.then()</code> declaration.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Create a &lt;button&gt; element and pass
+    your JS function to its onclick HTML attribute. Recall that we can invoke the JS
+    function that resides in the external Utilities.js file because we have defined
+    a &lt;script&gt; tag in the host page (wwwroot/index.html) with the <em>src</em>
+    path to the .js global file:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/21-button-jsfunction-invokes-static.png" alt="Button points to a JS function that invokes a .Net static method." />
+</div>
+<br />
+
+<p>
+    The &lt;button&gt; element's <em>onclick</em> HTML attribute is JavaScript's
+    <em>onclick</em> event handler assignment for processing <em>click</em> events,
+    <strong>not</strong> Blazor's <em>@@onclick</em> directive attribute. For this
+    reason, <strong>
+        you can pass a JS function as the handler for the <em>onclick</em> HTML attribute.
+    </strong> The <em>dotNetStaticInvocation()</em> JS function calls the
+    <em>ReturnIntArrayStaticAsync()</em> .Net static method and renders a dialog box
+    with the return type of the JS-invokable method. <em>BlazorMovies.Client</em> is the
+    name of the assembly:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/22-assembly-name.png" alt="Assembly name folder tree." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Define an instance of the DotNetFromJSDemo
+    component and test the <em>Invoke .Net Static Method from JS</em> button element.
+    Confirm that it displays the return value of the .Net static method into an alert
+    dialog box and that it includes the "string" message defined in the JS function:
+</p>
+
+<div>
+    <DotNetFromJSDemo />
+</div>
+
+<h5>Invoke Instance CSharp Methods from JS</h5>
+<p>
+    There are two methods to call a .Net instance method from JS code:
+</p>
+<ol>
+    <li><strong><code>DotNetObjectReference.invokeMethod</code></strong></li>
+    <li>
+        <strong><code>DotNetObjectReference.invokeMethodAsync</code></strong>
+        (recommended for Blazor)
+    </li>
+</ol>
+
+<p>
+    Invoking a .Net instance method from JS is very similar to invoking a .Net static
+    method except that you have to pass a reference to the type (class) that the method
+    belongs to.
+</p>
+<p>
+    To invoke a .Net <strong>instance</strong> method <strong>from JS</strong>, you
+    have to:
+</p>
+<ol>
+    <li>
+        Pass the .Net instance by reference to JS by wrapping the instance in a
+        <strong><code>DotNetObjectReference</code></strong> and call its
+        <strong><code>DotNetObjectReference.Create&lt;TValue&gt;(TValue)</code></strong>
+        with the .Net type (class) that contains the method of interest passed as an
+        argument to satisfy its formal input parameter (TValue). Recall that instance
+        methods are called using the member access operator (.dot notation) on an instance
+        of the type (or class) they belong to. Therefore, you have to pass this instance
+        to the JS function.
+    </li>
+    <li>
+        Invoke the .Net <strong>instance</strong> method <strong>from JS</strong> using
+        <code>invokeMethodAsync</code> with an instance of the <code>DotNetObjectReference</code>
+        passed as an argument from .Net
+    </li>
+    <li>
+        <strong>Dispose</strong> of the <code>DotNetObjectReference</code> instance. You
+        can use an <strong><code>@@implements IDisposable</code></strong> Razor directive
+        and define a <code>Dispose()</code> method or you can dispose of the instance from
+        JS code calling the <strong><code>DotNetObjectReference.dispose()</code></strong>
+        method.
+    </li>
+</ol>
+
+<p>
+    The <strong>.Net instance method must:</strong>
+</p>
+<ul>
+    <li>Be decorated with a <strong><code>[JSInvokable]</code></strong> attribute.</li>
+    <li>Have a <code>public</code> access modifier.</li>
+    <li>Be non-generic. Its return type can be generic but the method itself cannot.</li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span> Go to the <em>DotNetFromJSDemo</em>
+    component and define a &lt;button&gt; element that when clicked, targets a handler
+    (method) that in turn invokes two different JS functions:
+</p>
+<ul>
+    <li>
+        First target JS function (e.g., dotnetInstanceInvocation) should contain code logic to
+        invoke a .Net instance method that produces an int[] with a few items. The JS function
+        should use this int[] to render a dialog box with a message and the array items.
+    </li>
+    <li>
+        Second target JS function (e.g., dotnetInstanceInvocationReturn) should contain code
+        logic to invoke the same .Net instance method that produces an int[] with a few items.
+        The JS function should simply return the value generated by the invoked .Net method.
+    </li>
+</ul>
+<p>
+    Consider the following specifications:
+</p>
+<ul>
+    <li>
+        The JS functions invoke a .Net instance method that returns an int[] with a few
+        items. This method should be asynchronous and should not have any formal input
+        parameters.
+    </li>
+    <li>
+        The <em>onclick</em> is a Blazor <em>@@onclick</em> directive attribute that
+        should be assigned a CSharp method as its handler. The assigned handler
+        (method) is responsible for invoking the JS functions.
+    </li>
+    <li>
+        The handler (method) for the <em>@@onclick</em> Razor directive attribute should
+        store in a local variable the returned value (int[]) of the second JS function.
+    </li>
+    <li>
+        The returned value (int[]) stored in a local variable should be rendered into
+        the DOM.
+    </li>
+</ul>
+
+<p>
+    This exercise is very similar to the last one. The main difference is that this time
+    the JS functions invoke an instance method as opposed to invoking a static method.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a JS-invokable instance method that
+    is async and returns an int array; i.e., make sure it returns a <em>Task&lt;int[]&gt;</em>:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/23-invokable-instance-method.png" alt="Instance method with a [JSInvokable] attribute." />
+</div>
+<br />
+
+<p>
+    The <code>JSInvokable</code> attribute is applied to the method to make it invokable
+    by JS code.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Go to the global .js file created earlier
+    (Utilities.js) and declare the first JS function. It should invoke the
+    <em>ReturnIntArrayInstanceAsync()</em> .Net instance method, capture its return
+    value <em>(Task&lt;int[]&gt;)</em>, and use it as an argument for a <em>window.alert</em>
+    built-in function to render the result into an alert dialog box:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/24-js-function-invokes-instance.png" alt="JS function invokes instance method." />
+</div>
+<br />
+
+<p>
+    The JS function receives an instance of the <code>DotNetObjectReference</code>
+    as an argument and uses this instance to call the <code>invokeMethodAsync</code>.
+    The <code>invokeMethodAsync</code> has a formal input parameter that must be
+    satisfied with the name (or identifier) of the target .Net instance method and
+    <strong>optionally</strong> any additional arguments.
+</p>
+<p>
+    The <strong><code>.then()</code></strong> property captures the
+    <em>&lt;TResult&gt;</em> (the .Net method's return value) and allows you to
+    use it; i.e., it allows you to use whatever value the invoked .Net method
+    returns. If the invoked method does not return anything, you can simply omit
+    the <code>.then</code> declaration.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Create the second JS function. It
+    should invoke the same <em>ReturnIntArrayInstanceAsync()</em> .Net instance
+    method but this time it simply returns the value generated by the .Net instance
+    method invoked:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/25-js-function-return.png" alt="JS function with a 'return' keyword." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Go to .Net and create a
+    <em>DotNetObjectReference&lt;TValue&gt;</em> variable and the <em>@@onclick</em>
+    handler responsible for invoking the JS functions that in turn invoke the
+    <em>ReturnIntArrayInstanceAsync()</em> method. This handler will be assigned
+    to the the <em>@@onclick</em> Blazor directive attribute of the &lt;button&gt;
+    element we will produce in next step:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/26-invoke-js-functions.png" alt="(Handler) method invokes JS functions." />
+</div>
+<br />
+
+<p>
+    The <em>DotNetObjectReference&lt;TValue&gt;</em> instance provides access to
+    its <em>DotNetObjectReference.Create(&lt;TValue&gt;)</em> method responsible
+    for creating a reference to the type that contains the instance method you
+    want to invoke from a JS function. Its &lt;TValue&gt; is the type (or class)
+    that contains the instance method. Recall that we created the
+    <em>DotNetFromJSDemo</em> component and this is they type that contains the
+    instance method.
+</p>
+<p>
+    The <em>InvokeJSFunctionsNoParameters()</em> handler (method) uses the "_js" variable
+    (injected IJSRuntime service) to invoke the JS functions and employs an instance of the
+    <em>DotNetObjectReference.Create(&lt;TValue&gt;)</em> variable to pass a reference of
+    the type (or class) that contains the JS-invokable instance method. The first JS
+    function invoked does not return a value but the second one does. This return value is
+    stored in the <em>_returnedArray</em> variable to be consumed elsewhere.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create a &lt;button&gt; element with an
+    <em>@@onclick</em> Blazor directive attribute that targets the
+    <em>InvokeJSFunctionsNoParameters()</em> handler responsible for invoking the JS
+    functions:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/27-button-invoke-js-functions.png" alt="Button element." />
+</div>
+<br />
+
+<p>
+    The <em>InvokeJSFunctionsNoParameters()</em> handler invokes two JS functions.
+    The first one uses the return value, of the JS-invokable method
+    <em>ReturnIntArrayInstanceAsync(),</em> to display an alert dialog box, no
+    problems there. The second JS function simply returns the value to .Net and this
+    value is assigned to <em>_returnedArray</em> local variable. We still have to do
+    something with that value; i.e., we have to define code to render the items of
+    the collection (array). You might recall that we have created a generic
+    <em>templated</em> component responsible for testing if a collection is null or
+    empty. If it's not, it has a <a href="02-components-part-one">
+        RenderFragment&lt;TValue&gt;
+    </a> parameter that expects to be satisfied with UI fragment logic on how
+    to render each item in the collection:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/28-button-render-logic.png" alt="TestCollectionNullOrEmpty Component renders collection elements." />
+</div>
+<br />
+
+<p>
+    Define an instance of the <em>DotNetFromJSDemo</em> component and test the
+    <em>Invoke .Net Instance Method from JS</em> &lt;button&gt; element:
+</p>
+
+<DotNetFromJSDemo />
+
+<p>
+    The <em>_arrayPosition</em> variable is created to keep track of the (indexed) position
+    on each element of the collection. However, its rendering logic is hard coded. Every time
+    a button element of the DotNetFromJSDemo component raises an <em>onclick</em> event, new
+    parameter values are provided and the <em>OnParametersSetAsync()</em>
+    <a href="02-components-part-two">component's lifecycle method</a> is called.
+</p>
+<p>
+    After parameters are updated, the <em>OnStateHasChanged()</em> lifecycle method is
+    called and triggers a re-render of the parent component. The hard coded logic to update
+    the <em>_arrayPosition</em> value inside the instance of the TestCollectionNullOrEmpty
+    component needs to be re-set (to zeroe) or its (indexed) position values will be
+    incorrect.
+</p>
+<p>
+    As you know, we can <strong>override</strong> the <code>OnAfterRenderAsync()</code>
+    lifecycle method to re-set the value for the <em>_arrayPosition</em> variable every
+    time the component is re-rendered; i.e., every time the component's parameters are
+    updated.
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/29-on-after-render.png" alt="Overriding the OnAfterRender() lifecycle method." />
+</div>
+<br />
+
+<p>
+    We are <strong>not done yet</strong>. The <em>DotNetObjectReference</em> to the type
+    (class) that contains the JS-invokable method, implements the <em>IDisposable</em>
+    interface. To avoid any memory leak and allow garbage collection, the .Net object
+    reference created by <em>DotNetObjectReference</em> must be disposed in a <em>Dispose()</em>
+    method.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Dispose of the <em>DotNetObjectReference</em>:
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Create a <em>Dispose()</em> method and use the null
+    conditional operator to call <em>Dispose</em> on the instance of the
+    <em>DotNetObjectReference</em>:
+</p>
+
+<div class="image-lesson">
+    <img src="images/03-components/30-dispose-method.png" alt="Dispose() method." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define an <strong><code>@@implements IDisposable</code></strong>
+    Blazor directive:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/31-idisposable-blazor-directive.png" alt="IDisposable Blazor directive." />
+</div>
+<br />
+
+<p>
+    We will soon get to this topic. For now, you should know that if a component
+    implements IDisposable; i.e., if a component defines an <code>@@implements IDisposable</code>
+    Blazor directive, its <em>Dispose()</em> method will be called when the component
+    is removed from the UI. A second option is to <strong>
+        call the Dispose() method from JS code
+    </strong> using the <em>DotNetObjectReference</em> instance with a member access
+    operator (.dot notation) to call the JS dispose() method:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/30-js-dispose-method.png" alt="JS dispose() method call." />
+</div>
+<br />
+<p>
+    We have successfully defined a &lt;button&gt; element that when clicked,
+    targets a handler that in turn invokes two external JS custom functions
+    that consume .Net instance methods. One of them displays the return value
+    of the .Net instance method, and the other JS function simply returns the
+    value to .Net. The returned value is then rendered into the DOM with a
+    previously created templated component named <em>TestCollectionNullOrEmpty</em>.
+</p>
+
+<h5>Passing .Net objects as Arguments to JS functions</h5>
+<p>
+    Placing the actual JS script in a &lt;script&gt; tag or loading scripts from a
+    <strong>global .js file</strong> pollutes the client with global functions.
+    For production apps, it is recommended to <strong>
+        place JS into separate JavaScript modules
+    </strong> that can be imported as required. <strong>JS Isolation</strong> is a
+    simple process that will be explained very soon but we first have to understand
+    the basics.
+</p>
+<p>
+    You might find yourself in a situation where you want to capture references to
+    .Net elements. Some JS interop scenarios require references to .Net objects
+    from JS functions. You can pass a reference to .Net objects (e.g., fields, properties,
+    or classes) as arguments of JS functions.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Go to the <em>DotNetFromJsDemo</em>
+    component and define a &lt;button&gt; element that when clicked, targets a
+    handler (e.g., InvokeJSFunctionWithParameters()) that in turn invokes
+    a JS function (e.g., dotNetInstanceInvocationWithParameters) that invokes a .Net
+    JS-invokable instance method (e.g., ReturnIntArrayInstanceParametersAsync()):
+</p>
+<p>
+    The JS-invokable instance method uses an <em>_inputItems</em> string variable
+    bound to an HTML input element of type text. The idea is that the instance method
+    filters out the string items from the input data passed by the user and returns it
+    in the form of an int[] array.
+</p>
+<p>
+    The JS function that invokes the JS-invokable instance method should perform two
+    actions:
+</p>
+<ol>
+    <li>
+        Create an alert dialog box to display the total number of items that were
+        originally passed by the user to the HTML input element.
+    </li>
+    <li>
+        Create an alert dialog box to display the total number of items in the
+        int[] returned by the JS-invokable instance method; i.e., the number of
+        items in the array that were filtered and successfully converted to type
+        Int32.
+    </li>
+</ol>
+<p>
+    The JS-invokable instance method (ReturnIntArrayInstanceParametersAsync())
+    should be asynchronous and should not have any parameters.
+</p>
+<p>
+    The exercise might feel more complicated than it really is. The functionality is
+    very similar to the last exercise with the exception that this time we need to pass
+    a .Net object (<em>_inputItems</em>) of type string to the JS function because we
+    intend to create two alert dialog boxes. One that consumes the HTML input element
+    data (string) passed by the user and another dialog box that consumes the result
+    value (&lt;TValue&gt;) of the JS-invokable instance method that filters those items.
+</p>
+<p>
+    How can we achieve this? Very easy, define a JS function that can take an extra
+    parameter. This parameter is the .Net object (string) that we intend to consume
+    from JS.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the global .js file and create a JS
+    function (e.g., dotNetInstanceInvocationWithParameter()) that has two formal
+    input parameters. The first parameter is the <em>DotNetObjectReference</em>
+    to the type (class) that contains the JS-invokable method. The second formal
+    input parameter is the actual string passed by the user to the HTML input element:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/32-js-function-two-parameters.png" alt="JS function with two parameters." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Create the JS-invokable instance method that
+    filters the <em>_inputItems</em> string variable bound to an HTML input element and
+    returns an int[] with the items that were successfully converted:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/33-js-invokable-instance-method.png" alt="JS invokable instance method." />
+</div>
+<br />
+
+<p>
+    Note that instead of using an HTML input element of type text to bind it to the
+    <em>_inputItems</em> field, we could use a type "number" and avoid having to create
+    code to extract any number items from the input element. However, our purpose is
+    to compare the user input with the JS-invokable instance method's output.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Define the handler responsible for invoking
+    the JS function that in turn invokes the <em>ReturnIntArrayInstanceParameterAsync()</em>
+    method. This handler will be assigned to the <em>@@onclick</em> Blazor directive
+    attribute of the &lt;button&gt; element we will produce in next step:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/34-handler-js-function-argument.png" alt="onclick handler invokes JS function with two parameters." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Create an HTML input element of type text and a
+    &lt;button&gt; element with an <em>@@onclick</em> Blazor directive attribute that targets
+    the <em>InvokeJSFunctionWithParameters()</em> handler (method):
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/35-button-js-function-parameters.png" alt="Button element to invoke .Net instance method from JS function." />
+</div>
+<br />
+
+<p>
+    The <em>InvokeJSFunctionWithParameters()</em> handler (method) invokes a JS function that
+    does not return a value and has two formal input parameters. The second parameter is used
+    to pass a .Net object (string) to the JS function which in turn creates two alert dialog
+    boxes. The first one displays the number of items in the input data passed by the user
+    (no changes) and the second alert dialog box displays the number of items in the return
+    value of the JS-invokable .Net instance method (after extracting characters that can be
+    converted to type Int32).
+</p>
+<p>
+    We are <strong>not done yet</strong>. The <em>DotNetObjectReference</em> to the type
+    (class) that contains the JS-invokable method, implements <em>IDisposable</em>
+    interface. To avoid any memory leak and allow garbage collection, make sure that you
+    have an <code>@@implements IDisposable</code> Blazor directive and that you have
+    <strong>defined a <em>Dispose()</em> method</strong> that disposes the
+    <em>DotNetObjectReference</em> instance:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/30-dispose-method.png" alt="Dispose() method" />
+</div>
+<br />
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create an instance of the <em>DotNetFromJSDemo</em>
+    component and test its <em>Invoke .Net Instance Method from JS with Parameters</em>
+    &lt;button&gt; element. Type in letters and numbers into the HTML input element to
+    produce a different length value between the number of items that the user passed
+    to the input element and the number of items that were successfully converted to Int32:
+</p>
+
+<DotNetFromJSDemo />
+
+<p>
+    For more info visit <a href="https://www.freecodecamp.org/news/how-to-implement-javascript-interop-in-blazor-9f91d263ec51/">
+        How to implement JavaScript Interop in Blazor,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-dotnet-from-javascript?view=aspnetcore-5.0">
+        Call .Net methods from JavaScript functions in ASP.Net Core Blazor,
+    </a>
+    <a href="https://www.syncfusion.com/faq/blazor/javascript-interop/how-do-you-call-a-net-function-from-javascript-using-javascript-interop">
+        How do you call a .Net function from JavaScript using JavaScript Interop?
+    </a>
+</p>
+
+<h3>JavaScript Isolation in JavaScript Modules</h3>
+<p>
+    As mentioned earlier, placing the actual JS script in a &lt;script&gt; tag or
+    loading scripts from a <strong>global .js file</strong> pollutes the client with
+    global functions. For production apps, it is recommended to <strong>
+        place JS into separate JavaScript modules
+    </strong> that can be imported as required.
+</p>
+<p>
+    Let's use the <em>Network</em> tab in the developer tools of the web browser. Click
+    on the <em>"Clear"</em> button to clean up the screen:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/36-network-tab-clean.png" alt="Developer tools, Network tab." />
+</div>
+<br />
+
+<p>
+    Reload any routable component (Ctrl + R) of our current Blazor application and study
+    the network activity:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/37-network-tab-activity.png" alt="Network activity on page reload." />
+</div>
+<br />
+
+<p>
+    Every time the application is initialized or a routable component is refreshed, the
+    Utilities.js global JS file is also downloaded. The download occurs every time.
+</p>
+
+<p>
+    <strong>
+        JS modules are .js files that contain certain JS functionality specific to any
+        given section of your application such as a Blazor component.
+    </strong> With JS isolation, modules can be downloaded on-demand depending on the
+    active component. JS modules avoid having to download global .js files during
+    initialization of an application or a routable component refresh.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> Go to the DataBindCounter component and
+    configure its "Click Me" &lt;button&gt; element to use JS isolation and dynamically
+    load a JS module with a JS function that renders a <em>window.alert</em> with a
+    message passed as an argument from .Net.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> To dynamically load a JS module when required,
+    we first have to create the .js file that will be configured as a JS module. The .js
+    file is a static file asset and static files (css, images, videos, .js) are served
+    from the root folder (wwwroot). We already have a "js" folder, right click on the
+    folder to add a new item of type <em>JavaScriptFile</em>. The common convention is
+    to <span class="mark">
+        <strong>
+            name JS modules with the name of the component they will be consumed from;
+        </strong>
+    </span> e.g., "DataBindCounter.js".
+</p>
+
+<div class="image-lesson">
+    <img src="images/03-components/38-databindcounter-js-module.png" alt="Folder tree for .js module" />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Define a custom JS function inside the .js file
+    that will be configured as a JS module:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/39-js-function-module.png" alt="JS module with JS function." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> With the JS function defined in the .js file,
+    we can start configuring our JS module. <strong>To export module features</strong>, you
+    must use the <strong><code>export</code></strong> statement. It should be placed in
+    front of any items you want exported out of the module:
+</p>
+
+<div class="image-lesson">
+    <img src="images/03-components/40-js-export-feature.png" alt="JS function with export statement." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Four:</span> Import the module into the .Net environment.
+    <strong>To import .js module features</strong>, you must use an instance of the
+    <strong><code>IJSObjectReference</code></strong> to invoke exported JS functions from
+    the module.
+</p>
+<p>
+    To import a JS module into the .Net environment, you have to:
+</p>
+<p>
+    1. Inject the <code>IJSRuntime</code> service with either an @@inject Razor directive
+    or an explicit property decorated with an <code>[Inject]</code> attribute:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/41-inject-ijsruntime.png" alt="Injecting IJSRuntime service." />
+</div>
+<br />
+
+<p>
+    2. Define a variable of type <code>IJSObjectReference</code>. The common convention
+    is to name the IJSObjectReference as <strong>module</strong>. Use this instance to
+    store a reference to the module's external JS file using its stable static web asset
+    path: "./{SCRIPT PATH AND FILE NAME (.JS)}" where "./" is the path segment for the
+    current directory:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/42-ijsobjectreference.png" alt="IJSObjectReference to external JS module." />
+</div>
+<br />
+
+<p>
+    3. Use your <em>IJSObjectReference</em> instance named "module" to invoke the JS
+    function of interest that resides in the imported JS module. Use the member access
+    operator (.dot notation) in combination with an <strong><code>InvokeVoidAsync()</code></strong>
+    method when .Net is not required to read the result of the JS call or
+    <strong><code>InvokeAsync&lt;TValue&gt;()</code></strong> method when .Net should read
+    the result of a JS call.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step Five:</span> Create a handler (method) for the
+    <em>@@onclick</em> Blazor directive attribute of the "Click Me" &lt;button&gt; element
+    and use the <em>IJSObjectReference</em> instance named "module" in combination with the
+    <code>InvokeVoidAsync()</code> to invoke the JS function named "my_function" which does
+    not return a value:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/43-using-ijsobjectreference-invoke-js-module.png" alt="Using an IJSObjectReference to invoke a JS module." />
+</div>
+<br />
+
+<p>
+    We are invoking the "my_function(message)" JS function through the
+    <code>IJSObjectReference</code> instance named "module" which represents the
+    JS module (or .js file named DataBindCounter.js). In previous exercises we
+    invoked a JS function from a global .js file using the <code>IJSRuntime</code>
+    instance but to import a JS module, we <strong>cannot use</strong> the
+    <code>IJSRuntime</code> to invoke the JS function. We have to use an instance
+    of the <code>IJSObjectReference</code> because this instance contains the
+    path to the .js module (or file) that contains the JS function of interest.
+</p>
+
+<p>
+    4. <strong>Dispose</strong> of the <code>IJSObjectReference</code>. You can use an
+    <strong><code>@@implements IAsyncDisposable</code></strong> Blazor directive and
+    <strong>define</strong> a <strong><code>DisposeAsync()</code></strong> method.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Create an asynchronous <code>DisposeAsync()</code>
+    method and make sure to declare an <code>@@implements IAsyncDisposable</code> Blazor
+    directive. For scenarios like the DataBindCounter component where the UI code (front-end)
+    and the CSharp logic (back-end) has been split, you can have the partial class implement
+    the IAsyncDisposable interface as usual:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/44-implements-iasyncdisposable.png" alt="Implementing IAsyncDisposable interface." />
+</div>
+<br />
+
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Create an instance of the <em>DataBindCounter</em>
+    component and make sure that the imported js function is working as expected:
+</p>
+
+<DataBindCounter />
+
+<p>
+    <span class="badge bg-primary">Task:</span> Define a second JS function in the
+    DataBindCounter.js file and demonstrate that you can import multiple functions
+    from the same JS module. For simplicity, the second JS can perform the same
+    functionality of the previous one but with different messages for easy
+    identification.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Define the second function inside
+    the <em>DataBindCounter.js</em> file. Don't forget to include the <code>export</code>
+    statement:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/03-components/48-xtra-module-js-function.png" alt="Extra JS function in JS module." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Two:</span> Use the <em>IJSObjectReference</em>
+    named "module" created earlier to invoke the JS function you just created:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/03-components/49-importing-another-function.png" alt="Importing another function in the same JS module." />
+</div>
+
+<p>
+    <span class="badge bg-dark">Step Three:</span> Go to the DataBindCounter instance
+    created above and confirm that the second JS function is being invoked to.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task:</span> Demonstrate that the Blazor framework is
+    calling for unmanaged resource disposal when the component is removed from the UI (when
+    the user navigates to a different routable component). You can use a Timer to print an
+    Int32 value into the console of the web browser.
+</p>
+<p>
+    The idea is to implement a timer that is initiated when the user raises the click event
+    of the "Click Me" button to increment the value of the "_currentCount" variable. The
+    timer should have it's own "_timerCounter" variable to print its value into the web
+    browser's console.
+</p>
+<p>
+    The <em>System.Timers.Timer</em> implements <em>IDisposable</em>, you can dispose of
+    both objects (the Timer and the IJSObjectReference) in the same step. If the Blazor
+    framework is calling for unmanaged resource disposal when the component is removed
+    from the UI (when the user navigates to a different routable component), the timer
+    should stop working and the browser's console should no longer display additional
+    "_timerCounter"
+    values.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Implement the Timer object inside the
+    IncrementCountAsync() method. Make sure it is a class level variable to make it
+    available elsewhere in the class and use it to invoke its Dispose() method:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/46-timer.png" alt="Implementation of a Timer object." />
+</div>
+<br />
+
+<p>
+    At this point, <strong>the DatabindCounter component (scoped class) does not dispose</strong>
+    the timer when it is no longer needed. If the user raises the "onclick" event of the
+    "Click Me" button element, the Timer is initiated. However, if the user navigates to
+    a different routable component, the Timer is not disposed. This can be confirmed
+    because the browser's console keeps showing additional "_timerCounter" values:
+</p>
+
+<div class="d-flex justify-content-center mb-3">
+    <video controls>
+        <source src="video/timer-not-disposed.mp4" type="video/mp4" />
+        <source src="video/timer-not-disposed.webm" type="video/webm" />
+        <source src="video/timer-not-disposed.ogv" type="video/ogv" />
+        "Your web browser is outdated and does not support HTML video. Please consider
+        <a href="http://browsehappy.com">updating</a>"
+    </video>
+</div>
+
+<p>
+    Your first instinct would probably be to implement the <em>IDisposable</em>
+    interface and define a Dispose() method which in turn calls the Timer.Dispose()
+    to release any resources occupied by the Timer object. With this approach you
+    will end up implementing IAsyncDisposable (for the IJSObjectReference instance
+    named module) and IDisposable (for the Timer object). However, at the time of
+    this lesson, it does not work like this.
+</p>
+<p>
+    <span class="badge bg-danger">Danger:</span> If a component (DataBindCounter)
+    implements both <em>IAsyncDisposable</em> and <em>IDisposable</em> interfaces,
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-7.0#component-disposal-with-idisposable-and-iasyncdisposable">
+        one will fail to execute
+    </a>. Instead, you should <strong>
+        implement IAsyncDisposable and call the Timer.Dispose() method inside
+    </strong> but don't try to implement both interfaces separately:
+</p>
+
+<div class="image-lesson mb-3">
+    <img src="Images/03-components/47-timer-disposed.png" alt="Calling Timer.Disposed() method." />
+</div>
+
+<p>
+    This time if the timer is executing and the user navigates to a different
+    routable component, the Blazor framework calls unmanaged resource disposal of
+    both disposable elements (Timer and IJSObjectReference).
+</p>
+
+<p>
+    <span class="badge bg-warning">Warning:</span> The <em><code>using</code></em>
+    statement does not work appropriately and the <em><code>try-finally</code></em>
+    block does dispose of the resources but it releases them immediately after
+    the "onclick" event of the Click Me button element is raised; i.e., the Timer
+    object is disposed immediately as opposed to being disposed until the user
+    navigates to a different routable component.
+</p>
+
+<p>
+    <span class="badge bg-primary">Task: </span> What do you think would
+    happen if you move the code that imports the JS module from the
+    <em>OnAfterRenderAsync()</em> lifecycle method to the <em>IncrementCountAsync()</em>
+    handler (method)? Make the necessary changes and use the "Network" tab of the
+    developer tools to study exactly when is the <em>DataBindCounter.js</em> JS module
+    downloaded:
+</p>
+
+<div class="image-lesson">
+    <img src="Images/03-components/45-import-js-module-on-increment-count.png" alt="Code importing JS module inside the IncrementCount handler." />
+</div>
+<br />
+
+<p>
+    The JS module named "DataBindCounter.js" is downloaded until the <em>click</em> event
+    of the "Click Me" &lt;button&gt; element is raised and this makes the application
+    highly efficient because it only downloads the files that are needed.
+</p>
+
+<h3>Cached JavaScript files</h3>
+<p>
+    JavaScript (JS) files and other static assets are not generally cached on clients
+    during development in the <em>Development environment</em>. During development,
+    static asset requests include the <em>Cache-Control header</em> with a value of
+    <em>no-cache</em> or <em>max-age</em> with a value of zeroe (0).
+</p>
+<p>
+    During production in the <em>Production environment</em>, JS files are usually
+    cached by clients.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/call-javascript-from-dotnet?view=aspnetcore-5.0#javascript-isolation-in-javascript-modules-1">
+        JavaScript isolation in JavaScript modules,
+    </a>
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-5.0#cached-javascript-files-1">
+        Cached JavaScript files,
+    </a>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules">
+        MDN JavaScript modules,
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-5.0#component-disposal-with-idisposable-and-iasyncdisposable-1">
+        Component disposal with IDisposable and IAsyncDisposable
+    </a>, and
+    <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle?view=aspnetcore-7.0#component-disposal-with-idisposable-and-iasyncdisposable">
+        Component disposal with IDisposable and IAsyncDisposable
+    </a>
+</p>
+
+
+@code {
+
+    List<Movie> _movies = null;
+    protected override Task OnInitializedAsync()
+    {
+        /// More efficient than explicitly requesting a thread pool thread
+        /// with a Task.Run()
+        return Task.FromResult(_movies = _inMemoryRepository.GetMovies());
+    }
+
+}
+

@@ -1,0 +1,1114 @@
+﻿@page "/02-api-rate-limiting"
+<PageTitle>API Rate Limiting</PageTitle>
+
+<h2>Robustifying the API - Rate Limiting</h2>
+<p>
+    Application/Server-Api resources are consumed by apps that rely on them and when
+    one app or more make too many requests for a single resource, it can lead to
+    <strong><dfn>resource contention</dfn></strong>. Resource contention occurs when
+    a resource is consumed by too many apps and the resource is unable to serve
+    all of the apps that are requesting it.
+</p>
+<p>
+    This can result in a poor user experience, and in some cases, it can lead
+    to a
+    <a href="https://owasp.org/www-community/attacks/Denial_of_Service">
+        denial of service
+    </a> (DoS) attack or to a
+    <a href="https://www.imperva.com/learn/application-security/brute-force-attack/">
+        brute force
+    </a> attack. For this reason, APIs should have a way to control access to
+    its resources.
+</p>
+<p>
+    Rate limiting is a technique to limit network traffic to prevent users from
+    exhausting system resources. Rate limiting makes it harder for malicious actors
+    to overburden the system and cause attacks such as Distributed Denial of Service
+    (<a href="https://www.imperva.com/learn/ddos/denial-of-service/">
+        DDoS
+    </a>) attacks that flood a target system with requests and consume too much
+    network capacity, storage, and memory.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem"
+       class="text-center">
+        Rate limiting works <strong>within applications</strong>, <strong>not</strong>
+        in the web server.
+    </p>
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <strong>API Rate limiting</strong> controls the rate at which consumers can
+        access API resources; i.e., the number of requests a user can make to an API
+        resource over a given period of time before rejecting the HTTP requests.
+    </p>
+</div>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <strong>API Throttling</strong> is a performance management technique that
+        controls the amount of traffic the API can handle. When the threshold is
+        reached, all requests that exceed the limit are temporarily blocked and
+        placed in a queue so that they can be processed in a subsequent window.
+    </p>
+</div>
+<h4>Azure API Management</h4>
+<p>
+    Azure API Management is a hybrid, multi cloud management platform for APIs
+    across all environments. As a platform-as-a-service, API Management supports
+    the complete API lifecycle. You can refer to the YouTube video <a href="https://youtu.be/U7jkikopOMw">
+        What is azure api management service
+    </a> by kudvenkat for an introduction to Azure Api Management.
+</p>
+<p>
+    Although Azure API Management service provides multiple features (including
+    API rate limiting, throttling, and DDoS network attack mitigation) in a very
+    convenient manner because it abstracts backend diversity and the complexity
+    of API architecture, it comes with a cost.
+</p>
+<p>
+    For example, as of January 2023, the <a href="https://azure.microsoft.com/en-us/pricing/details/api-management/?&ef_id=Cj0KCQiA5NSdBhDfARIsALzs2ECkwO0i6s6SZvL35Hyzj7gtQ3F12I4alWkYOjVlvnmpKpoGUwSI0ksaAqXiEALw_wcB:G:s&OCID=AIDcmmxotgtm93_SEM_Cj0KCQiA5NSdBhDfARIsALzs2ECkwO0i6s6SZvL35Hyzj7gtQ3F12I4alWkYOjVlvnmpKpoGUwSI0ksaAqXiEALw_wcB:G:s&gclid=Cj0KCQiA5NSdBhDfARIsALzs2ECkwO0i6s6SZvL35Hyzj7gtQ3F12I4alWkYOjVlvnmpKpoGUwSI0ksaAqXiEALw_wcB#pricing">
+        pricing option
+    </a> for a "Basic" tier API Management Service is $ 0.21/hour USD and the basic IP
+    Protection service to protect an individual IP resource from a <a href="https://azure.microsoft.com/en-us/products/ddos-protection/#layout-container-uid8a52">
+        DDoS
+    </a> attack is $ 199.00/month USD.
+</p>
+<p>
+    For educational purposes, we will demonstrate how to implement API rate limiting
+    using the ASP.Net Core middleware. The .Net 7 framework comes with built-in rate
+    limiting support. If your application does not target .Net 7 or later, you can
+    refer to the <a href="04-migrate-dot-net-seven">Migrate to .Net 7</a> lesson in
+    the Miscellaneous module to upgrade it.
+</p>
+<p>
+    The <strong><code>Microsoft.AspNetCore.RateLimiting</code></strong> library provides
+    rate limiting middleware. <strong>
+        An application can configure rate limiting policies and then apply those policies
+        at a global level, to specific Razor pages, controllers, and/or controller actions.
+    </strong>
+</p>
+<h4>Rate limiter algorithms</h4>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is strongly advised to watch the YouTube video <a href="https://youtu.be/vpeddZPkfAw">
+            Rate Limiting in .Net 7.0: Getting Started
+        </a> from the Code Wolf channel which contains a good demonstration on how rate limiting
+        algorithms work.
+    </p>
+</div>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.ratelimiting.ratelimiteroptions?view=aspnetcore-7.0">
+        RateLimiterOptions
+    </a> class provides the following extension methods that represent <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0#rate-limiter-algorithms">
+        rate limiter algorithms
+    </a> for rate limiting:
+</p>
+<dl>
+    <dt>Fixed Window Limiter</dt>
+    <dd>
+        The <code>AddFixedWindowLimiter</code> method uses a fixed time window to limit
+        requests. When the time window expires, a new time window starts and the request
+        limit is reset.
+    </dd>
+    <dt>Sliding Window Limiter</dt>
+    <dd>
+        The sliding window algorithm is similar to the fixed window limiter but adds
+        segments per window. The window slides one segment each segment interval and
+        the segment interval is (window time/segments per window).
+    </dd>
+    <dt>Token Bucket Limiter</dt>
+    <dd>
+        The token bucket limiter is similar to the sliding window limiter but rather
+        than adding back the requests taken from the expired segment, a fixed number
+        of tokens are added each replenishment period.
+    </dd>
+    <dd>
+        The tokens added each segment cannot increase the available tokens to a number
+        higher than the token bucket limit.
+    </dd>
+    <dt>Concurrency limiter</dt>
+    <dd>
+        The concurrency limiter limits the number of concurrent requests. Each request
+        reduces the concurrency limit by one. When a request completes, the limit is
+        increased by one.
+    </dd>
+    <dd>
+        Unlike the other request limiters that limit the total number of requests for
+        a specified period of time, the concurrency limiter limits only the number of
+        concurrent (made at the exact same instant) requests and does not cap the
+        number of requests in a time period.
+    </dd>
+</dl>
+<h4>Extending the Dependency Injection Container</h4>
+<p>
+    As we explained in lesson <a href="02-components-part-two">Part-II</a>  of the
+    Components module, ASP.Net Core (including Blazor) supports the dependency
+    injection design pattern to inject services in a central location such as the
+    dependency injection container (e.g., Application/Server-Api/Program.cs) and
+    make them available throughout the application.
+</p>
+<p>
+    In this lecture, we will demonstrate how to implement rate limiting in our
+    application with four different approaches:
+</p>
+<ol>
+    <li>
+        Global Rate Limiter.
+    </li>
+    <li>
+        Rate limiting policy applied to all MVC <a href="08-api-controllers">
+            controllers
+        </a>.
+    </li>
+    <li>
+        Rate limiting policy applied to all Razor pages (used by ASP.Net Core
+        <a href="03-security-id-server">Identity</a> for the AuthN and AuthZ UI).
+    </li>
+    <li>
+        Enable/Disable rate limiting policies at the Razor page, controller, and/or
+        action level.
+    </li>
+</ol>
+<p>
+    The code logic can become a bit extensive for the DI container. For this reason,
+    we will create an Application/Server-Api/Helpers/ServiceExtensions folder that
+    will be responsible for consolidating custom classes (files) that extend the
+    dependency injection container of the Application/Server-Api Program class.
+</p>
+<p>
+    These classes will define extension methods designed to register custom
+    services into the <em>Microsoft.Extensions.DependencyInjection.IServiceCollection</em>
+    including configuration options. As a result, the dependency injection container
+    will remain cleaner.
+</p>
+<p>Data sources:</p>
+<ul>
+    <li>
+        YouTube video <a href="https://youtu.be/GNJ1EKavzGk">
+            Add Identity Core To ASP.Net Core API | Ultimate ASP.Net Web API
+            Tutorial for Beginners
+        </a> by Trevoir Williams.
+    </li>
+    <li>
+        The Implement Rate Limiting Middleware section of the
+        <a href="https://blog.christian-schou.dk/implement-rate-limiting-in-asp-net-core-web-api/">
+            How to implement Rate Limiting in an ASP.NET Core Web API
+        </a> blog.
+    </li>
+    <li>
+        <a href="https://nicolaiarocci.com/on-implementing-the-asp.net-core-7-rate-limiting-middleware/">
+            On implementing the ASP.Net Core 7 rate-limiting middleware
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Register the rate limiting services in the dependency injection container of
+    the Application/Server-Api Program class and configure its Http pipeline to
+    enable rate limiting for the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the Application/Server-Api/Helpers directory, add a ServiceExtensions
+    folder, and create a static RateLimitingServices class. The RateLimitingServices
+    class must include a ConfigureRateLimitingServices extension method that will
+    be used to configure the rate limit services:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/01-service-extensions-folder-tree.png"
+         alt="Folder tree with service extensions location." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the built-in <code>Microsoft.AspNetCore.RateLimiting</code> AddRateLimiter
+    extension method to register the rate limiting services into the <dfn>
+        IServiceCollection
+    </dfn> of the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/02-configure-rate-limiting-services-method-one.png"
+         alt="ConfigureRateLimitingServices extension method part one." />
+    <img src="Images/34-api-rate-limiting/03-configure-rate-limiting-services-method-two.png"
+         alt="ConfigureRateLimitingServices extension method part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Call the ConfigureRateLimitingServices() extension method we just created from
+    the dependency injection container to register the rate limiting services during
+    the web application build up:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/05-register-rate-limiting-service.png"
+         alt="RateLimiting service registration in dependency injection container." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Configure the Http request pipeline with the built-in UseRateLimiter() extension
+    method to enable rate limiting for the application:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/06-http-request-pipeline.png"
+         alt="Http request pipeline configuration." />
+</div>
+<p>
+    We have configured the application to support API rate limiting but we have not
+    defined any global rate limiter nor have we defined any rate limiting policies
+    that can be applied at a global level, to specific Razor pages, MVC controllers,
+    and/or controller actions.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        <span class="badge bg-warning">Warning:</span>
+        Creating partitions on client IP addresses makes the app vulnerable to
+        Denial of Service Attacks which employ IP Source Address Spoofing. You can
+        refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0#limiter-with-onrejected-retryafter-and-globallimiter">
+            Limiter with OnRejected, RetryAfter, and GlobalLimiter
+        </a> for more info.
+    </p>
+</div>
+<h3>Global Rate Limiters</h3>
+<p>
+    The <dfn>Microsoft.ASPNetCore.RateLimiting.RateLimiterOptions</dfn> allow
+    configuring a global <strong><code>PartitionedRateLimiter&lt;HttpContext&gt;</code></strong>.
+    <span class="mark">
+        <strong>
+            If a GlobalLimiter is applied, it will run before any rate limiting
+            policy explicitly specified on an endpoint.
+        </strong>
+    </span>
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Define a global rate limiter that implements rate limiting for all Http
+    requests. It should:
+</p>
+<ul>
+    <li>
+        <p>
+            Implement a <dfn>fixed window</dfn> rate limiter algorithm.
+        </p>
+    </li>
+    <li>
+        <p>
+            Include a <dfn>partition</dfn> that attempts to extract the value of the
+            <code>HttpContext.User.Claims</code> "NameIdentifier", which is the
+            dbo.AspNetUsers[Data] Id column, and use it as a discriminator to assign
+            it a specific counter.
+        </p>
+        <p>
+            Otherwise, the Http request is handled as an anonymous request which shares
+            a counter with all other Http requests that did not include a JWT from an
+            authenticated user for a secured Api resource.
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Consider that in the lesson to <a href="06-security-protect-api">Secure API</a>,
+    we configured two HttpClient services. One that attaches authorization JWTs for
+    scenarios where the user attempts to access secured Application/Server-Api
+    resources and an HttpClient service that does not attach JWTs when the user
+    requests access to unsecured Api resources.
+</p>
+<p>
+    This means that Http requests that do not attempt to access secured
+    Application/Server-Api resources (no JWT) will be treated as "anonymous" and
+    will share the same counter towards the rate limiter options configuration.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the <code>RateLimiterOptions.GlobalLimiter</code> property to set the global
+    <code>PartitionedRateLimiter&lt;HttpContext&gt;</code> that will be applied on all
+    requests. The global limiter will be executed first, followed by any endpoint-specific
+    limiters, if they exist:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/04-global-limiter.png"
+         alt="GlobalLimiter with FixedWindowLimiter algorithm." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Temporarily modify the <code>FixedWindowRateLimiterOptions</code> with a
+    PermitLimit value of 2, within a 5 seconds window, and a Queue Limit value of 0
+    for testing purposes and run the application.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Start the Flix-Manager application and use the <a href="https://www.postman.com/downloads/">
+        Postman
+    </a> API platform to test an API endpoint.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    We need to produce a request to any URL that targets Application/Server-Api
+    resources; e.g., https://localhost:7077/api/movies/flix-manager to ensure that
+    the API is working as expected; i.e., to test its success state:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/15-postman-get-request.png"
+         alt="Postman GET request." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Use the Send button element in Postman to send a number of requests greater than
+    the PermitLimit set in Step Two; i.e., more than 2 requests within a 05 seconds
+    window:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/16-postman-multiple-requests.png"
+         alt="Server response StatusCode 503-Service Unavailable." />
+</div>
+<p>
+    If you follow a similar procedure in the web browser, the Network tab of the
+    web browser's developer tools also displays the current status:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/14-global-rate-limiter-enforced-503.png"
+         alt="Server response StatusCode 503-Service Unavailable." />
+</div>
+<p>
+    The server responds with a <code>503 Service Unavailable</code> response code that
+    indicates that the server is not ready to handle the request. If you wait for 5
+    seconds (the time span window defined earlier in step two), the server should have
+    recovered and the Http request should be served as expected.
+</p>
+<p>
+    The default configuration produces a server response that is not very user friendly
+    because the response code does not provide enough information to the user. Before
+    adding more rate limiting configurations, we will focus on improving the server
+    response to facilitate the testing procedure for the multiple rate limiting options
+    we will implement.
+</p>
+<h4>API Throttling</h4>
+<p>
+    As mentioned earlier, API throttling is a performance management technique that
+    controls the amount of traffic the API can handle. When the threshold is reached,
+    requests that exceed the limit are temporarily blocked and placed in a queue
+    so that they can be processed in a subsequent window.
+</p>
+<p>
+    The <code>QueueLimit</code> property of the <code>RateLimiterOptions</code>
+    algorithm is .Net's 7 version of API throttling. It allows to define a
+    maximum cumulative permit count of queued acquisition requests:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/30-queue-limit.png"
+         alt="Queue limit property." />
+</div>
+<p>
+    In other words, when a rate limiting threshold is reached, the <code>QueueLimit</code>
+    property value defines how many Http requests should be queued before starting
+    to reject them. Once the <code>Window</code> (period of time for the current Window)
+    is re-set, the queued requests will be served within the rate limiting parameters.
+</p>
+<p>
+    Suppose you set the <dfn>RateLimiterOptions</dfn> of a FixedWindow rate limiting algorithm
+    with the following values:
+</p>
+<ul>
+    <li>PermitLimit = 05</li>
+    <li>Window = TimeSpan.FromSeconds(60)</li>
+    <li>QueueLimit = 03</li>
+</ul>
+<p>
+    As long as the user makes 05 requests or less to the API within the 60 seconds window,
+    the requests won't be rate limited. However, if within the same window (60 seconds) the
+    user generates another 05 requests, the following actions will be taken:
+</p>
+<ul>
+    <li>
+        The API will be throttled, meaning requests 06 to 10 will not be served within the
+        time window of 60 seconds.
+    </li>
+    <li>
+        Requests number 06, 07, and 08 will be queued until the next window of 60 seconds
+        becomes available.
+    </li>
+    <li>
+        Requests number 09 and 10 will be rejected (discarded).
+    </li>
+</ul>
+<h3>Handling Rejected Requests</h3>
+<p>
+    The <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.ratelimiting.ratelimiteroptions?view=aspnetcore-7.0">
+        RateLimiterOptions
+    </a> class provides properties to customize the server response when requests are
+    rejected by this middleware:
+</p>
+<ul>
+    <li>
+        <p>
+            The <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.ratelimiting.ratelimiteroptions.onrejected?view=aspnetcore-7.0#microsoft-aspnetcore-ratelimiting-ratelimiteroptions-onrejected">
+                OnRejected
+            </a> property sets a <code>Func&lt;OnRejectedContext, CancellationToken, ValueTask&gt;</code>
+            delegate with access to the OnRejectedContext class which in turn provides
+            access to:
+        </p>
+        <ul>
+            <li>
+                The current rate limit context including the HttpContext related to
+                the OnRejected callback. This is useful because you can use the
+                <code>OnRejectedContext.HttpContext.RequestServices</code>
+                IServiceProvider to get access to the ILogger service and log any
+                relevant metadata.
+            </li>
+            <li>
+                The <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.ratelimiting.onrejectedcontext.lease?view=aspnetcore-7.0#microsoft-aspnetcore-ratelimiting-onrejectedcontext-lease">
+                    Lease
+                </a> property which is an abstraction that represents the success
+                or failure to acquire a resource and contains potential metadata that
+                is relevant to the acquisition operation.
+            </li>
+        </ul>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Handle any rate limiting rejected requests to provide more meaningful information
+    in the server response. It should:
+</p>
+<ul>
+    <li>
+        Send a <code>429 Too Many Requests</code> response status code. This will
+        indicate the user that too many requests have been sent in a given amount
+        of time (rate limiting).
+    </li>
+    <li>
+        Include a <code>Retry-After</code> response header that indicates how long to
+        wait before making a new request.
+    </li>
+    <li>
+        Provide the RateLimiter that initiated the rejection and the partition key
+        used.
+    </li>
+    <li>
+        Log the information in the debug console.
+    </li>
+    <li>
+        Write the information in the response body.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Declare a class level private field to store the name of the RateLimiter that
+    initiated a rejection and the partition key used when a rate limiter operation
+    is triggered for an Http request:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/17-rate-limiter-field.png"
+         alt="_rateLimiterAndPartitionKey class level field." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the <code>RateLimiterOptions.OnRejected</code> delegate to customize
+    how to handle any rate limiting rejected requests:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/18-on-rejected-handler-one.png"
+         alt="OnRejected handler part one." />
+    <img src="Images/34-api-rate-limiting/19-on-rejected-handler-two.png"
+         alt="OnRejected handler part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the GlobalLimiter to initialize the <code>_rateLimiterAndPartitionKey</code>
+    field responsible for capturing any relevant information. This field will be
+    passed as metadata to the OnRejected delegate when an Http request is rejected
+    by the GlobalLimiter PartitionedRateLimiter:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/20-global-limiter-capture-data.png"
+         alt="_rateLimiterAndPartitionKey initialized." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the Postman platform or the web browser to produce a request to any URL that
+    targets Application/Server-Api resources; e.g., https://localhost:7077/api/movies/flix-manager
+    to ensure that the API is working as expected; i.e., to test its success state.
+    If successful, send a number of requests greater than the PermitLimit set earlier;
+    i.e., more than 2 requests within a 05 seconds window.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Run the application, produce multiple Get requests to reach the rate limiting
+    threshold, and check the server response:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/21-global-limiter-response.png"
+         alt="GlobalLimiter rejection response with relevant info." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Run the application, login with the admin user created in the
+    <a href="04-secure-user-manager">Secure User Manager</a> lesson, and generate
+    a request that targets a secured API resource; e.g.,
+    https://localhost:7077/api/users
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/22-global-limiter-response-jwt.png"
+         alt="GlobalLimiter rejection response with relevant info." />
+</div>
+<p>
+    The server response is much more informative. It contains the StatusCode 429 -
+    Too Many Requests, a "retry-after" response header, a response body with the
+    RateLimiter triggered, and the partition key employed.
+</p>
+<h3>Rate Limiting Policies</h3>
+<p>
+    As mentioned earlier, the <strong><code>Microsoft.AspNetCore.RateLimiting</code></strong>
+    library provides rate limiting middleware. An application can configure rate limiting
+    policies and then apply those policies at a global level, to specific Razor pages,
+    controllers, and/or controller actions.
+</p>
+<p>
+    In last exercise, we demonstrated how to apply rate limiting to all Http requests
+    with a GlobalLimiter but it is very likely that you will encounter scenarios where
+    different rate limiting options are required for certain instances such as Razor pages,
+    controllers or even controller actions.
+</p>
+<p>
+    For example, we can design two rate limiting policies to handle Http requests for
+    completely different types of operations:
+</p>
+<ul>
+    <li>
+        <strong><code>ApiRateLimitPolicy</code></strong>:
+        Rate limiting policy that handles Http requests for secured and/or unsecured
+        API resources. Given the <a href="05-api">structure of our application</a>,
+        these kind of requests are intended for MVC controllers of the
+        Application/Server-Api/Controllers directory.
+    </li>
+    <li>
+        <strong><code>RazorPagesRateLimitPolicy</code></strong>:
+        As explained in the introductory lesson on <a href="01-security-fundamentals">
+            Security
+        </a>, ASP.Net Core incorporates Identity as a Razor class library. The
+        RazorPagesRateLimitPolicy will handle Http requests for authenticating and/or
+        authorizing application users. These kind of requests are meant for Razor
+        pages of the Application/Server-Api/Areas/Identity/Pages directory.
+    </li>
+</ul>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        A rate limiting policy can be defined in line as shown below or within
+        a custom class that derives from <code>IRateLimiterPolicy&lt;T&gt;</code>.
+        You can refer to
+        <a href="https://blog.maartenballiauw.be/post/2022/09/26/aspnet-core-rate-limiting-middleware.html">
+            Create custom rate limiting policies
+        </a>,
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0#limiter-with-onrejected-retryafter-and-globallimiter">
+            SampleRateLimiterPolicy class
+        </a>, and
+        <a href="https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/#ratelimiting-middleware">
+            RateLimiting middleware
+        </a> for examples.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a rate limiting policy that will eventually enforce rate limiting for
+    all Http requests that target secured and/or unsecured API resources. It should:
+</p>
+<ul>
+    <li>
+        Include a <dfn>RateLimitPartition</dfn> with a <dfn>partitionKey</dfn> that
+        is the result of an attempt to extract a JWT access token from the Http
+        request and decode it to retrieve its subject ("sub") claim value which is
+        the dbo.AspNetUsers[Data] Id column of type GUID. If successful, it provides
+        its own Fixed Window Limiter algorithm with a set of specific options.
+    </li>
+    <li>
+        Additionally, if no JWT access token found in the Http request, define a
+        <dfn>RateLimitPartition</dfn> with a <dfn>partitionKey</dfn> that treats all
+        Http requests as anonymous. It provides its own Fixed Window Limiter algorithm
+        with a set of specific options.
+    </li>
+    <li>
+        <span class="badge bg-info">Notice:</span>
+        This policy allows to define a separate <dfn>RateLimitPartition</dfn> for
+        each scenario. Consequently, each RateLimitPartition can have its own and
+        unique rate limiting algorithm with particular options.
+    </li>
+</ul>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you require a more specific rate limiting option for Http requests that
+        target unsecured resources (No JWT), you could implement <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-7.0#session-state">
+            Microsoft.Asp.Net Core Session and State Management
+        </a> and use a cookie as the user identifier for each Http request that lacks
+        a JWT.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a class level property that represents the name for the rate limit
+    policy intended for Http requests that target Application/Server-Api
+    resources. The property can be used to reference the policy from different
+    instances; e.g., from controllers, controller actions, etc.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/07-api-rate-limit-policy-name.png"
+         alt="ApiRateLimitPolicy property represents the policy name." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The property name and property value <strong>must exactly match</strong>.
+    Otherwise, the [EnableRateLimiting] and [DisableRateLimiting] attributes
+    throw an exception.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the <code>RateLimiterOptions.AddPolicy</code> method to add a new rate limiting
+    policy with the given <code>PolicyName</code>. Its name can be used later to
+    reference the policy when applying it under different circumstances:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/08-api-rate-limit-policy-one.png"
+         alt="ApiRateLimitPolicy part one." />
+    <img src="Images/34-api-rate-limiting/09-api-rate-limit-policy-two.png"
+         alt="ApiRateLimitPolicy part two." />
+    <img src="Images/34-api-rate-limiting/10-api-rate-limit-policy-three.png"
+         alt="ApiRateLimitPolicy part three." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a rate limiting policy that will eventually enforce rate limiting for
+    all Http requests that intend to authenticate and/or authorize application
+    users. It should:
+</p>
+<ul>
+    <li>
+        Implement a single rate limiter algorithm for two partition keys.
+    </li>
+    <li>
+        Include a <dfn>RateLimitPartition</dfn> with a <dfn>partitionKey</dfn> that
+        is the result of an attempt to retrieve the "NameIdentifier" claim from the
+        <code>HttpContext.User.Claims</code> collection. If successful, the claim
+        value, which is the dbo.AspNetUser[Data] Id column, is used as the partition
+        key.
+    </li>
+    <li>
+        Otherwise, it employs an "anonymous" <dfn>partition key</dfn> that treats
+        all Http requests as anonymous.
+    </li>
+    <li>
+        Either one of the <dfn>partitionKeys</dfn> is applied to the FixedWindow
+        Limiter algorithm of the only <code>
+            RateLimitPartition
+        </code>.
+    </li>
+    <li>
+        <span class="badge bg-info">Notice:</span>
+        This policy defines a single <dfn>RateLimitPartition</dfn> for both partition
+        keys. Consequently, both partition keys share the rate limiting algorithm
+        and its options.
+    </li>
+</ul>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you require a more specific rate limiting option for Http requests originated
+        from unauthenticated users, you could implement <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-7.0#session-state">
+            Microsoft.Asp.Net Core Session and State Management
+        </a> and use a cookie as the identifier for each user.
+    </p>
+</div>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Create a class level property that represents the name for the rate limit
+    policy intended for Http requests that target Razor Pages used by ASP.Net
+    Core Identity for the AuthN and AuthZ UI. The property can be used to
+    reference the policy from different instances; e.g., from Razor pages:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/11-razor-pages-rate-limit-policy-name.png"
+         alt="RazorPagesRateLimitPolicy property represents the policy name." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the <code>RateLimiterOptions.AddPolicy</code> method to add a new rate limiting
+    policy with the given <code>PolicyName</code>. Its name can be used later to
+    reference the policy when applying it under different circumstances:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/12-razor-pages-rate-limit-policy-one.png"
+         alt="RazorPagesRateLimitPolicy part one." />
+    <img src="Images/34-api-rate-limiting/13-razor-pages-rate-limit-policy-two.png"
+         alt="RazorPagesRateLimitPolicy part two." />
+</div>
+<p>
+    We have defined two rate limiting policies but we have not specified how or when
+    should they be applied. At this point, the policies are not being enforced.
+</p>
+<h4><strong><code>[EnableRateLimiting]</code> attribute</strong></h4>
+<p>
+    Rate limiting in ASP.Net Core is controlled with the <code>[EnableRateLimiting]</code>
+    attribute and its <em>policy name</em> parameter of type string. Applying the
+    <strong><code><code>[EnableRateLimiting({PolicyName})]</code></code></strong>
+    attribute to a controller, a controller action, or a Razor page limits the network
+    traffic to the resource where it is explicitly specified.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <code>[EnableRateLimiting]</code> attribute to apply the ApiRateLimitPolicy
+    at the controller action level (e.g., with any MoviesController endpoint) and at the
+    controller level (e.g., MoviesController) to test its behaviour.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Adjust the RateLimiter options for the global rate limiter and for the
+    ApiRateLimitPolicy such that under a stress load, the ApiRateLimitPolicy restrictions
+    are triggered before. For example:
+</p>
+<ul>
+    <li>
+        <p>
+            GlobalLimiter:
+            <ul>
+                <li>PermitLimit: 100</li>
+                <li>Window: 05 seconds</li>
+                <li>QueueLimit: 00</li>
+            </ul>
+        </p>
+    </li>
+    <li>
+        <p>
+            ApiRateLimitPolicy:
+        <p>
+            JWT AccessToken partition key & Anonymous User partition key:
+            <ul>
+                <li>PermitLimit: 02</li>
+                <li>Window: 05 seconds</li>
+                <li>QueueLimit: 00</li>
+            </ul>
+        </p>
+        </p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Decorate the <code>GetFlixManagerDtoTask</code> action of the
+    Application/Server-Api/Controllers MoviesController with an <code>[EnableRateLimiting]</code>
+    attribute, pass the ApiRateLimitPolicy as an argument, and test its rate limiter.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    Decorate the <code>GetFlixManagerDtoTask</code> action of the
+    Application/Server-Api/Controllers MoviesController with an <code>[EnableRateLimiting]</code>
+    attribute and pass the ApiRateLimitPolicy as an argument:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/23-rate-limiting-action.png"
+         alt="GetFlixManagerDtoTask action decorated to enable rate limiting." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Run the application and generate multiple requests to the
+    https://localhost:7077/movies/flix-manager endpoint to test the ApiRateLimitPolicy. You
+    should get something like this once you hit the rate limit policy threshold:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/24-api-rate-limit-response.png"
+         alt="ApiRateLimitPolicy server response." />
+</div>
+<p>
+    Except for the GetFlixManagerDtoTask endpoint, the rest of the MoviesController
+    actions should not be rate limited by the ApiRateLimitPolicy. Only by the
+    GlobalLimiter but for the time being, it has a threshold of 100 requests within
+    a 05 seconds window.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Decorate the MoviesController with an [EnableRateLimiting] attribute and pass the
+    ApiRateLimitPolicy as an argument. Test the api resource (any API endpoint of the
+    Movies controller) with a number of requests that surpasses its rate limiting
+    threshold.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1:</span>
+    Decorate the <code>MoviesController</code> with an <code>[EnableRateLimiting]</code>
+    attribute and pass the ApiRateLimitPolicy as an argument:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/25-rate-limit-controller.png"
+         alt="RateLimit controller." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Run the application and generate multiple requests to any of the MoviesController
+    actions to test the ApiRateLimitPolicy. This time the policy should be applied
+    at the controller level.
+</p>
+<h4><strong><code>[DisableRateLimiting]</code> attribute</strong></h4>
+<p>
+    You can use the <strong><code>[DisableRateLimiting]</code></strong> attribute to
+    disable rate limiting at the controller, controller action, or Razor page level
+    <strong>regardless of</strong> named rate limiters or global limiters applied.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the <code>[DisableRateLimiting]</code> attribute to disable rate limiting
+    for the GetFlixManagerDtoTask action of the MoviesController.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the GetFlixManagerDtoTask action and replace the <code>[EnableRateLimiting]</code>
+    with the <code>[DisableRateLimiting]</code> attribute. Since the MoviesController
+    is also decorated with an [EnableRateLimiting] attribute, the rate limiting
+    restrictions of the ApiRateLimitPolicy should still apply to the rest of the
+    controller actions.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/26-diable-rate-limit.png"
+         alt="GetFlixManagerDtoTask action decorated with disable rate limit attribute." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the application and generate multiple requests to any of the MoviesController
+    actions to test the ApiRateLimitPolicy. This time the policy restrictions should
+    be applied to all MoviesController actions except for the GetFlixManagerDtoTask
+    action (flix-manager endpoint):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/27-filter-rate-limited.png"
+         alt="RateLimiting disabled with flix-manager endpoint." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    <strong>Remove</strong> all the rate limiting attributes from the MoviesController.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can refer to <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0#enableratelimiting-and-disableratelimiting-attributes">
+            EnableRateLimiting and DisableRateLimiting attributes
+        </a>
+        for more info on specific behaviour with examples of their interactions.
+    </p>
+</div>
+<h4>RequireRateLimiting method</h4>
+<p>
+    The <strong><code>RequireRateLimiting</code></strong> extension method applies the
+    specified rate limiting policy to the related setup. For example, you can instruct
+    the rate limiting middleware to apply a given rate limiting policy against all
+    controllers or all Razor pages.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the application's Http request pipeline to apply the ApiRateLimitPolicy to
+    all the app's MVC controllers. Recall that given the structure of our application, MVC
+    controller actions target Application/Server-Api resources.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the dependency injection container of the Application/Server-Api and
+    use the <code>RequireRateLimiting</code> extension method to extend the
+    <code>MapControllers</code> method responsible for adding endpoints for
+    controller actions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/28-require-rate-limiting-mvc.png"
+         alt="RequireRateLimiting on the MapControllers method." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Use the application's Http request pipeline to apply the RazorPagesRateLimitPolicy
+    to all its Razor pages. Recall that given the structure of our application, Razor
+    pages are used for the authentication and authorization UI.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the dependency injection container of the Application/Server-Api and
+    use the <code>RequireRateLimiting</code> extension method to extend the
+    <code>MapRazorPages</code> method responsible for adding endpoints for
+    Razor pages:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/34-api-rate-limiting/29-require-rate-limit-razor-pages.png"
+         alt="RequireRateLimiting on MapRazorPages method." />
+</div>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Adjust the <code>RateLimiterOptions</code> values of all the <code>
+            RateLimitPartition
+        </code>(s) because they were set to facilitate testing the rate limiting
+        policies as they were created.
+    </p>
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Adjust the <code>RateLimiterOptions</code> for the GlobalLimiter, the
+    ApiRateLimitPolicy and the RazorPagesRateLimitPolicy with the following
+    values:
+</p>
+<ul>
+    <li>
+        <p>GlobalLimiter</p>
+        <ul>
+            <li>PermitLimit = 60</li>
+            <li>Window = TimeSpan.FromSeconds(60)</li>
+            <li>QueueLimit = 0</li>
+        </ul>
+    </li>
+    <li>
+        <p>ApiRateLimitPolicy</p>
+        <ul>
+            <li>
+                <p>JWT RateLimitPartition</p>
+                <ul>
+                    <li>PermitLimit = 30</li>
+                    <li>Window = TimeSpan.FromSeconds(60)</li>
+                    <li>QueueLimit = 1</li>
+                </ul>
+            </li>
+            <li>
+                <p>Anonymous RateLimitPartition</p>
+                <ul>
+                    <li>PermitLimit = 60</li>
+                    <li>Window = TimeSpan.FromSeconds(60)</li>
+                    <li>QueueLimit = 1</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>RazorPagesRateLimitPolicy</p>
+        <ul>
+            <ul>
+                <li>PermitLimit = 60</li>
+                <li>Window = TimeSpan.FromSeconds(60)</li>
+                <li>QueueLimit = 1</li>
+            </ul>
+        </ul>
+    </li>
+</ul>
+<h3>Rate Limit an HTTP handler in .Net</h3>
+<p>
+    You can create a client-side HTTP handler that rate limits the number of requests
+    it sends. To control the flow of requests, you can implement a custom
+    <strong>
+        <code>
+            DelegatingHandler
+        </code>
+    </strong> subclass. This is a type of <strong><code>HttpMessageHandler</code></strong>
+    that allows to intercept and handle requests before they are sent to the server.
+</p>
+<p>
+    This approach could be used to implement a rate-limited HTTP client for resources
+    that you know have API limits. In this way, you can prevent your client app from
+    making unnecessary requests to the server, and you can also prevent your app from
+    being blocked by the server.
+</p>
+<p>
+    Additionally, with the use of metadata to store retry timing values, you could
+    also implement automatic retry logic. You can refer to <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/http-ratelimiter#emulate-many-concurrent-requests">
+        Rate limit an HTTP handler in .Net
+    </a> for more info.
+</p>
+<h3>Testing endpoints with rate limiting</h3>
+<p>
+    Before deploying to production an application using rate limiting, you should
+    stress test the app to validate the rate limiter options defined.
+</p>
+<p>
+    For example, you can:
+</p>
+<ul>
+    <li>
+        Create a console app to <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/http-ratelimiter#emulate-many-concurrent-requests">
+            emulate many concurrent requests
+        </a>.
+    </li>
+    <li>
+        Use <a href="https://jmeter.apache.org/">Apache JMeter</a> tool to
+        set up load tests. Refer to YouTube video <a href="https://youtu.be/vpeddZPkfAw">
+            Rate Limiting in .Net 7.0: Getting Started
+        </a> video of The Code Wolf channel for some examples and to the
+        <a href="https://github.com/apache/jmeter">
+            apache/jmeter
+        </a> repository in GitHub for more info.
+    </li>
+    <li>
+        Create a
+        <a href="https://jmeter.apache.org/usermanual/jmeter_proxy_step_by_step.html">
+            JMeter script
+        </a> with a tool like
+        <a>
+            BlazeMeter
+        </a> or
+        <a href="https://guide.blazemeter.com/hc/articles/207421695-Writing-your-first-JMeter-script">
+            Apache JMeter HTTP(S) Test Script Recorder
+        </a> and load the script to
+        <a href="https://learn.microsoft.com/en-us/azure/load-testing/overview-what-is-azure-load-testing">
+            Azure Load Testing
+        </a>
+    </li>
+</ul>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://www.imperva.com/learn/application-security/rate-limiting/">
+            Rate Limiting
+        </a> by imperva.
+    </li>
+    <li>
+        YouTube video <a href="https://youtu.be/U7jkikopOMw">
+            What is azure api management service
+        </a> by kudvenkat.
+    </li>
+    <li>
+        YouTube video <a href="https://youtu.be/vpeddZPkfAw">
+            Rate Limiting in .Net 7.0: Getting Started
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/9CIjoWPwAhU">
+            What is Rate Limiting / API Throttling? | System Design Concepts
+        </a> in Be a Better Dev channel.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-7.0#enableratelimiting-and-disableratelimiting-attributes">
+            Rate limiting middleware in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://nicolaiarocci.com/on-implementing-the-asp.net-core-7-rate-limiting-middleware/">
+            On implementing the ASP.Net Core 7 rate-limiting middleware
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.maartenballiauw.be/post/2022/09/26/aspnet-core-rate-limiting-middleware.html">
+            ASP.Net Core rate limiting middleware in .Net 7
+        </a>
+    </li>
+    <li>
+        <a href="https://blog.elmah.io/built-in-rate-limiting-in-asp-net-core-vs-aspnetcoreratelimit/">
+            Built-in rate limiting in ASP.Net Core vs AspNetCoreRateLimit
+        </a>
+    </li>
+    <li>
+        <a href="https://devblogs.microsoft.com/dotnet/announcing-rate-limiting-for-dotnet/#ratelimiting-middleware">
+            Announcing Rate Limiting for .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-7.0#session-state">
+            Session and state management in ASP.Net Core
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/http-ratelimiter">
+            Rate limit an Http handler in .Net
+        </a>
+    </li>
+    <li>
+        Third party .Net library
+        <a href="https://github.com/stefanprodan/AspNetCoreRateLimit#aspnetcoreratelimit">
+            AspNetCoreRateLimit
+        </a> by stefanprodan with support for .Net 7.
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-7.0">
+            Distributed caching in ASP.Net Core
+        </a>
+    </li>
+</ul>

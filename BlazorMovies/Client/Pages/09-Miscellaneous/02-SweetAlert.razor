@@ -1,0 +1,456 @@
+﻿@page "/02-sweet-alert"
+<PageTitle>Sweet Alert</PageTitle>
+
+<h2>Miscellaneous - Sweet Alert</h2>
+<p>
+    We have demonstrated different approaches for providing feedback to
+    an application user. For example, in <a href="02-components-part-three">
+        Part-III
+    </a> of the Components module, we used JS window object methods to
+    interact with the user by displaying alert, confirm, and prompt
+    dialog boxes calling built-in JS functions from .Net using JS
+    Interop.
+</p>
+<p>
+    Later, in the lesson on Capturing References to Components in
+    <a href="02-components-part-four">
+        Part-IV
+    </a> of the Components module, we demonstrated how to
+    implement a Confirmation component using a Bootstrap modal that
+    requests a confirmation to the user for a given action.
+</p>
+<p>
+    Both approaches serve their purpose of providing feedback to an application
+    user. Nonetheless, built-in JS dialog boxes are just that; simple, dialog boxes that
+    lack custom styling. The modal component from Bootstrap is more appealing but it does
+    not hurt to have more options.
+</p>
+<h4>SweetAlert 2</h4>
+<p>
+    SweetAlert is a third party JavaScript standalone
+    library that has no dependencies and it is made from a JavaScript
+    file plus a CSS file. It provides easy methods to design and add
+    functionality to JavaScript popup boxes by calling the function of
+    sweet alert:
+    <strong><code>swal.fire()</code></strong>.
+</p>
+<h4>Setting up SweetAlert 2</h4>
+<p>
+    SweetAlert is a JS library that can be either downloaded or
+    grabbed from a Content Delivery Network (CDN). For more info on
+    CDNs, you can refer to the <a href="02-components-part-four">
+        Bootstrap & Blazor
+    </a> section in Part-IV of the Components module.
+</p>
+<p>
+    In this lesson, we will request a cached version of SweetAlert2
+    using an open source CDN such as <a href="https://www.jsdelivr.com/">
+        JSDelivr
+    </a> because this is the quickest and more simple way to
+    set up SweetAlert2 in our application.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Set up SweetAlert2.
+</p>
+<p>
+    <span class="badge bg-black">Step One:</span>
+    Go to the <a href="https://sweetalert2.github.io/#download">SweetAlert2</a> download and
+    install section, copy the JS script, and paste it in the body tag of the <dfn>host page</dfn>
+    in the Application/Client <a href="02-components-part-two">
+        web root
+    </a> directory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/01-sweet-alert-script.png"
+         alt="SweetAlert2 script in the host page." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create a service to wrap the functionality required to interact with the JavaScript library
+    of SweetAlert2. Provide methods that allow to:
+</p>
+<ul>
+    <li>
+        Display a dialog box with a basic message.
+    </li>
+    <li>
+        Display a dialog box with a title, a message, and an icon.
+    </li>
+    <li>
+        Display a dialog box with a title, a message, an icon, a 'confirm', and
+        a 'cancel' button element.
+    </li>
+</ul>
+<p>
+    As explained in the lesson on <a href="02-components-part-three">JSInterop</a>, with
+    Blazor you can use CSharp code to call a JS function/API and JS code to call any
+    CSharp method. Take for example the Application/Client/Pages/Movies FlixManager routable
+    component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/02-flix-manager.png"
+         alt="Flix Manger UI." />
+</div>
+<p>
+    It employs the Application/Client/Shared MoviesCatalog component to handle the collection
+    of Movie items available from the data store. The <a href="02-components-part-four">
+        MoviesCatalog
+    </a> defines a <code>DeleteMovieAsync</code> handler for the <code>DeleteMovie</code>
+    event callback of the <a href="02-components-part-four">RenderMovie</a> component
+    resonsible for rendering each Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/03-movies-catalog-code-file.png"
+         alt="MoviesCatalog code file." />
+</div>
+<p>
+    The DeleteMovieAsync method invokes a JS function through the ConfirmDeleteDialogBox
+    custom extension method that belongs to the IJSRuntimeExtensions class created in the
+    <a href="02-components-part-three">Components Part-III</a> lesson. It extends the
+    functionality of the built-in IJSRuntime interface by wrapping the code logic to invoke
+    JS functions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/04-ijs-runtime-extensions.png"
+         alt="IJSRuntimeExtensions class." />
+</div>
+<p>
+    Having commonly required JS function invocations integrated into a single class allows
+    changing their implementation from a single place. For this reason, it makes sense to
+    keep extending the built-in <code>IJSRuntime</code> interface with methods that wrap
+    the code logic required to invoke SweetAlert functions.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the SweetAlert example to implement a SwAlDisplayMessageAsync extension method
+    that encapsulates the code logic to invoke a SweetAlert JS function to display a basic
+    message to the application user.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1</span>
+    Go to the <a href="https://sweetalert2.github.io/#examples">examples</a> section of the
+    SweetAlert website and use the basic message example to implement it into our
+    IJSRuntimeExtensions class.
+</p>
+<p>
+    SweetAlert2 basic message example:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/06-swal-basic-example.png"
+         alt="SweetAlert2 basic message example." />
+</div>
+<p>
+    IJSRuntimeExtensions implementation for SweetAlert's basic message:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/05-swal-display-message.png"
+         alt="SweetAlert basic message function implemented in IJSRuntimeExtensions." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2</span>
+    Go to the DeleteMovieAsync method of the MoviesCatalog component code file and include
+    a call to the SweetAlert basic message function we just implemented to inform the user
+    that the Movie record has been deleted successfully:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/07-successful-delete-message.png"
+         alt="DeleteMovieAsync method with a call to custom extension method." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3</span>
+    Run the application, login with an application user that has the credentials to
+    delete content (e.g., admin@@email.com password: 123$), navigate to the Flix Manager
+    routable component and delete a Movie item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/08-swal-message.png"
+         alt="SweetAlert basic message." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the SweetAlert example to implement a SwAlDisplayMessageAsync extension method
+    overload that encapsulates the code logic to invoke a SweetAlert JS function to display
+    a dialog box with a title, a message, and an icon.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1</span>
+    Go to the <a href="https://sweetalert2.github.io/#examples">examples</a> section of the
+    SweetAlert website and use the related example to implement it into our
+    IJSRuntimeExtensions class.
+</p>
+<p>
+    SweetAlert2 example:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/09-swal-example-with-icon.png"
+         alt="SweetAlert example." />
+</div>
+<p>
+    SweetAlert modal comes with 5 <a href="https://sweetalert2.github.io/#icons">built-in types</a>
+    which will show a corresponding icon animation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/10-swal-icon-types.png"
+         alt="SweetAlert built-in icons." />
+</div>
+<p>
+    The type can be defined in the array under the key 'type' or passed as the third parameter
+    of the function. We can make things easier when calling our .Net extension method overload
+    by <strong>
+        creating a type <code>enum</code> with items that represent the SweetAlert modal types.
+    </strong>
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2</span>
+    Go to the Application/Shared/Helpers Enums file and create an enum with the aforementioned
+    values:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/11-swal-icons-enum.png"
+         alt="Enum with SweetAlert modal types." />
+</div>
+<p>
+    IJSRuntimeExtensions implementation for SweetAlert's dialog box with title, message, and
+    icon:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/12-swal-display-message-overload.png"
+         alt="SweetAlert display message overload with title, message, and icon." />
+</div>
+<p>
+    We mentioned at the end of last lesson on implementing a <a href="01-movie-score">
+        Movie Score System
+    </a> that there is no feedback to the user. There is no way for the user to know if
+    the selected movie score was registered correctly.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3</span>
+    Go to the OnScoreSelectedAsync handler in Application/Client/Pages/Movies MovieBulletin
+    code file and use the IJSRuntimeExtensions method overload we just created to provide
+    feedback to the user after a new MovieScore has been selected:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/13-movie-bulletin-feedback-one.png"
+         alt="OnScoreSelectedAsync handler with function that provides feedback to the user part one." />
+    <img src="Images/25-sweet-alert/14-movie-bulletin-feedback-two.png"
+         alt="OnScoreSelectedAsync handler with function that provides feedback to the user part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4</span>
+    Run the application, authenticate the current user to enable the MovieScore system,
+    and use the Flix Manager to navigate to the MovieBulletin routable component to vote 
+    for the selected movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/15-movie-score-updated-feedback.png"
+         alt="SweetAlert2 dialog box provides feedback to user on score selected." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    A try-catch block for the OnScoreSelectedAsync method would be ideal but it was
+    omitted for simplicity. We will deal with appropriate exception handling in next 
+    lesson.
+</p>
+<p>
+    So far we have wrapped SweetAlert JS functions that do not return a value but there
+    are situations where it is required to allow the user to provide some kind of input.
+    For example, a modal component responsible for confirming an action. This type of modal
+    must be able to return a bool value.
+</p>
+<p>
+    For this implementation, we will use a JS <dfn>promise</dfn>. In JS a
+    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">
+        promise
+    </a> represents the eventual completion (or failure) of an asynchronous operation
+    and its returning value. It allows to associate handlers with an asynchronous
+    action's eventual success value or failure reason.
+</p>
+<p>
+    This means we need to define a custom JS function to return a value dependent
+    on the action taken by the user. In our scenario, if the user clicks a "Confirm
+    Operation" button element, we will return true, and if the user clicks on the
+    "Cancel" button, we need to return false.
+</p>
+<p>
+    As explained in the <a href="02-components-part-three">Custom JS functions</a>
+    topic in part-III of the Components module, custom JS code can be loaded into
+    Blazor using any of the following approaches:
+</p>
+<ul>
+    <li>
+        Load a script in the &lt;head&gt; tag of the Application/Client Index.html
+        host page of the web root directory (not generally recommended).
+    </li>
+    <li>
+        Load a script in the &lt;body&gt; tag of the host page.
+    </li>
+    <li>
+        Load a script from an external JS (.js) file
+    </li>
+    <li>
+        Inject a script after Blazor starts.
+    </li>
+</ul>
+<p>
+    In this case, we shall load a script (or function) from an external JS file. As
+    you know, <a href="02-components-part-three">JavaScript isolation in JS modules</a>
+    is preferred over placing the JS functions in a global .js file.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the SweetAlert example to implement a SwAlConfirmAsync extension method
+    that encapsulates the code logic to invoke the JS module that contains the
+    SweetAlert JS function to display a dialog box with a title, a message, an icon,
+    and button elements to either cancel or confirm the operation.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.1</span>
+    Go to the <a href="https://sweetalert2.github.io/#examples">examples</a> section of
+    the SweetAlert website and use the related example to implement it into our
+    IJSRuntimeExtensions class.
+</p>
+<p>
+    SweetAlert2 example of a "confirm" dialog with a function attached to the
+    "Confirm" button element:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/16-swal-confirm-example.png"
+         alt="SweetAlert example of confirm dialog with function attached to confirm button." />
+</div>
+<p>
+    The SweetAlert function <code>Swal.fire</code> has two sections. The first part is the
+    regular function we've been using so far responsible for displaying the SweetAlert modal.
+    The second part (<code>.then()</code>) is the JS Promise that represents the eventual
+    completion (or failure) of an asynchronous operation and its returning value.
+</p>
+<p>
+    The JS Promise allows to associate handlers with an asynchronous action's eventual
+    success value or failure reason. For example, if <code>result.isConfirmed</code>,
+    display a SweetAlert modal with "Title: Deleted!", "Message: Your File has ....",
+    and "Icon type: success".
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2</span>
+    Create a SwAlModules.js file that will be populated with SweetAlert JS modules. The
+    .js file is a static file asset and static files (css, images, vides, .js) are served
+    from the root folder (wwwroot).
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/17-web-root-folder-tree.png"
+         alt="WebRoot folder tree with SwAlModules.js file" />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.3</span>
+    Define the custom JS function that will contain a section to invoke the confirmation
+    modal and a section with a JS "Promise" that will return the value that represents what
+    the application user wants to happen. The function should be inside the SwAlModules.js
+    file and must include the <code>export</code> statement:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/18-swal-confirm-function.png"
+         alt="SwAl JS module to display a confirm dialog." />
+</div>
+<p>
+    IJSRuntimeExtensions implementation for SweetAlert's confirm dialog:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/19-swal-confirm-dialog-method-one.png"
+         alt="SweetAlert confirm dialog implemented in IJSRuntimeExtensions class part one." />
+    <img src="Images/25-sweet-alert/20-swal-confirm-dialog-method-two.png"
+         alt="SweetAlert confirm dialog implemented in IJSRuntimeExtensions class part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.4</span>
+    Go to the DeleteMovieAsync handler in Application/Client/Shared MoviesCatalog component
+    code file and use the IJSRuntimeExtensions method we just created to request the user
+    for confirmation before removing the Movie object from the data store:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/24-swal-confirm-one.png"
+         alt="MoviesCatalog employs SwAlConfirmDialogAsync method part one." />
+    <img src="Images/25-sweet-alert/25-swal-confirm-two.png"
+         alt="MoviesCatalog employs SwAlConfirmDialogAsync method part two." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.5</span>
+    Run the application, login with an application user that has the credentials to
+    delete content (e.g., admin@@email.com password: 123$), navigate to the Flix Manager
+    routable component, and select the 'delete' button element of a Movie item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/21-swal-confirmation-dialog.png"
+         alt="SweetAlert confirmation dialog box." />
+</div>
+<p>
+    At this point we have completed our task. We have successfully implemented
+    three .Net methods that extend the IJSRuntime interface to invoke SweetAlert
+    JS functions to display dialog boxes to provide feedback and interact with 
+    the application user.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Upgrade the Application/Client/Pages/Movies MovieBulletin routable component
+    to invoke a SweetAlert JS function to inform an unauthenticated user that he
+    must be authenticated to select a MovieScore on a given Movie object before
+    redirecting him to the Application/Server-Api/Areas/Identity/Pages
+    Account/Login.cshtml view.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the RedirectToLoginView handler and declare an expression to invoke
+    the SweetAlert function responsible for informing the application user that
+    he is about to be redirected to the login view:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/22-redirect-to-login-feedback.png"
+         alt="SweetAlert feedback before redirecting the user." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Run the application, navigate to the Flix Manager, select a Movie object to
+    navigate to the MovieBulletin routable component and attempt to select a
+    MovieScore:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/25-sweet-alert/23-swal-notice.png"
+         alt="SweetAlert dialog box that informs the user before being redirected." />
+</div>
+<p>
+    We have covered just a few use case scenarios but the SweetAlert library has
+    many more <a href="https://sweetalert2.github.io/#examples">exmaples</a>. It is a
+    good idea to take a look to have a general idea of its full capabilities.
+</p>
+<p>
+    In any case, we have a fully functional system to provide feedback to an application
+    user. This means we can finally implement a proper exception handling mechanism to
+    inform the user in case an unexpected error occurs while trying to communicate with
+    the database.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://sweetalert2.github.io/">
+            sweetalert2
+        </a>
+    </li>
+    <li>
+        <a href="https://sweetalert.js.org/guides/">
+            Sweet Alert
+        </a>
+    </li>
+    <li>
+        YouTube video
+        <a href="https://youtu.be/lo6xPG_N2Ew">
+            5 - Blazor: The Power of the JavaScript Ecosystem -
+            SweetAlert2
+        </a> by Felipe Gavilan.
+    </li>
+    <li>
+        <a href="https://www.udemy.com/share/102l0i3@nrwyC_Wctp_wnFt4UEwne2zlEZp6rsbzQkSVUSMCclJpwN-g--wpumT_Fczvot-C/">
+            Episode 94. Providing Feedback with SweetAlert
+        </a> from Udemy course Programming in Blazor - ASP.Net Core 5
+        by Felip Gavilan.
+    </li>
+</ul>
+

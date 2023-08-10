@@ -1,0 +1,1555 @@
+﻿@page "/07-db-reset"
+<PageTitle>Database Backup & Reset</PageTitle>
+
+<h2>Database Backup & Reset</h2>
+<p>
+    We have come to a point where the functionality for the Flix Manager application
+    is almost completed. There is only one more feature that needs to be added. Since
+    we expect end users to play around with the different application modules, it is
+    very likely that its data will be modified for testing purposes.
+</p>
+<p>
+    For this reason, it is imperative to enable an application user to reset the
+    database with the click of a button. The idea is to place this button element
+    in the <a href="movies/flix-manager">Flix Manager</a> routable component. Before
+    discussing the mechanism though, let's recapitulate a few characteristics of the
+    data storage service implemented in the <a href="02-data-storage-options">Data Storage</a>
+    lesson of the Consuming the Api module.
+</p>
+<p>
+    You might recall that we defined an Application/Server-Api/FileStorageManager
+    IFileStorageService interface as an abstraction for save, retrieve, and/or
+    delete operations to store objects. In our scenario, its purpose is to enable
+    saving, retrieving, and/or deleting image files for the Movie and Person data
+    entities. Later, we built two implementations for the interface:
+</p>
+<ul>
+    <li>
+        <p>
+            <strong>Azure Storage Service</strong>
+        </p>
+        <p>
+            Performs the storage operations of image files into an Azure storage
+            account container in the form of Blobs (Binary Large Object). For example,
+            the Movie images (posters) are stored in a container named "images-movies".
+        </p>
+    </li>
+    <li>
+        <p>
+            <strong>InApp Storage Service</strong>
+        </p>
+        <p>
+            Performs the storage operations of image files into local (on-premises)
+            directories in the form of files. For example, the Person images (pictures)
+            are stored in a physical directory of the PC named "images-people" that
+            resides in the web root folder of the server project:
+            Application/Server-Api/wwwroot/images-people.
+        </p>
+    </li>
+</ul>
+<p>
+    The storage service consumed by the application is dependent on the implementation
+    class that is registered in the dependency injection container
+    (Application/Server-Api/Program.cs).
+</p>
+<p>
+    Having said this, the database reset process will deterministically reset the
+    application data to an initial state according to the following workflow:
+</p>
+<ul>
+    <li>
+        Remove any data (image files) from the public containers (or directories)
+        responsible for serving the images to the application.
+    </li>
+    <li>
+        Copy backup data (image files) from the backup containers (or directories)
+        to the public containers.
+    </li>
+    <li>
+        Delete any data from the database tables including ASP.Net Identity tables
+        used for authentication and/or authorization operations.
+    </li>
+    <li>
+        Insert the initial state data to the database tables.
+    </li>
+</ul>
+<h4>Database Backup (on-premises)</h4>
+<p>
+    Before going any further, the current state of the application database should be
+    as desired for production. These includes the Movie, Person, Genre, ApplicationUser,
+    and UserClaims objects. This is the state to which the database will be reset.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that the application database has the following objects:
+</p>
+<ul>
+    <li>
+        <p>Application Users:</p>
+        <ul>
+            <li>
+                <p>Guest:</p>
+                <ul>
+                    <li>
+                        UserName: guest@email.com
+                    </li>
+                    <li>
+                        Email: guest@email.com
+                    </li>
+                    <li>
+                        EmailConfirmed: True
+                    </li>
+                    <li>
+                        FirstName: Guest
+                    </li>
+                    <li>
+                        <a href="07-policy-based-authz">UserClaims</a>: N/A
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p>Creator:</p>
+                <ul>
+                    <li>
+                        UserName: creator@email.com
+                    </li>
+                    <li>
+                        Email: creator@email.com
+                    </li>
+                    <li>
+                        EmailConfirmed: True
+                    </li>
+                    <li>
+                        FirstName: Creator
+                    </li>
+                    <li>
+                        <a href="07-policy-based-authz">UserClaims</a>:
+                        content.creator, user.creator
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p>Admin:</p>
+                <ul>
+                    <li>
+                        UserName: admin@email.com
+                    </li>
+                    <li>
+                        Email: admin@email.com
+                    </li>
+                    <li>
+                        EmailConfirmed: True
+                    </li>
+                    <li>
+                        FirstName: Admin
+                    </li>
+                    <li>
+                        <a href="07-policy-based-authz">UserClaims</a>:
+                        content.creator, content.editor, content.cleaner,
+                        user.creator, user.reader, user.editor, user.cleaner.
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <p>Genres.</p>
+    </li>
+    <li>
+        <p>People (actors).</p>
+    </li>
+    <li>
+        <p>Movies.</p>
+    </li>
+</ul>
+<p>
+    Now that the database is in an optimal state, it is a good idea to protect against
+    data corruption or deletion. Database backups are an essential part of any business
+    continuity and disaster recovery strategy.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    The backup procedure we will demonstrate here is completely independent from the
+    <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/automated-backups-overview?view=azuresql">
+        Automated backups in Azure SQL Database
+    </a>.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the documentation to use the <a href="https://learn.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver16#UsingDeployDACWizard">
+        Export Data-tier Application (DAC) Wizard
+    </a> in Microsoft SQL Server Management Studio (MSSMS); i.e., to backup the database.
+</p>
+<p>
+    When you need to export a database for archiving or for moving to another platform,
+    you can export the database schema and data to a <strong><code>.bacpac</code></strong>
+    file. A BACPAC file is a ZIP file that contains the metadata and data from the database.
+</p>
+<p>
+    In other words, exporting a deployed data-tier application (DAC) or database creates
+    an export file that includes both the definitions of the objects in the database
+    (metadata) and all of the data contained in the tables.
+</p>
+<p>
+    The .bacpac file can be stored in Azure Blob storage or in local storage in an on-premises
+    location and later imported back into Azure SQL Database, Azure SQL Managed Instance, or
+    another instance of the SQL Server (database engine).
+</p>
+<p>
+    The export process builds a DAC export file in two stages:
+</p>
+<ul>
+    <li>
+        The export builds a DAC definition in the export file (BACPAC file) in
+        the same way a DAC extract builds a DAC definition in a DAC package file.
+        The exported DAC definition includes all of the objects (plain old CLR Object -
+        POCO) in the current database.
+    </li>
+    <li>
+        The export bulk copies out the data from all of the tables in the database
+        and incorporates the data into the export file.
+    </li>
+</ul>
+<p>
+    There are different tools to export/import a database. You can refer to the following
+    links for more info:
+</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql#the-azure-portal">
+            Azure Portal
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql#sqlpackage-utility">
+            SQL Package utility
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql#azure-data-studio">
+            Azure Data Studio
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql#sql-server-management-studio-ssms">
+            SQL Server Management Studio (SSMS)
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql#powershell">
+            PowerShell
+        </a>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    After you have ensured that the database is in an ideal state and that all its data
+    is up to date, open MSSMS and connect to the database engine (SQL Server) where your
+    database resides. You can refer to the <a href="07-dynamic-website">Dynamic Website</a>
+    lesson in the Deployment module for instructions on how to access an SQL database
+    from Microsoft SQL Server Management Studio (MSSMS).
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Object Explorer, expand the node for the instance (SQL Server) from which
+    you want to export the DAC, right click the database name, click "Tasks", and select
+    "Export Data-tier Application...":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/01-mssms-submenu.png"
+         alt="Extract Data-tier Application submenu." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Select the destination location to save the .bacpac file. If you choose to save
+    to an Azure storage container, you will have to connect to you Azure storage
+    container.
+</p>
+<p>
+    For the time being, we will store the backup file on a physical drive
+    of a computer on-premises. You can specify a subset of tables to export by using
+    the "Advanced" tab:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/02-export-settings.png"
+         alt="Export settings." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Verify the settings in the summary page and initiate the export operation. The
+    results page should look something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/03-export-results.png"
+         alt="Export results." />
+</div>
+<p>
+    We now have an export file that includes definitions of the POCO objects in the
+    database and all of the data contained in the tables. However, we are not done
+    with the database backup process. As a precautionary measure, we can use Microsoft
+    SQL Server Management Studio (MSSMS) or Visual Studio SQL Server Object Explorer
+    to generate Transact-SQL (T-SQL) scripts to generate the database tables with or
+    without any data.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Follow the documentation to use the <a href="https://learn.microsoft.com/en-us/sql/ssms/scripting/generate-and-publish-scripts-wizard?view=sql-server-ver16#GenPubScriptWiz">
+        Generate and Publish Scripts Wizard
+    </a> to generate T-SQL scripts to create the database.
+</p>
+<p>
+    The generated scripts can be run on another instance of the Database Engine (SQL server)
+    or SQL Database; e.g., Azure SQL database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Open MSSMS and connect to the database engine (SQL Server) where your database resides.
+    You can refer to the <a href="07-dynamic-website">Dynamic Website</a> lesson in the
+    Deployment module for instructions on how to access an SQL database from Microsoft
+    SQL Server Management Studio (MSSMS).
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the Object Explorer, expand the node for the instance (SQL Server) containing the
+    database to be scripted, right click the database name, click "Tasks", and select
+    "Generate Scripts...":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/04-mssms-submenu.png"
+         alt="Generate Scripts submenu." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    In the "Choose Objects" dialog box, select whether you want to script the entire
+    database objects or select specific database objects. For this exercise, we will
+    select the option to script the entire database and all database objects:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/05-choose-objects.png"
+         alt="Choose object dialog box." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    In the "Set Scripting Options" dialog box, select the destination location to save
+    the scripts file and select next. The <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/notebooks/notebooks-guidance?view=sql-server-ver16">
+        Save as notebook
+    </a> option allows to <a href="https://learn.microsoft.com/en-us/sql/azure-data-studio/notebooks/notebooks-guidance?view=sql-server-ver16">
+        use Jupyter Notebooks in Azure Data Studio
+    </a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/06-scripting-options.png"
+         alt="Scripting options." />
+</div>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You can click on the "Advanced" button element of the "Set Scripting
+        Options" dialog box to select whether you want to generate the script
+        for the <strong>schema only</strong> or for the <strong>
+            schema and its data:
+        </strong>
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/21-scripting-options.png"
+         alt="Advanced scripting options." />
+</div>
+<p>
+    We did not choose to generate the data in the script because we will demonstrate an
+    alternate way using Visual Studio SQL Server Object Explorer for pedagogic purposes.
+    However, you can choose to generate both, the schema and the data, in this step.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Verify your selections in the summary dialog box and select "Next" to begin
+    generating the scripts. Once completed, the saved scripts should look something
+    like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/07-saved-scripts.png"
+         alt="Summary of scripts generated and saved to file." />
+</div>
+<p>
+    We now have the T-SQL scripts to generate the entire database. These data could
+    come in handy if for some reason we need to reload or repair the database.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/database-export?view=azuresql">
+            Export to a BACPAC file - Azure SQL Database and Azure SQL Managed Instance
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/relational-databases/data-tier-applications/export-a-data-tier-application?view=sql-server-ver16">
+            Export a Data-tier Application
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/ssms/scripting/generate-and-publish-scripts-wizard?view=sql-server-ver16">
+            Generate and Publish Scripts Wizard
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/sql/ssms/tutorials/scripting-ssms?view=sql-server-ver16">
+            Script objects in SQL Server Management Studio
+        </a>
+    </li>
+</ul>
+<h3>Recreating the Migrations</h3>
+<p>
+    As you know, the migrations feature in EF Core provides a way to incrementally update
+    the database schema to keep it in sync with the application's data model while preserving
+    existing data in the database.
+</p>
+<p>
+    The application's data model, its database schema, and its data have gone through
+    many permutations from the time that we first added data to the database (data
+    seeding) in the <a href="06-api-db-support">DbSupport</a> lesson.
+</p>
+<p>
+    In an effort to perfectly synchronize the data model, the database schema, its data,
+    and the migrations of the application run on-premises (local host) with the application
+    deployed in Azure App Service, we will demonstrate how to recreate the migrations
+    associated with the current state and how to apply them to both applications. The
+    one hosted locally and the one hosted in Azure App Service.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Recreate the migrations and update the database of the Flix Manager application hosted
+    locally. Ensure that the Migrations ModelSnapshot is in sync.
+</p>
+<p>
+    We know that the current state of the database is ready for production. Therefore,
+    we can remove the existing migrations and recreate them as we see fit using the
+    "Generate and Publish Scripts Wizard" in MSSMS as demonstrated earlier or we can
+    use the "Script" feature in Visual Studio SQL Server Object Explorer.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Use the Microsoft SQL Server Management Studio (MSSMS) wizard to clone the
+    database in the local SQL server engine. The cloned database will be used
+    later to generate the SQL scripts to repopulate the main database.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.1:</span>
+    Open MSSMS and connect to the database engine (SQL Server) where your database resides.
+    You can refer to the <a href="07-dynamic-website">Dynamic Website</a> lesson in the
+    Deployment module for instructions on how to access an SQL database from Microsoft
+    SQL Server Management Studio (MSSMS).
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.2:</span>
+    Go to the Object Explorer, expand the node for the instance (SQL Server) containing
+    the database to be cloned, right click the "Databases" directory, and select
+    "Import Data-tier application...":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/12-import-data-tier-option.png"
+         alt="Import Data-tier submenu." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">1.3:</span>
+    Click next, select the BACPAC file to import to create a database, define
+    its name (e.g., MoviesDB-Bak) and the location to store the files, verify
+    the settings, and select "Finish" to initiate the operation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/13-movies-db-bak-folder-tree.png"
+         alt="Object Explorer folder tree with cloned database." />
+</div>
+<p>
+    Since we will manually recreate the migrations to the current state of the
+    data model, the database schema, and its data; we will no longer need to seed
+    data to the data entities as demonstrated in the Data Seeding topic of the
+    <a href="06-api-db-support">DbSupport</a> lesson in the Server-Api module.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Comment out the code logic to seed data into the data entities defined in the
+    Application/Server-Api/DataStore/EntityConfigurations directory:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/09-data-seed-one.png"
+         alt="Data seeding code logic for Genre entity commented out part one." />
+    <img src="Images/40-reset-db/10-data-seed-two.png"
+         alt="Data seeding code logic for Genre entity commented out part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    Comment out the code logic defined in all the entity configuration classes
+    that reside in the EntityConfigurations directory.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Open the <a href="https://learn.microsoft.com/en-us/ef/core/cli/powershell">
+        Package Manager Console
+    </a>, confirm that the "Default project" is the same project where the migrations
+    reside (e.g., BlazorMovies.Server), and use the <code>Remove-Migration</code> command
+    to remove one migration at a time until there are no migrations left in the
+    Application/Server-Api/DataStore Migrations folder.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you receive an error indicating that <em>
+            "The migration 'full name of migration' has already been applied to the
+            database. Revert it and try ......."
+        </em>, you can use the 'Force' command: <strong><code>Remove-Migration -Force</code></strong>
+    </p>
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/08-migrations-folder.png"
+         alt="Migrations folder." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Add an initial migration and update the database to remove any data.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Use the package manager console to add an initial migration with the command
+    <strong><code>Add-Migration -Name InitialCreate -OutputDir DataStore/Migrations</code></strong>.
+    An InitialCreate migration file with the code logic to create the database schema
+    using the current state of the database will be added:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/11-migration-initial-create.png"
+         alt="InitialCreate migration code logic." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Use the package manager console to <strong><code>Update-Database</code></strong>,
+    this should remove all the data from the database. You can use the Visual Studio
+    SQL Server Object Explorer or MSSMS to manually delete any data left in the database
+    tables.
+</p>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Add two more migrations. These migrations will be responsible for defining the T-SQL
+    scripts to repopulate the database tables. The first migration file will include the
+    <em>principal</em> tables and the second migration file will include the <em>linking</em>
+    (or <em>dependent</em>) tables.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.1:</span>
+    Use the package manager console to add a migration named "SeedDataPrincipal" with
+    the command <strong><code>Add-Migration SeedDataPrincipal</code></strong>. A
+    SeedDataPrincipal migration file will be added. It should have no code because we
+    updated the database; i.e., in last step, we synced the InitialCreate migration with
+    the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/14-seed-data-principal-migration.png"
+         alt="SeedDataPrincipal migration file." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.2:</span>
+    Go to the Visual Studio SQL Server Object Explorer, select the node for the cloned
+    database (MoviesDB-bak), right click the Genres table, and select "View Data":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/15-sq-object-explorer.png"
+         alt="SQL Server Object Explorer." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.3:</span>
+    Select all table rows, right click, and select "Script":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/16-genre-table.png"
+         alt="Genre table." />
+</div>
+<p>
+    A new file with raw SQL should be created. The T-SQL script inserts the data into
+    a database table named "Genres":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/17-genres-t-sql.png"
+         alt="T-SQL to insert data into the Genres table." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.4:</span>
+    Go to the "SeedDataPrincipal" migration file and paste the T-SQL script into an
+    SQL code block:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/18-seed-genre-table.png"
+         alt="SeedDataPrincipal migration file with T-SQL script for Genre table." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.5:</span>
+    Repeat steps 5.2 to 5.4 for all the "principal" tables:
+</p>
+<ul>
+    <li>dbo.Movies</li>
+    <li>dbo.People</li>
+    <li>dbo.AspNetUsers</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/19-seed-data-principal-complete.png"
+         alt="SeedDataPrincipal migration file completed." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.6:</span>
+    Use the package manager console to <strong><code>Update-Database</code></strong> and
+    confirm that the corresponding tables of the MoviesDB database are populated with data.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.7:</span>
+    Use the package manager console to add a migration named "SeedDataDependent" with
+    the command <strong><code>Add-Migration SeedDataDependent</code></strong>. A
+    SeedDataDependent migration file will be added.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.8:</span>
+    Repeat steps 5.2 to 5.4 for all the "dependent" tables:
+</p>
+<ul>
+    <li>dbo.GenreMovie</li>
+    <li>dbo.MovieCharacters</li>
+    <li>dbo.MoviePerson</li>
+    <li>dbo.AspNetUserClaims</li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/20-seed-data-dependent-complete.png"
+         alt="SeedDataDependent migration file completed." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">5.9:</span>
+    Use the package manager console to <strong><code>Update-Database</code></strong> and
+    confirm that the corresponding tables of the MoviesDB database are populated with data.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Ensure that the model snapshot is in sync with the current state of the database.
+</p>
+<p>
+    When a model change is introduced, the developer uses EF Core tools to add a
+    corresponding migration describing the updates necessary to keep the database schema
+    in sync. EF Core compares the current model against a snapshot of the old model
+    to determine the differences, and generates migration source files.
+</p>
+<p>
+    Once a new migration has been generated, it can be applied to a database in various
+    ways. EF Core records all applied migrations in a special history table, allowing it
+    to know which migrations have been applied and which haven't.
+</p>
+<p>
+    If you delete a migration file in EF Core, the model snapshot file records and the
+    migration files will be out of sync. This is the reason why it is <strong>
+        strongly
+        advised to use the <code>Remove-Migration</code> command
+    </strong>, as opposed to simply deleting the migration file.
+</p>
+<div class="alert alert-info mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        You might find yourself in a situation where the model snapshot file and
+        the migration files are out of sync. For example, the database lacks tables
+        or table data and this may cause errors and/or prevent properly updating
+        the database.
+    </p>
+</div>
+<p>
+    The procedure to attempt to <strong>sync the model snapshot with the migration files</strong>
+    is:
+</p>
+<ul>
+    <li>
+        Use the package manager console to <strong><code>Add-Migration</code></strong>
+        which will likely add an empty migration file.
+    </li>
+    <li>
+        Use the package manager console to <strong><code>Remove-Migration</code></strong>.
+    </li>
+    <li>
+        Use the package manager console to <strong><code>Update-Database</code></strong>.
+        This last step should synchronize the model snapshot with the migration files.
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Remove the cloned database (Movies-DB-bak) because it will no longer be needed.
+</p>
+<p>
+    We have backed-up the database, recreated its migration files, and ensured that the
+    model snapshot is in sync locally but we are not done yet. These changes have produced
+    an out of sync state between the local files (stored in a physical drive on-premises)
+    with the database hosted in Azure. We still have to export these files to Azure.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Recreate the migrations and update the database of the Flix Manager application hosted
+    in Azure App Service. Ensure that its migrations model snapshot is in sync.
+</p>
+<p>
+    We know that the current state of the database hosted in the cloud (FlixManager)
+    is out of sync with the database hosted on-premises in a physical drive (MoviesDB)
+    because we have performed changes to the migration files, the model snapshot (or
+    migration history), and the actual data.
+</p>
+<p>
+    Therefore, we need to replace the existing migration files and the model snapshot
+    (or migration history) file of the database hosted in Azure with the ones we
+    created manually in last exercise. Then we can use Microsoft SQL Server Management
+    Studio (MSSMS) to generate the scripts to clone that database (schema and data) into
+    Azure.
+</p>
+<p>
+    To replace the existing migration files and the model snapshot (or migration history)
+    file of the database hosted in Azure we can use either one of the following
+    platforms:
+</p>
+<ul>
+    <li>
+        <p>The Azure "Query editor blade" from the SQL database page in Azure portal:</p>
+        <div class="image-lesson mb-3">
+            <img src="Images/40-reset-db/22-azure-query-editor.png"
+                 alt="Azure Query Editor." />
+        </div>
+    </li>
+    <li>
+        <p>Azure Data Studio:</p>
+        <div class="image-lesson mb-3">
+            <img src="Images/40-reset-db/23-azure-data-studio.png"
+                 alt="Azure Data Studio." />
+        </div>
+    </li>
+    <li>
+        <p>Visual Studio SQL Server Object Explorer:</p>
+        <div class="image-lesson mb-3">
+            <img src="Images/40-reset-db/25-visual-studio.png"
+                 alt="Visual Studio SQLl Server Object Explorer." />
+        </div>
+
+    </li>
+    <li>
+        <p>Microsoft SQL Server Management Studio (MSSMS):</p>
+        <div class="image-lesson mb-3">
+            <img src="Images/40-reset-db/36-mssms.png"
+                 alt="Microsoft SQL Server Management Studio." />
+        </div>
+    </li>
+</ul>
+<p>
+    In this exercise, we will employ Azure Data Studio to demonstrate how to use its
+    Intellisense feature to produce T-SQL scripts.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to Azure Data Studio and connect to the FlixManager database hosted in Azure.
+    You can refer to the "Access your Azure SQL database from local machine" task in
+    the <a href="07-dynamic-website">Dynamic Website</a> lesson of the Deployment
+    module for very similar procedures.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use Azure Data Studio Intellisense to produce two new SQLQuery windows to <a href="https://www.w3schools.com/sql/sql_drop_table.asp">
+        drop
+    </a> the tables from the database.
+</p>
+<p>
+    The first SQLQuery window will include T-SQL scripts to drop the <em>linking</em>
+    (or <em>dependent</em>) tables and the second SQLQuery window will include the
+    code to drop the <em>principal</em> tables. Otherwise,  we might get an error when
+    attempting to remove a <em>principal</em> table before any <em>dependent</em> table
+    that might have a dependency to the principal.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.1:</span>
+    In Azure Data Studio, go to "File", select "New Query" to open the query editor,
+    start typing "DROP TABLE" and select "sqlDropTable" option from Intellisense
+    suggestions:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/28-azure-studio-drop.png"
+         alt="Intellisense suggestion to drop table." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.2:</span>
+    Generate T-SQL script blocks to drop the <em>dependent</em> tables of the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/30-drop-tables-dependent.png"
+         alt="Azure DAta Studio SQLQuery window with T-SQL to drop dependent tables." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.3:</span>
+    Generate T-SQL script blocks to drop the <em>principal</em> tables of the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/29-drop-tables-principal.png"
+         alt="Azure DAta Studio SQLQuery window with T-SQL to drop principal tables." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.4:</span>
+    Run the SQLQuery_2 window to drop the <em>dependent</em> tables:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/31-drop-tables-message-dependent.png"
+         alt="Messages window with success results." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.5:</span>
+    Run the SQLQuery_1 window to drop the <em>principal</em> tables.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">2.6:</span>
+    Refresh the connection to the <code>flixmanager-db-server-database.windows.net</code>
+    database and confirm that the database tables have been dropped:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/32-flix-manager-db-folder-tree.png"
+         alt="Folder tree for flixmanager-db-server-database." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the "Generate and Publish Scripts Wizard" of Microsoft SQL Server Management
+    Studio (MSSMS) as demonstrated earlier to generate T-SQL scripts to create the
+    database. Use the MoviesDB database stored on-premises to generate the scripts.
+</p>
+<p>
+    Make sure to select the "Schema and Data" option in the "Set Scripting Options"
+    dialog box to generate the scripts for the schema and for the database data.
+</p>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the scripts to create the database schema and insert its data into the
+    FlixManager database hosted in Azure.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.1:</span>
+    Go to Azure Data Studio, make sure the connection targets the FlixManager database
+    hosted in Azure, create a new query, and paste the T-SQL scripts to create
+    the database schema (tables) and its data.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.2:</span>
+    Replace all the "MoviesDB" references (source database name) in the T-SQL script
+    blocks with "FlixManager" (destination database name). You can use the shortcut "<strong>
+        <code>
+            Ctrl + H
+        </code>
+    </strong>" to replace all the references in a single operation:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/26-create-db-scripts.png"
+         alt="Azure DAta Studio SQLQuery with create DB scripts." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">4.3:</span>
+    Run the query, refresh the connection to the flix-manager-db-server and verify that
+    the database tables are created including their data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/27-inserted-tables-data.png"
+         alt="FlixManager database with schema and data inserted successfully." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    You might get a few minor errors when executing the SQLQuery to create the database
+    but these are related to compatibility issues. Nevertheless, the commands to insert
+    the schema and its data should execute without any problems.
+</p>
+<p>
+    Publish the application to Azure App service to make sure everything is working
+    as expected.
+</p>
+<p>
+    At this point both databases, the one hosted locally (MoviesDB) and the one hosted
+    in Azure (FlixManager), are fully synced. Now we can focus in syncing the data (images)
+    stored in Azure storage account containers with the ones stored in directories of
+    physical drives that reside on-premises.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/?tabs=dotnet-core-cli">
+            Migrations Overview
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/ef/core/cli/powershell">
+            Entity Framework Core tools reference - Package Manager Console in Visual Studio
+        </a>
+    </li>
+</ul>
+<h3>Sync Data in Azure Storage Containers with Local Directories</h3>
+<p>
+    As mentioned at the beginning of this lesson, the Application/Server-Api/FileStorageManager
+    <a href="02-data-storage-options">IFileStorageService</a> is used to save,
+    retrieve, and/or delete image files for the Movie and Person data entities.
+</p>
+<p>
+    Its AzureStorageService implementation performs the storage operations of image files
+    into Azure storage account containers in the form of Blobs (Binary Large Object). For
+    example, the Movie images (movie posters) are stored in a container named "images-movies"
+    and the Person images (actor pictures) are stored in a container named "images-people":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/34-azure-containers.png"
+         alt="Azure containers in storage account." />
+</div>
+<p>
+    The InAppStorageService implementation performs the storage operation of image files
+    into local (on-premises) directories in the form of files. For example, the Person
+    images (actor pictures) are stored in a physical drive of the PC named "images-people"
+    that resides in the web root folder of the server project:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/33-local-server-web-root.png"
+         alt="Folder tree of the local server web root directory." />
+</div>
+<p>
+    We need to ensure that the data (image files) stored in the Azure storage account
+    containers are exactly the same as the one stored in local directories in a physical
+    drive of the PC because these is the data that will be used to reset the database.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Ensure that the data (image files) stored in local directories that reside in
+    the web root folder of the Application/Server-Api project hosted locally are exactly
+    the same as the one stored in the Azure storage account containers.
+</p>
+<p>
+    At the beginning of this lesson, we used the application hosted locally to bring
+    its database state (MoviesDB) up to a point that is ready for production. While
+    performing these operations, the storage service registered in the dependency injection
+    container was the AzureStorageService:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/35-azure-storage-service.png"
+         alt="AzureStorageService registration." />
+</div>
+<p>
+    This means that the data stored in the Azure storage account containers is the data
+    that we must make sure is also stored in the local web root folder of the
+    Application/Server-Api project.
+</p>
+
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Remove any data stored in the "images-movies" and "images-people" directories
+    that reside in the web root folder of the application hosted locally:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/37-empty-local-containers.png"
+         alt="Empty local directories." />
+</div>
+<p>
+    As explained in the <a href="02-static-website">Static Website"</a> lesson of the
+    Deployment module, the <a href="https://azure.microsoft.com/en-us/products/storage/storage-explorer/">
+        Azure Storage Explorer
+    </a> allows you to manage your cloud storage on Azure.
+</p>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use Microsoft Azure Storage Explorer to navigate to the "images-movies" Azure storage
+    account container and "download" the image files into the "images-movies" directory
+    that resides in the web root folder of the application hosted locally:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/38-storage-explorer-movies.png"
+         alt="Data content of images-movies container in Azure." />
+</div>
+<p>Local directory with downloaded data:</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/39-images-movies-local.png"
+         alt="Local directory images-movies with downloaded data." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Confirm that the file names of the downloaded images match the file path stored
+    in the "PosterPath" column of the Movies database table of the MoviesDB database:
+</p>
+<div class="image-lesson mb-3" style="overflow: scroll hidden">
+    <img src="Images/40-reset-db/40-dbo-movies-data.png"
+         style="max-width: 105%"
+         alt="Movies database table with PosterPath column visible." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Repeat the same process (steps two and three) with the data stored in the
+    "images-people" Azure storage account container. Don't forget to confirm that
+    the file names of the downloaded images match the file path stored in the
+    "PictureUrl" column of the People database table of the Movies DB database.
+</p>
+<p>
+    The data stored in Azure storage account containers is exactly the same as the
+    one stored in the directories that reside in the web root folder of the application
+    hosted locally.
+</p>
+<p>
+    We mentioned at the beginning of this lecture that the database reset process
+    will deterministically reset the application data to an initial state according
+    to the following workflow:
+</p>
+<ul>
+    <li>
+        Remove any data (image files) from the public containers (or directories)
+        responsible for serving the images to the application.
+    </li>
+    <li>
+        Copy backup data (image files) from the backup containers (or directories)
+        to the public containers.
+    </li>
+    <li>
+        Delete any data from the database tables including ASP.Net Identity tables
+        used for authentication and/or authorization operations.
+    </li>
+    <li>
+        Insert the initial state data to the database tables.
+    </li>
+</ul>
+<p>
+    The second stage of the workflow requires backup containers (and directories) where
+    the original data (image files) will be retrieved from when an application data
+    reset takes place.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Create the backup containers in the Azure storage account and in the local web root
+    folder of the application hosted locally. They should be named "images-movies-backup"
+    and "images-people-backup".
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Go to the "Containers" blade of the storage account in the Azure portal to create the
+    two backup containers. Provide them the same access level as the existing containers:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/41-backup-containers.png"
+         alt="Azure storage account with empty backup containers." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Azure Storage Explorer to copy-paste the data files from the images-movies and
+    images-people containers to their backup counterparts.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Create the "images-movies-backup" and "images-people-backup" directories in the web
+    root folder of the application hosted locally and copy-paste the data to match the
+    original folders:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/42-backup-directories.png"
+         alt="Backup directories." />
+</div>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/"
+         alt="" />
+</div>
+<p>
+    We have successfully modified and synced the database of the application hosted
+    locally (MoviesDB) with the database of the application hosted in Azure App Service
+    (FlixManager). Then we synced the Azure storage account containers with the
+    directories of the application hosted locally and created backups.
+</p>
+<p>
+    It is time to extend the IFileStorageService with functionality that will allow
+    the data reset process to take place with the click of a button.
+</p>
+<h3>Extending the IFileStorageService</h3>
+<p>
+    So far, the IFileStorageService implementations have methods to save, edit, and
+    delete files in a one to one basis.
+</p>
+<p>
+    As you know, the intended workflow to reset the application data is:
+</p>
+<ul>
+    <li>
+        Remove any data (image files) from the public containers (or directories)
+        responsible for serving the images to the application.
+    </li>
+    <li>
+        Copy backup data (image files) from the backup containers (or directories)
+        to the public containers.
+    </li>
+    <li>
+        Delete any data from the database tables including ASP.Net Identity tables
+        used for authentication and/or authorization operations.
+    </li>
+    <li>
+        Insert the initial state data to the database tables.
+    </li>
+</ul>
+<p>
+    We need storage methods with the capability to process multiple operations at a
+    time because we have multiple files in the containers and/or the local directories.
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span>
+    Extend the IFileStorageService with the following methods:
+</p>
+<ul>
+    <li>
+        <p>GetFileNamesInContainerAsync</p>
+    </li>
+    <li>
+        <p>CopyFileAsync</p>
+    </li>
+    <li>
+        <p>CopyContainerContentAsync</p>
+    </li>
+    <li>
+        <p>DeleteContainerContentAsync</p>
+    </li>
+</ul>
+<p>
+    <span class="badge bg-dark">Step One:</span>
+    Extend the Application/Server-Api/FileStorageManager IFileStorageService interface
+    with the methods listed above:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/43-ifilestorageservice-extension.png"
+         alt="IFileStorageService interface extended." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span>
+    Go to the AzureStorageService implementation of the IFileStorageService and define
+    the code logic for the methods recently added:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/44-azure-storage-service-one.png"
+         alt="Azure storage service part one." />
+    <img src="Images/40-reset-db/45-azure-storage-service-two.png"
+         alt="Azure storage service part two." />
+    <img src="Images/40-reset-db/46-azure-storage-service-three.png"
+         alt="Azure storage service part three." />
+    <img src="Images/40-reset-db/47-azure-storage-service-four.png"
+         alt="Azure storage service part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Go to the InAppStorageService implementation of the IFileStorageService and define
+    the code logic for the methods recently added:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/48-inapp-storage-service-one.png"
+         alt="InApp storage service part one." />
+    <img src="Images/40-reset-db/49-inapp-storage-service-two.png"
+         alt="InApp storage service part two." />
+    <img src="Images/40-reset-db/50-inapp-storage-service-three.png"
+         alt="InApp storage service part three." />
+    <img src="Images/40-reset-db/51-inapp-storage-service-four.png"
+         alt="InApp storage service part four." />
+</div>
+<p>
+    We have declared the code logic for both implementations of the IFileStorageService,
+    AzureStorageService and InAppStorageService. It is time to focus on adding the
+    application data reset functionality to the application structure itself.
+</p>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-list">
+            List blobs with .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-copy">
+            Copy a blob with .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/training/modules/copy-blobs-from-command-line-and-code/?source=recommendations">
+            Copy and move blobs from one container or storage account to another from the
+            command line and in code
+        </a>
+    </li>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-delete">
+            Delete and restore a blob with .Net
+        </a>
+    </li>
+    <li>
+        <a href="https://microsoft.github.io/AzureTipsAndTricks/blog/tip367.html">
+            How to move Azure Storage Blobs between containers
+        </a>
+    </li>
+</ul>
+<h3>Application Data Reset</h3>
+<p>
+    You might recall from the Repository Pattern section of the <a>
+        Repositories & UoW
+    </a> lesson in the Server-Api module that with our application architecture,
+    the Application/Client makes a data request and the IApiService (abstract layer)
+    sends the HttpRequest to the Application/Server-Api/Controllers.
+</p>
+<p>
+    The Application/Server-Api/Controller employs the Application/Client/ApiServices
+    IUnitOfWork (abstract layer) that exposes the business logic methods to query
+    the Application/Server-Api/DataStore database and, if necessary, persist any
+    changes made to in-memory objects during the business transaction:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/08-ServerApi/39-api-service.svg"
+         alt="Application ApiService diagram." />
+</div>
+<p>
+    Both abstract layers, the IApiService and the IUnitOfWork, establish a contract
+    for exposing one IEntityName interface, in the form of a read-only property, for
+    each data entity mapped to the database.
+</p>
+<p>
+    The application data reset process does affect all data entity types of the
+    application and does not require a custom data entity such as the functionality
+    related to Person or Genre objects which is accessed through the IPeople and
+    IGenres interfaces.
+</p>
+<p>
+    What's more, it does not expect an instance of the Movie, Person, or Genre data
+    entity types in the Http response. For this reason, we will use the IMovies
+    interface as the entry point for the data reset functionality.
+</p>
+<p>
+    As usual, the procedure to add new functionality to our application for a specific
+    data entity type (IMovies) is:
+</p>
+<ol>
+    <li>
+        <p>
+            Create an Application/Shared/EntityDtos/DTO to encapsulate the property
+            values that can be directly related to one or more properties of the data
+            entity type to serve.
+        </p>
+        <p>
+            This step is <strong>not required</strong> for our current scenario.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use the Application/Client/ApiServices/IRepositories/IEntityName interface
+            to expose the specific functionality (method) to the Application/Client and
+            establish a contract (or protocol) for the new feature.
+        </p>
+        <p>
+            We will employ the IMovies interface for our purpose.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use the Application/Server-Api/Repositories/EfEntityName class to implement
+            the newly exposed functionality. This is the application's business logic
+            responsible for building the Linq queries and operations that act on the model
+            (data entity). It mediates between the data source layer
+            (Application/Server-Api/DataStore) and the RESTful API service
+            (Application/Server-Api/Controllers).
+        </p>
+        <p>
+            We will employ the EfMovies repository for our purpose.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to
+            implement the newly exposed functionality. This is the application's layer
+            responsible for creating the Http requests/responses that serialize/deserialize
+            the data and build the endpoint's route template (route to the appropriate
+            controller action).
+        </p>
+        <p>
+            We will employ the ApiMovies type for our purpose.
+        </p>
+    </li>
+    <li>
+        <p>
+            Use the Application/Server-Api/Controllers/EntityNameController to create
+            the action (controller method) responsible for responding to the Http request
+            produced in last step. It mediates between the client layer (Application/Client)
+            and the business logic layer (Application/Server-Api/Repositories).
+        </p>
+        <p>
+            We will employ the MoviesController for our purpose.
+        </p>
+    </li>
+    <li>
+        <p>
+            Inject an instance of the IApiService to a Razor component to consume the
+            recently added functionality.
+        </p>
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One</span> is not required so we start with
+    <span class="badge bg-dark">Step Two:</span>
+    Use the Application/Client/ApiServices/IRepositories IMovies interface to
+    expose the specific functionality (methods) to the Application/Client and establish
+    a contract (or protocol) for the new feature:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/52-imovies.png"
+         alt="IMovies interface with ResetDatabaseAsync method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span>
+    Use the Application/Server-Api/Repositories/EfMovies class to implement the newly
+    exposed functionality. This is the application's business logic responsible for
+    building the Linq queries and operations that act on the model (data entities). It
+    mediates between the data source layer (Application/Server-Api/DataStore) and the
+    RESTful API service (Application/Server-Api/Controllers):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/53-efmovies-one.png"
+         alt="EfMovies ResetDatabaseAsync method part one." />
+    <img src="Images/40-reset-db/54-efmovies-two.png"
+         alt="EfMovies ResetDatabaseAsync method part two." />
+    <img src="Images/40-reset-db/55-efmovies-three.png"
+         alt="EfMovies ResetDatabaseAsync method part three." />
+    <img src="Images/40-reset-db/56-efmovies-four.png"
+         alt="EfMovies ResetDatabaseAsync method part four." />
+    <img src="Images/40-reset-db/57-efmovies-five.png"
+         alt="EfMovies ResetDatabaseAsync method part five." />
+    <img src="Images/40-reset-db/58-efmovies-six.png"
+         alt="EfMovies ResetDatabaseAsync method part six." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span>
+    As we demonstrated in previous exercises, you can use Microsoft SQL Server
+    Management Studio (MSSMS) or Visual Studio SQL Server Object Explorer to generate
+    Transact-SQL (T-SQL) scripts from an existing database table.
+</p>
+<div class="alert alert-warning mx-3" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        The <strong><code>ExecuteDeleteAsync</code></strong> method executes immediately
+        against the database, rather than being deferred until <code>DbContext.SaveChanges()</code>
+        is called. It does not interact with EF change tracker in any way. Nevertheless,
+        you still have to use the <strong><code>IgnoreQueryFilters()</code></strong> method
+        to bypass any global query filters configured for the given entity such as the
+        one implemented for the soft delete mechanism of the <a href="10-ef-soft-delete-audit">
+            Soft Delete & Audit
+        </a> lesson.
+    </p>
+</div>
+<p>
+    Otherwise, the "INSERT" blocks of raw SQL will likely throw an exception. For example,
+    suppose the record named "Action" (Id:4) for the "Genre" table is soft-deleted. It is
+    marked as deleted:true but the record still exists in the database. If raw SQL attempts
+    to insert the Action genre (Id:4) during a DbReset, it will throw an exception because
+    the database table already has an Id:4 with a record "Action" even though it is marked
+    as soft-deleted.
+</p>
+<p>
+    An alternate option is to replace <strong><code>ExecuteDeleteAsync()</code></strong>
+    method with raw SQL to bypass the soft delete mechanism implemented and an
+    <code><strong>IDbContextTransaction</strong></code> to commit the changes made to the
+    database. Raw SQL wipes out the complete database records:
+</p>
+<p>
+    <strong>
+        <code>
+            await AppContext.Database.ExecuteSqlRawAsync(@@"DELETE FROM Genres WHERE Name='Action';");
+        </code>
+    </strong>
+</p>
+<p>
+    EfMovies repository requires the IFileStorageService to perform operations
+    on the containers responsible for serving the Person and Movie data entities
+    with images. The service is injected in the constructor.
+</p>
+<p>
+    As you know, the <a href="07-api-repository">IUnitOfWork</a> is the abstract
+    layer responsible for exposing the business logic methods to query the
+    Application/Server-Api/DataStore database and, if necessary, persist any
+    changes made to in-memory objects during the business transaction.
+</p>
+<p>
+    Its implementation, Application/Server-Api/Repositories UnitOfWork creates
+    concrete object instances for each IEntityName interface exposed in the
+    IUnitOfWork interface. This means we need to inject the IFileStorageService
+    to the UnitOfWork, otherwise, it won't be able to satisfy the formal input
+    parameters of the IMovies interface during initialization.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">3.2:</span>
+    Inject the IFileStorageService to the implementation (UnitOfWork) of the
+    IUnitOfWork interface and use the local reference to satisfy the IMovies
+    constructor:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/66-unit-of-work-one.png"
+         alt="Unit of Work part one." />
+    <img src="Images/40-reset-db/67-unit-of-work-two.png"
+         alt="Unit of Work part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span>
+    Use the Application/Client/ApiServices/ApiManager/ApiMovies class to implement
+    the newly exposed functionality. This is the application's layer responsible for
+    creating the Http requests/responses that serialize/deserialize the data and
+    build the endpoint's route template (route to the appropriate controller action):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/59-apimovies-one.png"
+         alt="ApiMovies part one." />
+    <img src="Images/40-reset-db/60-apimovies-two.png"
+         alt="ApiMovies part two." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span>
+    Use the Application/Server-Api/Controllers MoviesController to create
+    the action (controller method) responsible for responding to the Http request
+    produced in last step. It mediates between the client layer (Application/Client)
+    and the business logic layer (Application/Server-Api/Repositories):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/61-movies-controller-one.png"
+         alt="MoviesController part one." />
+    <img src="Images/40-reset-db/62-movies-controller-two.png"
+         alt="MoviesController part two." />
+</div>
+<p>
+    <span class="badge bg-warning">Warning:</span>
+    Recall from the <a href="08-api-controllers">Api Controllers</a> lesson in
+    the Server-Api module <strong>not</strong> to include an "Async" suffix to
+    the name of the action methods because ASP.Net Core MVC trims the suffix
+    "Async" from action names by default. This change affects both routing and
+    link generation. <strong>Instead you can use the "Task" word as a suffix</strong>
+    to indicate that the action is an asynchronous operation.
+</p>
+<p>
+    This concludes the necessary adjustments for the back-end of the application.
+    Let's focus on the front-end (Application/Client).
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span>
+    Refactor the Application/Client/Pages/Movies FlixManager routable component
+    to include a button element with a handler that consumes the IApiService to
+    generate the Http request to reset the application data including the containers
+    responsible for serving Person and Movie images.
+</p>
+<p>
+    Flix Manager routable component markup file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/63-flix-manager-markup.png"
+         alt="Flix Manager routable component markup file." />
+</div>
+<p>
+    Flix Manager routable component code file:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/64-flix-manager-code-file-one.png"
+         alt="Flix Manager routable component code file part one." />
+    <img src="Images/40-reset-db/65-flix-manager-code-file-two.png"
+         alt="Flix Manager routable component code file part two." />
+</div>
+<p>
+    If you run the application, login with an application user that has full
+    admin credentials (e.g., admin@email.com, password: 123$), and navigate to the
+    Flix Manager routable component, you should see something like this:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/68-flix-manager.png"
+         alt="Flix Manager routable component with Reset Data button element." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Seven:</span>
+    Test the Reset Data button element with the InAppStorageService.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.1:</span>
+    Go to the dependency injection container of the Application/Server-Api project
+    and configure the IFileStorageService with the InAppStorageService implementation
+    to work with containers (folders) that reside in the web root directory of the
+    application hosted locally:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/69-in-app-storage-service.png"
+         alt="InAppStorageService configuration." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">7.2:</span>
+    Run the application, login with an application user that has full
+    admin credentials (e.g., admin@email.com, password: 123$), and perform the
+    following operations:
+</p>
+<ul>
+    <li>
+        <p>
+            Add a new Movie object. Make sure it includes the trailer route, a poster file,
+            a couple related genres, and actors.
+        </p>
+    </li>
+    <li>
+        <p>
+            Add a new Person object (actor). Make sure it includes a picture file.
+        </p>
+    </li>
+    <li>
+        <p>
+            Add a new Genre object.
+        </p>
+    </li>
+    <li>
+        <p>
+            Register a new ApplicationUser and assign it an authorization claim to
+            clean (delete) objects:
+            <ul>
+                <li>
+                    <p>
+                        Log out and register a new ApplicationUser.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        Go to the inbox of the email registered and use the FlixManager email
+                        to confirm ownership of the email address.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        Login with the admin user credentials and assign the recently registered
+                        ApplicationUser the "content.cleaner" and "user.cleaner" authorization
+                        claims.
+                    </p>
+                </li>
+            </ul>
+        </p>
+    </li>
+    <li>
+        Verify that the new objects are available as expected.
+    </li>
+    <li>
+        Go to the Flix Manager routable component and click the "Reset Data" button element.
+    </li>
+    <li>
+        Confirm that the database data in the local directories have been reset to an initial
+        state; i.e., the added objects have been removed.
+    </li>
+</ul>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/70-db-reset-success.png"
+         alt="DB reset success dialog box." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eight:</span>
+    Test the Reset Data button element with the Azure Storage Service.
+</p>
+<p>
+    <span class="badge bg-dark bg-opacity-50">8.1:</span>
+    Go to the dependency injection container of the Application/Server-Api project
+    and configure the IFileStorageService with the AzureStorageService implementation
+    to work with the blob containers that reside in Azure storage account:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/71-azure-storage-service.png"
+         alt="AzureStorageService configuration." />
+</div>
+<p>
+    <span class="badge bg-dark bg-opacity-50">8.2:</span>
+    Repeat step 7.2 and ensure that the database reset process executes as intended.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/40-reset-db/"
+         alt="" />
+</div>
+<p>Data Sources:</p>
+<ul>
+    <li>
+        <a href="https://learn.microsoft.com/en-us/ef/core/saving/transactions">
+            Using Transactions
+        </a>
+    </li>
+</ul>

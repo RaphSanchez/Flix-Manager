@@ -1,0 +1,1215 @@
+﻿@page "/03-create-complex-data"
+<PageTitle>Create Complex Data</PageTitle>
+
+<h2>Consuming the Api - Create Complex Data</h2>
+<h4>Preprocessing Data</h4>
+<p>
+    The data that will be persisted to the data store can originate from endless
+    sources. Sometimes it is not possible to take the raw data and pass it through
+    right away as we have been doing so far while consuming our web API service.
+</p>
+<p>
+    For example, at the end of the <a href="09-api-connector-service">Api Service</a>
+    section, we wire up the GenreCreate routable component to consume the
+    IApiService to create Genre items and persist them to the database. This
+    process is very straight forward because the data does not need any
+    preprocessing; i.e., the string passed by the user to the "Name" field
+    is compatible with the Genre.Name property type as is. The Genre.Name
+    property value in turn, is persisted to the database without any
+    modifications.
+</p>
+<p>
+    In contrast, the MovieForm component performs some data processing with
+    the Genre items displayed to the client. Each Genre item is mapped to a
+    <a href="04-forms-part-two">Data Transfer Object</a> (DTO) that is fed
+    to a <a href="04-forms-part-two">MultipleSelector</a> component responsible
+    for displaying the DTOs that represent genre items for Movie objects.
+</p>
+<p>
+    In addition, Movie items have relationships with Genre and Person types. In
+    other words, when creating a Movie object, we have to perform some data
+    preprocessing before submitting the form (<a href="04-forms-part-two">
+        MovieForm
+    </a> component) with the input data passed by the user.
+</p>
+<p>MovieCreate routable component consumes the MovieForm component:</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/38-movie-create-dtos.png"
+         alt="Genre items displayed are DTOs." />
+</div>
+
+<p>
+    MovieForm component consumes a MultipleSelector component to display Genre
+    items, mapped to DTOs, as options to select for the current Movie item:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/39-movie-form-dtos.png"
+         alt="MovieForm projects Genre items into DTOs" />
+</div>
+<p>DTO class:</p>
+<div class="image-lesson mb-3">
+    <img src="images/07-forms/127-multiple-selector-dto.png"
+         alt="MultipleSelectorDto class" />
+</div>
+<p>
+    This means that some data preprocessing is required for any genre items (DTOs)
+    selected by the user for the current Movie object before attempting to add
+    them to its collection of Movie.Genres. The same is true for the Movie.Actors
+    navigation property:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/40-movie-entity.png"
+         alt="Movie entity." />
+</div>
+
+<p>
+    As you know, the built-in <a href="04-forms-part-one">&lt;EditForm&gt;</a>
+    component provides callbacks for handling form submission. The MovieForm
+    component employs the <dfn>OnValidSubmit</dfn> callback to assign the event
+    handler ("OnValidSubmit") to run when a form with valid fields is submitted:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/41-on-valid-submit.png"
+         alt="MovieForm OnValidSubmit callback." />
+</div>
+
+<p>
+    <span class="badge bg-info">Notice:</span> You can use the built-in <strong>
+        <code>OnValidSubmit</code> callback to perform any additional preprocessing
+        operations before submitting a form
+    </strong> with the input data passed by the user.
+</p>
+<p>
+    But before that, you need to have a clear understanding on how entities relate
+    to each other, how to load entities with related data, and how to save related
+    data.
+</p>
+<h4>Relationships</h4>
+<p>
+    A relationship defines how two entities relate to each other. In EF, navigation
+    properties provide a way to navigate a relationship between two entity types.
+    Every object can have a <strong><dfn>navigation property</dfn></strong> for every
+    relationship in which it participates. Navigation properties allow you to navigate
+    and manage relationships in both directions, returning either a <strong>
+        <dfn>reference object</dfn>
+    </strong> or a <em>collection</em>.
+</p>
+<p>
+    Code first infers relationships based on the
+    navigation properties defined on your types (entities). If a pair of navigation
+    properties is found between two types, they will be configured as inverse navigation
+    properties of the same relationship.
+</p>
+<p>
+    A <strong>navigation property</strong> is a property defined on the <dfn>principal</dfn>
+    and/or the <dfn>dependent</dfn> entity that references the related entity. A navigation
+    property can be a:
+    <ul>
+        <li>
+            <strong>Reference navigation property</strong>. A navigation property that
+            holds a reference to a single related entity.
+        </li>
+        <li>
+            <strong>Collection navigation property</strong>. A navigation property that
+            contains references to many related entities.
+        </li>
+        <li>
+            <strong>Inverse navigation property</strong>. In a particular navigation
+            property, this term refers to the navigation property on the other end of
+            the relationship.
+        </li>
+    </ul>
+</p>
+<p>
+    With <dfn>reference navigation properties</dfn> (one to one or one to many
+    relationships), it is recommended to include
+    <strong><dfn>foreign key</dfn> properties</strong> on the types that represent
+    dependent objects. Any property with the same data type as the primary key of the
+    <dfn>principal</dfn> and with a name that follows one of the following formats
+    will be configured as a foreign key for the relationship:
+</p>
+<p>
+    <code>&lt;navigation <strong>property</strong> name&gt;Id</code>
+</p>
+<p>
+    <code>&lt;principal <strong>entity</strong> name&gt;Id</code>
+</p>
+<p>
+    While it is recommended to have a foreign key property defined in the dependent
+    entity class, it is not required. If no foreign key property is found, a
+    <dfn>shadow foreign property</dfn> will be introduced.
+</p>
+<p>
+    By convention, <span class="mark"><strong><dfn>cascade delete</dfn></strong></span>
+    will be set to <dfn>cascade</dfn> <strong>for required relationships</strong> and
+    <span class="mark"><strong><dfn>ClientSetNull</dfn></strong></span> <strong>
+        for optional relationships.
+    </strong>
+</p>
+<p>
+    <dfn>Cascade</dfn> means dependent entities are also deleted. <dfn>ClientSetNull</dfn>
+    means that dependent entities that are not loaded into memory will remain unchanged
+    and must be manually deleted or updated to point to a valid principal entitiy. For
+    entities that are loaded into memory, EF Core will attempt to set the foreign key
+    properties to null. You can use the Fluent Api to configure cascade delete behaviour
+    for a given relationship explicitly.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/modeling/relationships?tabs=fluent-api%2Cfluent-api-simple-key%2Csimple-key">
+        Relationships
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/modeling/entity-types?tabs=fluent-api#excluding-types-from-the-model">
+        Excluding types from the model
+    </a>
+</p>
+<h3>Loading Related Data</h3>
+<p>
+    You might recall that in "Tracking vs. No-Tracking queries" lesson in section
+    <a href="07-api-repository">Repositories & UoW</a>, we mentioned that tracking
+    behaviour controls if Entity Framework Core will keep information about an
+    entity instance in its change tracker and that if an entity is tracked, EF
+    Core will also fix up navigation properties (relationships) between the
+    entities in a tracking query result and the entities that are in the change
+    tracker.
+</p>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Keep in mind that when working in the back-end of our application, we are
+        most likely within the scope of the <dfn>change tracker</dfn> because we
+        must employ a unique <a href="07-api-repository">unit of work</a>, which
+        creates a unique instance of a <dfn>DbContext</dfn>, to perform operations
+        on the database. Passing a query result to the Application/Client (front-end)
+        requires that these data is serialized/deserialized into the Http response
+        body. By the time the response body is deserialized, a business transaction
+        (unit of work) is completed and the entities are no longer being tracked. <strong>
+            You have to explicitly inform EF Core any related data you want to include
+            in the result of a query that will be passed to the Application/Client.
+        </strong>
+    </p>
+</div>
+<p>
+    As you know, Entity Framework Core allows you to use the navigation properties in your
+    model to load related entities. In relational databases, all related entities are loaded
+    by introducing JOINs in a single query:
+</p>
+<figure class="figure d-flex flex-column justify-content-center">
+    <img class="image-lesson" style="max-width: 600px; margin:auto;"
+         src="Images/09-ConsumingApi/42-sql-related-entities.png"
+         alt="SQL JOIN single query." />
+    <figcaption class="figure-caption text-center">EF Core - Split queries.</figcaption>
+</figure>
+<p>
+    There are three common Object Relationanl Mapper (ORM) patterns used to load related
+    data.
+</p>
+<dl>
+    <dt>Eager Loading</dt>
+    <dd>
+        Means that the related data is loaded from the database as part of the initial
+        query; i.e., EF fetches all the required data in one roundtrip. EF Core 5.0
+        introduced the <dfn>Include</dfn> feature to limit which related entities are
+        needed to load while keeping the loading process eager and therefore doable
+        in a single trip.
+    </dd>
+    <dd>
+        You can use the <strong><code>Include</code></strong> method to specify related
+        data to be included in the query results. The <dfn>Include</dfn> extension can
+        be chained to include related data from multiple relationships (multiple data
+        entity types) in a single query. Keep in mind that this could have an impact on
+        performance, you should consider using <a href="https://docs.microsoft.com/en-us/ef/core/querying/single-split-queries">
+            split queries
+        </a>
+    </dd>
+    <dd>
+        You can also drill down through relationships to include multiple levels of
+        related data (specific properties) using the <strong><code>ThenInclude</code></strong>
+        method. The <dfn>ThenInclude</dfn> method can be chained to continue including further
+        levels of related data.
+    </dd>
+    <dt>Explicit Loading</dt>
+    <dd>
+        Means that the related data is explicitly loaded from the database at a later
+        time.
+    </dd>
+    <dt>Lazy loading</dt>
+    <dd>
+        Means that the related data is transparently loaded from the database when
+        the navigation property is accessed. Before EF Core 5, <dfn>lazy loading</dfn>
+        was the standard. Under this configuration, EF automatically loads from the
+        database all related entities in a query as they are accessed by your code.
+    </dd>
+    <dd>
+        It is more convenient but it is particularly prone for producing unneeded
+        extra roundtrips which can slow the application.
+    </dd>
+</dl>
+<p>
+    <span class="badge bg-warning">Warning:</span> Server resources are limited and
+    constitute an important factor that has a direct impact on application performance.
+    As mentioned in last lecture, you should load related data if and only when you
+    need it. Furthermore, whenever possible, specify the exact details of the data
+    required (e.g., what property members).
+</p>
+<p>
+    For cases where you do not need to load related data, you can (and should) use
+    the methods defined by the Application/Server-Api/Repositories/EfRepository which
+    contains general functionality equivalent to CRUD operations applicable to all
+    data entity types.
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you need to <span class="mark"><strong>load related data,</strong></span>
+        you can employ a custom DTO with the exact details of the data required (e.g.,
+        property members). Refer to next section of this module
+        <a href="04-load-complex-data">Load Complex Data</a> for more info.
+    </p>
+</div>
+<h4>Circular References</h4>
+<p>
+    A <a href="https://docs.microsoft.com/en-us/aspnet/web-api/overview/data/using-web-api-with-entity-framework/part-4#navigation-properties-and-circular-references">
+        circular reference
+    </a> is a situation in which two values reference each other. This type of reference 
+    can cause problems if two functions or values depend on one another for definition.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> Collection navigation properties
+    with <strong>
+        inverse navigation properties will most likely produce a
+        <span class="mark">circular reference</span> during serialization of an Http
+        response
+    </strong>. For example, the Person type has a collection navigation property of
+    type Movie. The type Movie in turn has an inverse navigation property with a
+    collection of type Person.
+</p>
+<p>
+    By default, when the web API code serializes the Http response to JSON, a seriliazed
+    collection of Person objects would include a collection of every related Movie. Each
+    Movie in that collection would contain a collection of Person objects (actors), which
+    would again contain a collection of Movie objects. This type of infinite loop is
+    called a <span class="mark"><strong>circular reference</strong></span> and cannot be
+    serialized. Instead, it produces a <dfn>System.Text.Json.JsonException</dfn> because
+    "a possible object cycle is detected".
+</p>
+<p>
+    Unless we do something about it, we will encounter this problem very soon because
+    we intend to create objects that include related data. Fortunately, it is quite
+    simple to deal with. Recall that our
+    Application/Client/ApiServices/ApiManager/<a href="09-api-connector-service">ApiConnector</a>
+    class employs <dfn>System.Text.Json</dfn> extension methods (resource methods) to
+    serialize/deserialize Http requests/responses.
+</p>
+<p>
+    You can use the <strong><code>JsonSerializerOptions.ReferenceHandler</code></strong>
+    property to <strong>
+        configure how object references are handled when reading and writing JSON.
+    </strong> Customizing how object references are handled when reading and writing JSON
+    can be configured locally in the ApiConnector class or globally in the
+    Application/Server-Api/Program class for .Net 6 and later (Startup class for .Net 5).
+</p>
+<p>
+    <span class="badge bg-primary">Task:</span> Configure the <dfn>System.Text.Json</dfn>
+    serializer to ignore circular references. Define the configuration at the application
+    level.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the Application/Server/Program
+    class and set the <dfn>ReferenceHandler</dfn> to <dfn>IgnoreCycles</dfn>. This
+    configuration tells the serializer to set circular reference properties to
+    <code>null</code>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/78-json-serializer-options.png"
+         alt="Json serializer options configuration." />
+</div>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-preserve-references?pivots=dotnet-6-0#preserve-references-and-handle-circular-references">
+        How to preserve references and handle or ignore circular references in System.Text.Json
+    </a>,
+    <a href="https://stackoverflow.com/questions/60197270/jsonexception-a-possible-object-cycle-was-detected-which-is-not-supported-this">
+        JsonException: A possible object cycle was detected ...
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions.referencehandler?view=net-6.0">
+        JsonSerializerOptions.ReferenceHandler property
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/learn/modules/persist-data-ef-core/3-migrations?source=learn">
+        Exercise - Migrations
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-configure-options?pivots=dotnet-6-0#web-defaults-for-jsonserializeroptions">
+        How to instantiate JsonSerializerOptions instances with System.Text.Json
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-configure-options?pivots=dotnet-6-0#web-defaults-for-jsonserializeroptions">
+        Web defaults for JsonSerializerOptions
+    </a>, and for a .Net 5 application you can go to
+    <a href="https://www.udemy.com/share/102l0i3@5_g4VfnIuecm3u2fzuT8PqcEW9vvxAU2Va5sM4kVchtlJxMdGmjZF2F4C4D4T5Kw/">
+        Udemy Programming in Blazor - ASP.Net Core 5 episode 74
+    </a>
+</p>
+<p>
+    Let's take a look one more time to the GetAllAsync() method of the
+    Application/Api-Server/ApiServices/Repositories/EfRepository responsible for communicating
+    with the Application/Server-Api/DataStore to query the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/54-ef-repository-get-all-async.png"
+         alt="GetAllAsync() method of the EfRepository." />
+</div>
+<p>
+    Make a request to the Application/Server-Api to retrieve all the Movie items in
+    the database and see the GetAllAsync() method in action:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/55-api-movies-response.png"
+         alt="api/movies response." />
+</div>
+<p>
+    Do you recognize the problem we could encounter if we were to query the database for a
+    Movie object and try to access its related data? Let's keep digging a bit deeper. This
+    time let's take a look to the Database Log of the query we just requested:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/56-sql-query.png"
+         alt="SQL query generated with our request." />
+</div>
+<p>
+    The SQL query retrieves a Movie object <strong>without</strong> eager loading its
+    related entities. Since EF is not loading and fetching the related entities, the
+    related entities are not being tracked because they are not included in the response.
+    If we were to try to persist data to the collection navigation properties of the
+    Movie object returned by the GetAllAsync method (<dfn>List&lt;Genre&gt;</dfn> and
+    <dfn>List&lt;Person&gt;</dfn>),
+    <strong>
+        EF would actually create new instances of these related entities.
+        <span class="mark">
+            It would create new instances of type Genre and Person instead of just
+            registering their relationships in the <dfn>linking table.</dfn>
+        </span>
+    </strong>
+</p>
+<p>
+    All related entities are loaded by introducing JOINs in a single query. Since there
+    are no JOIN commands in the SQL shown above, one can conclude that the related entities
+    are not being loaded and therefore, not being tracked.
+</p>
+<p>
+    The AddAsync() method of the Application/Server-Api/Repositories/EfRepository is
+    a similar scenario. It returns an instance of the entity that was successfully
+    inserted to the database but it does not include the related entities which
+    means they are not being tracked by the database context.
+</p>
+<p>
+    To <span class="mark"><strong>load a related entity</strong></span> with the intent
+    of passing it to the client, you must get the entity to be tracked by the database
+    context and explicitly include any related entities. This means that we need an
+    <strong><code>Include</code></strong> extension method to include the related
+    entities (e.g., List&lt;Genre&gt; and List&lt;Person&gt;) of a Movie object in a
+    given query.
+</p>
+<p>
+    But the Application/Server-Api/Repositories/EfRepository is a generic repository
+    designed to provide general functionality applicable to all entities. Including
+    specific properties (navigation properties) of an entity (principal) is not its
+    responsibility.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/querying/related-data/">
+        Loading Related Data
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/querying/single-split-queries">
+        Split queries
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-querying#beware-of-lazy-loading">
+        Efficient Querying
+    </a>
+</p>
+<h3>Saving Related Data</h3>
+<p>
+    When <strong>adding</strong> a related entity (dependent), if you reference a
+    new entity (dependent) from the navigation property of an entity that is already
+    tracked by the context (from the principal), the related entity (dependent) will
+    be discovered and inserted into the database. Note that saving an entity means
+    that you are within the scope of a DbContext (back-end). Within this environment,
+    <span class="mark">
+        <strong>
+            when inserting an entity to the database, its related data (dependent
+            entities) will also be tracked by the database context.
+        </strong>
+    </span>
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> For most database providers,
+    <dfn>DbContext.SaveChangesAsync()</dfn> is transactional. This means all the
+    operations will either succeed or fail and <strong>
+        the operations will never be left partially applied.
+    </strong>
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/modeling/relationships?tabs=fluent-api%2Cfluent-api-simple-key%2Csimple-key">
+        Relationships
+    </a>
+    <a href="https://docs.microsoft.com/en-us/ef/core/saving/related-data">
+        Saving Related Data
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/change-tracking/">
+        Change Tracking in EF Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/learn/modules/persist-data-ef-core/">
+        Persist and retrieve relational data with Entity Framework Core
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/ef/core/saving/basic">
+        Basic Save
+    </a>
+</p>
+<h3>Adding Records</h3>
+<p>
+    In section <a href="07-api-repository">Repositories & Unit of Work</a>, we
+    created an IEntityName interface for each domain entity mapped to the database.
+    Each interface establishes a contract for entity specific methods; i.e., for
+    any methods that do not fit in the general functionality of the generic
+    repository such as when you want to use the <dfn>"Include"</dfn> extension to
+    include related entitites of a navigation property.
+</p>
+<p>
+    You might recall that in our application, the Application/Client makes a data
+    request and the <a href="07-api-repository">IApiService</a> builds an Http
+    request and sends it to the <a href="08-api-controllers">
+        Application/Server-Api/Controller.
+    </a> The controller employs the <a href="07-api-repository">
+        Application/Client/ApiServices/IRepositories/IUnitOfWork
+    </a> that exposes business logic methods to query the <a href="06-api-db-support">
+        Application/Server-Api/DataStore
+    </a> database, and if necessary, persist any changes made to in-memory objects
+    during the business transaction:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/58-app-control-flow-diagram.svg"
+         alt="Application control flow diagram." />
+</div>
+<p>
+    The operations (functionality) exposed to the Application/Client (by the IApiService)
+    mirror (same signature) the operations executed by the IUnitOfWork (business logic and
+    database operations). For this reason, both abstract layers implement the IEntityName
+    (e.g., IMovie) interface to expose and represent data entities.
+</p>
+<p>
+    Besides implementing the IRepository&lt;TEntity&gt;, IEntityName interfaces extend
+    its functionality with operations that are specific to the entity type that they
+    represent. IEntityName interfaces are exposed, and implemented in their own way,
+    by the <strong>IApiService</strong> and the <strong>IUnitOfWork</strong> interfaces.
+</p>
+<p>
+    This means that <strong>
+        if we intend to add new and specific functionality for data entities (such as
+        loading and/or saving related data), we must implement it in both layers of the
+        application.
+    </strong>
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/10-LoadComplexData/02-app-repository-folder-tree.png"
+         alt="Application/Repository folder tree." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Refactor the application to be capable
+    of adding new Movie objects to the database. Make sure that:
+</p>
+<ol>
+    <li>
+        Each Movie.Actor selected by the user can be designated a CharacterName property
+        value with the name of the character that the actor plays in the Movie object.
+    </li>
+    <li>
+        The MovieForm component includes a "Character Name" input field to allow the user
+        to enter the CharacterName property value.
+    </li>
+    <li>
+        Genre items selected by the user are added to its Movie.ICollection&lt;Genre&gt;.
+    </li>
+    <li>
+        Actor items selected by the user are added to its Movie.ICollection&lt;Person&gt;.
+    </li>
+    <li>
+        Each Movie.Actor selected by the user is automatically designated a HierarchyOrder
+        property value that corresponds to the order designated by the user. Recall that
+        the <a href="04-forms-part-two">TypeaheadDragSelect</a> component handles
+        <dfn>draggable</dfn> items.
+    </li>
+    <li>
+        The Movie poster image is uploaded to the <a href="02-data-storage-options">
+            Azure storage
+        </a> service and its location (URL) is persisted to the database.
+    </li>
+</ol>
+<p>
+    <span class="badge bg-dark">Step One:</span> Configure the CharacterName property
+    responsible for storing the name of the character that the actor plays in a given
+    movie.
+</p>
+<p>
+    Consider that each <strong>unique</strong> Person object (actor) in the database
+    is likely to participate in multiple movies. We cannot simply add a
+    "Person.CharacterName" property to the Person type because every time a unique
+    Person object (actor) participates in a Movie-Person relationship, its
+    Person.CharacterName would be overwritten; i.e., the Person.CharacterName property
+    can only store one character name.
+</p>
+<p>
+    The next logical option for unexperienced programmers could be to add a collection
+    of Person.CharacterNames to a Person type but although this time the property can
+    store multiple values, it lacks a primary key or unique identifier and a way to
+    establish the relationship of that particular "CharacterName" value (or role), to
+    the Movie object it was played on, and to the Person object that plays that role.
+</p>
+<p>
+    The solution is to create a <strong>join table</strong> (also known as
+    <dfn>linking table</dfn> or <dfn>relational table</dfn>). A <dfn>join table</dfn>
+    contains common data from two or more tables. As you know, a database table
+    is represented in .Net by a POCO (Plain Old CLR Object) class.
+</p>
+<p>
+    The <strong>common denominator is the CharacterName</strong>. The CharacterName is
+    a character played in a Movie and that CharacterName is played by a Person (actor)
+    so it makes sense to name the table (or entity) with the types it links (or joins):
+    <dfn>MoviePerson</dfn>. However, you might recall that the Person type has a
+    relationship with Movie (collection navigation property) and the Movie type has an
+    inverse navigation property to a Person type.
+</p>
+<p>
+    This means that Entity Framework automatically created a <dfn>join table</dfn>
+    for the Movie-Person relationship:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/72-movie-person-table.png"
+         alt="SQL Server Object Explorer with database folder tree." />
+</div>
+<p>
+    An alternate option for the name of our new root entity (class) that will be mapped
+    to a <dfn>join table</dfn> in the database is to name it <dfn>MovieCharacter</dfn>.
+    It should include a <dfn>reference navigation property</dfn> to the Movie object it
+    belongs and a <dfn>reference navigation property</dfn> to the Person object it belongs
+    too.
+</p>
+<p>
+    Add a new root entity named MovieCharacter with an optional (nullable) reference
+    navigation property to a Movie and to a Person type. Decorate it with an
+    <code>[IsAuditable(IsDeletable = true)]</code> <a href="10-ef-soft-delete-audit">
+        custom attribute
+    </a> to make it <span class="mark"><strong>"query compatible"</strong></span> with
+    the related entities it belongs to.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> Using <code>[Required]</code> with a
+    navigation property to access an entity which has a <a href="10-ef-soft-delete-audit">
+        global query filter
+    </a> <strong>may lead to unexpected results</strong>. The required navigation expects
+    the related entity to always be present. In our example, this would not be an issue
+    because all entities involved are decorated with the same [IsAudtiable] custom attribute;
+    i.e., all entities involved have an equivalent global query filter applied. For more
+    info visit <a href="https://docs.microsoft.com/en-us/ef/core/querying/filters#accessing-entity-with-query-filter-using-required-navigation">
+        Accessing entity with query filter using required navigation
+    </a>
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/43-movie-character-entity.png"
+         alt="Person.Character property." />
+</div>
+<p>
+    The MovieCharacter type has two reference navigation properties. It is recommended to
+    include the <dfn>inverse navigation property</dfn> to enable loading the data from
+    either the principal or the dependent entity. Add a collection navigation property to
+    the Person and the Movie types:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/73-movie-navigation-property.png"
+         alt="Movie type with MovieCharacter collection navigation property." />
+</div>
+<p>
+    Don't forget to provide the database configuration settings for the MovieCharacter
+    data entity we just created:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/74-movie-character-config.png" alt="MovieCharacters configuration class." />
+</div>
+<p>
+    The MovieCharacter entity configuration is all set. It is time to expose a
+    DbSet&lt;MovieCharacter&gt; property in the Application/Server-Api/DataStore/DbContext class to
+    include the MovieCharacter in the conceptual model and map it to a database table. Then
+    add a migration named MovieCharacter and update the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/75-movie-character-migration.png"
+         alt="MovieCharacter migration." />
+</div>
+<p>
+    The Actors field of the MovieForm component uses a TypeaheadDragSelect component to
+    search and display actor suggestions. It also allows the user to select actors for the
+    current Movie object and drag them to designate a hierarchy order:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/44-actors-field.png"
+         alt="Actors field markup." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Add an HTML &lt;input&gt; element
+    to temporarily capture a <em>character name</em> for a given Person object (actor)
+    selected by the user for the current Movie object.
+</p>
+<p>
+    The character name property value is loaded into memory temporarily because it will
+    not be mapped (and/or persisted) to the database. Instead, it will be wrapped with
+    a custom DTO to be included in the Http request which is later handled by the
+    business logic layer of the application.
+</p>
+<p>
+    Provide a Person.TempCharacterName optional (nullable) property for the Person type
+    and make sure it is not mapped to the database; i.e., make sure that a column named
+    TempCharacterName is not added to the People table of the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/76-person-temp-character.png"
+         alt="TempCharacterName property in Person type." />
+
+</div>
+<p>
+    Go to the Application/Server-Api/DataStore/EntityConfigurations/PeopleConfiguration
+    class and use the fluent API to configure EF to ignore this property when creating the 
+    database model:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/77-people-config-ignore.png"
+         alt="Configuration to ignore Person.TempCharacterName property." />
+</div>
+<p>
+    Pass a "d-inline-flex" class attribute to the toast element of the
+    <a href="04-forms-part-two">TypeaheadDragSelector</a> component to display the
+    elements (Person.PictureUrl with Person.Name and Person.TempCharacterName) in line:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/46-type-ahead-drag-select-in-line.png"
+         alt="d-inline-flex class selector for the TypeaheadDragSelect component." />
+</div>
+<p>
+    At this point, the user is able to pass a <dfn>character name</dfn> for each actor (type
+    Person) selected and the value is bound to the currently selected Person.TempCharacterName
+    property value:
+</p>
+<div class="image-lesson mb-3">
+    <img style="max-width: 500px"
+         src="images/09-ConsumingApi/47-character-name-field.png"
+         alt="Character name field for selected actor." />
+</div>
+
+<p>
+    As mentioned earlier, to persist any changes made to an entity, it must be tracked
+    by the <dfn>change tracking</dfn> mechanism of EF. Each <a href="06-api-db-support">
+        DbContext
+    </a> instance tracks changes made to entities and these tracked entities (in-memory
+    objects) in turn drive the changes to the database when <dfn>DbContext.SaveChangesAsync()</dfn>
+    method is called.
+</p>
+<p>
+    Adding data to the database is a business logic (back-end) operation that should
+    be executed away from the UI. This means that <strong>
+        we need to encapsulte the Movie entity and any related data
+    </strong> passed by the user, into an Http request to send it to the
+    Application/Sever-Api/Controller which in turn can request the appropriate
+    operation to the Application/Server-Api/Repositories layer responsible for the business
+    logic and for communicating with the Application/Server-Api/DataStore/Database.
+</p>
+<p>
+    Recall that the Application/Server-Api/Controllers/MoviesController/Add
+    <dfn>action</dfn> uses the Http request's body as the data source for
+    <a href="08-api-controllers">model binding</a>:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/60-movies-controller-plain.png"
+         alt="Current code logic of the MoviesController." />
+</div>
+<p>
+    One's first instinct might be to add a formal input parameter for the Genre items and
+    a formal input parameter for the Person items that represent the related data of the
+    Movie entity:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/61-movies-controller-wrong.png"
+         alt="MoviesController with multiple parameters FromBody." />
+</div>
+<p>
+    Unfortunately, this is not a valid solution.
+</p>
+<p>
+    <span class="badge bg-warning">Warning:</span> <strong>
+        Only one parameter per <dfn>controller action</dfn> (method) can be bound
+        <code>[From Body]</code>.
+    </strong> Otherwise, you get a <dfn>System.InvalidOperationException</dfn>. For more
+    info visit <a href="https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-6.0#input-formatters">
+        Model Binding in ASP.Net Core
+    </a>
+</p>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        If you need to <span class="mark">
+            <strong>
+                insert objects to the database and include its related data,
+            </strong>
+        </span> you can employ a custom DTO to encapsulate the <dfn>principal</dfn>
+        and any <dfn>dependent</dfn> entities or additional data.
+    </p>
+</div>
+<p>
+    This means we need a <a href="04-forms-part-two">Data Transfer Object</a> (DTO) to
+    encapsulate the Movie item and its related data. Recall from lesson on <a href="08-api-controllers">
+        Modeling for Performance
+    </a> that you <span class="mark">
+        <strong>
+            must pay special attention when building a model because it is quite
+            difficult to change a model once an application is running in production.
+        </strong>
+    </span> It is worth keeping performance in mind when creating the initial model.
+    Having said this, let's start working.
+</p>
+<p>
+    <span class="badge bg-dark">Step Three:</span> EntityDtos will be consumed by the
+    Application/Client and by the Application/Server-Api/Repositories projects. For this
+    reason, it makes sense to locate them in the Application/Shared project where the domain
+    entities reside. Go to the Application/Shared project and add a folder named
+    "EntityDtos" with a class named "MovieEssentialsDto":
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/62-movie-create-dto.png"
+         alt="MovieEssentialsDto class." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Parameter names in the constructor of the
+    DTO that encapsulates the data must match with a property or field name on the object.
+    This means that <span class="mark">
+        <strong>
+            each name of the formal input parameters
+            in the constructor must match a property or field name.
+        </strong>
+    </span> Otherwise, <dfn>System.Text.Json</dfn> serializer won't be able
+    to bind to an object property or field on deserialization (won't be able to match
+    property values accordingly) and will throw a <dfn>SystemInvalidOperationException</dfn>.
+    The match can be <strong>case-insensitive</strong>.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/79-parameter-name-mismatch-error.png"
+         alt="Parameter name mismatch error." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Four:</span> Use the
+    Application/Client//IRepositories/ApiServices/IRepositories/IMovies interface to expose
+    a new CreateAsync(MovieEssentialsDto) method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/59-imovies-new-member.png"
+         alt="IMovies exposes a CreateAsync() method." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Five:</span> Define the implementation of the
+    new method in the Application/Server-Api/Repositories/EfMovies class. This is the specific
+    functionality for the IMovies interface:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/63-create-async-one.png"
+         alt="CreateAsync() method part one." />
+    <img src="Images/09-ConsumingApi/63-create-async-two.png"
+         alt="CreateAsync() method part two." />
+    <img src="Images/09-ConsumingApi/63-create-async-three.png"
+         alt="CreateAsync() method part three." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> As you can see, <span class="mark">
+        <strong>
+            creating a new record is a two step process:
+        </strong>
+    </span>
+</p>
+<ol>
+    <li>
+        The EF Core AddAsync() method loads the new entity and its primary member values
+        (property values) into memory. Although it begins tracking the given entity and
+        other reachable entities in the Entity.Added state, the related data is not
+        associated with the principal.
+    </li>
+    <li>
+        Allocate the related data by targeting each navigation property value individually.
+    </li>
+</ol>
+<p>
+    Always strive for creating as <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-querying#beware-of-lazy-loading">
+        efficient queries
+    </a> as possible because they can add up to a significant impact on application
+    performance. Compare both approaches followed for the queries in the conditional
+    statements of the CreateAsync() method shown above.
+</p>
+<div class="alert alert-warning" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        Be careful with the <code><strong>.AsNoTracking()</strong></code> method because it
+        can cause issues during a create or an update operation.
+    </p>
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> There is a .Net library named
+    <a href="https://automapper.org/">AutoMapper</a> built to map one object to
+    another. For the most part, it makes things much simpler because it handles
+    the mapping automatically. Nevertheless, in this course, we will do our
+    mapping manually to have an exact control of what goes where. "Episode 76.
+    Updating People" of the Programming in Blazor - ASP.Net Core 5 course in
+    <a href="https://www.udemy.com/share/102l0i3@vvD3iCwvDBzUqrFpZILkPYAUbCLeMg6JJFb7ppSQbTmXv2K0y0Ham4u3FaGAmdR9/">
+        Udemy
+    </a>, and Episodes "39. What is AutoMapper and using it in ASP Net Core"
+    and "40. Edit and Update in Blazor" of the <a href="https://youtube.com/playlist?list=PL6n9fhu94yhVowClAs8-6nYnfsOTma14P">
+        Blazor tutorial for beginners
+    </a> by Kudvenkat, have an example on how to download and implement.
+</p>
+<p>
+    For more info visit <a href="https://docs.microsoft.com/en-us/ef/core/change-tracking/">
+        Change Tracking in EF Core
+    </a>,
+    <a href="https://docs.microsoft.com/en-us/ef/core/performance/">
+        Performance
+    </a>, and
+    <a href="https://docs.microsoft.com/en-us/ef/core/performance/efficient-querying">
+        Efficient Querying
+    </a>
+</p>
+<p>
+    The CreateAsync() method of the <dfn>EfMovies</dfn> class has a formal input parameter
+    of type <dfn>MovieEssentialsDto</dfn> and it returns an object of type Movie (two
+    different types). What's more, <span class="mark">
+        <strong>
+            the <a href="01-consuming-api">MoviesController</a> employs a <code>[FromBody]</code>
+            binding source attribute. The [FromBody] attribute populates the type's
+            properties (MovieEssentialsDto properties) from the body of the HTTP request.
+            It effectively delegates the responsibility of reading the body (and mapping the
+            values) to an input formatter.
+        </strong>
+    </span>
+</p>
+<p>
+    This means that its structure is not compatible with the existing
+    Application/Repository/ApiManager/IApiConnector/InvokePostAsync() generic method. If you
+    recall, the InvokePostAsync() method is capable of handling a single type parameter.
+</p>
+<p>
+    <span class="badge bg-dark">Step Six:</span> Create an overload of the
+    <dfn>Application/Client/ApiServices/ApiManager/IApiConnector InvokePostAsync()</dfn> 
+    generic method capable of handling two different types. One for its formal input 
+    parameter (used for model binding) and one for its return type (e.g., TEntityDto -
+    MovieEssentialsDto and T - Movie):
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/64-iapiconnector-invokepostasync-overload-one.png"
+         alt="InvokePostAsync() method overload part one." />
+    <img src="Images/09-ConsumingApi/64-iapiconnector-invokepostasync-overload-two.png"
+         alt="InvokePostAsync() method overload part two." />
+</div>
+<p>
+    The option of creating an <code>InvokePostAsync&lt;TEntityDto, T&gt;()</code> overload
+    is for illustrative purposes because we could make the
+    Application/Server-Api/Repositories/EfMovies/CreateAsync() method created
+    earlier return a type <dfn>MovieEssentialsDto</dfn> but that would need a couple
+    modifications on its properties to encapsulate the complete related data and not just
+    foreign keys and character names. These changes could have a direct impact on application
+    performance.
+</p>
+<p>
+    <span class="badge bg-dark">Step Seven:</span> Define the implementation of the new
+    method overload in the Application/Client/ApiServices/ApiManager/ApiConnector class:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/65-apiconnector-invokepostasync-overload-one.png"
+         alt="InvokePostAsync() method overload part one." />
+    <img src="Images/09-ConsumingApi/65-apiconnector-invokepostasync-overload-two.png"
+         alt="InvokePostAsync() method overload part two." />
+</div>
+<p>
+    Thus far, we:
+</p>
+<ol>
+    <li>
+        Added a new member (CreateAsync() method) to the
+        Application/Client/ApiServices/IRepository/IMovies interface that exposes available
+        operations to the UI.
+    </li>
+    <li>
+        Defined the required code logic for the
+        Application/Server-Api/Repositories/EfMovies/CreateAsync() method
+        implementation that handles business logic and communicating with the database.
+    </li>
+    <li>
+        Added a new member (InvokePostAsync() method overload) to the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface that establishes a
+        protocol to encapsulate resource methods that serialize/deserialize .Net objects
+        to JSON format so they can travel through the internet to the
+        Application/Server-Api/Controllers and back.
+    </li>
+    <li>
+        Defined the required code logic for the
+        Application/Client/ApiServices/ApiManager/ApiConnector/InvokePostAsync() method
+        overload implementation that handles the actual serialization/deserialization of
+        data.
+    </li>
+</ol>
+<p>
+    We have everything set up for adding the implementation of the CreateAsync()
+    method to the Application/Client/ApiServices/ApiManager/ApiMovies class.
+</p>
+<p>
+    <span class="badge bg-dark">Step Eight:</span> Define the code logic of the
+    Application/Client/ApiServices/ApiManager/ApiMovies CreateAsync() method.
+    This is the specific functionality, established by the IMovies interface, to
+    send the Http request to insert a Movie entity including its related data:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/66-apimovies-one.png"
+         alt="ApiMovies implements CreateAsync() method part one." />
+    <img src="Images/09-ConsumingApi/66-apimovies-two.png"
+         alt="ApiMovies implements CreateAsync() method part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> The <dfn>routeTemplateComplement</dfn>
+    argument is null because the endpoint we are targeting (the Add() action of the
+    MoviesController) is decorated with an <code>[HttpPost]</code> verb that does
+    not have any additional route segments to add to the controller route template
+    and it employs a <code>[FromBody]</code> binding source attribute which populates
+    the type's properties from the body of the HTTP request.
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/45-movies-controller-route-template.png"
+         alt="Route template of the MoviesController." />
+</div>
+<p>
+    The <dfn>BuildUri()</dfn> method of the ApiConnector class already takes care
+    of building the base route template:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/80-api-connector-build-uri-one.png"
+         alt="BuildUri method of the ApiConnector class part one." />
+    <img src="Images/09-ConsumingApi/80-api-connector-build-uri-two.png"
+         alt="BuildUri method of the ApiConnector class part two." />
+</div>
+<p>
+    The business logic layer (Application/Server-Api/Repositories) is configured. Now 
+    it is time to refactor the Application/Server-Api/Controllers layer. Recall that the
+    controllers respond to Application/Client Http requests by invoking the appropriate 
+    business logic to perform operations on the data store.
+</p>
+<p>
+    Instead of adding an overload of the 
+    Application/Server-Api/Controllers/MoviesController/Add action, we will modify the 
+    existing one to request the business logic that we just created.
+</p>
+<p>
+    <span class="badge bg-dark">Step Nine:</span> Go to the
+    Application/Server-Api/Controllers/MoviesController/Add action and refactor it
+    to consume the Application/Server-Api/Repositories/EfMovies CreateAsync()
+    method:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/67-movies-controller-modified-one.png"
+         alt="MoviesController supports MovieEssentialsDto types part one." />
+    <img src="Images/09-ConsumingApi/67-movies-controller-modified-two.png"
+         alt="MoviesController supports MovieEssentialsDto types part two." />
+    <img src="Images/09-ConsumingApi/67-movies-controller-modified-three.png"
+         alt="MoviesController supports MovieEssentialsDto types part three." />
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<div class="alert alert-success" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        It is <strong>strongly</strong> recommended that controller actions and
+        parameters are decorated with explicit <strong><code>[Http]</code></strong>
+        verbs and <strong><code>[From]</code></strong> <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-7.0">
+            bindings
+        </a> to ensure an accurate <dfn>OpenAPI</dfn> document and API UI when
+        creating the <a href="12-api-documentation">Api Documentation</a> with
+        Swagger. If the explicit parameter bindings are omitted, the generator
+        will describe them as <dfn>"query"</dfn> parameters by default. You can
+        refer to <a href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">
+            Getting Started
+        </a> for more info.
+    </p>
+</div>
+<p>
+    This concludes the necessary modifications for the back-end of the application. Let's
+    focus on the front-end (Application/Client).
+</p>
+<p>
+    <span class="badge bg-dark">Step Ten:</span> Refactor the
+    Application/Client/Pages/Movies/MovieForm component to perform any preprocessing
+    required for input data passed by the user while creating/editing a Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/68-movieform-one.png"
+         alt="MovieForm component part one." />
+    <img src="Images/09-ConsumingApi/68-movieform-two.png"
+         alt="MovieForm component part two." />
+    <img src="Images/09-ConsumingApi/68-movieform-three.png"
+         alt="MovieForm component part three." />
+    <img src="Images/09-ConsumingApi/68-movieform-four.png"
+         alt="MovieForm component part four." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Eleven:</span> Refactor the MovieCreate
+    routable component to pass a DTO of type MovieEssentialsDto when making an Http
+    request to post a new Movie item to the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/37-movie-create-error-one.png"
+         alt="MovieCreate routable component part one." />
+    <img src="Images/09-ConsumingApi/37-movie-create-error-two.png"
+         alt="MovieCreate routable component part two." />
+</div>
+<p>
+    <span class="badge bg-info">Notice:</span> Always include an exception handling
+    mechanism for functionality that performs some sort of operation with the database.
+</p>
+<p>
+    Let's see what happens when we try to create a new Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/50-movie-create-error.png"
+         alt="NullReferenceException rendering the MovieCreate component." />
+</div>
+<p>
+    The system throws a System.NullReferenceException when trying to render the MovieCreate
+    component. The exception is originated from the MultipleSelector component. Recall that
+    the MultipleSelector takes Genre objects and maps them to DTOs that are dispalyed to the
+    user in the Genres field. This means that the _availableGenres (collection of Genre items
+    retrieved from the database) are null by the time the MovieCreate component initializes
+    its rendering.
+</p>
+<p>
+    <span class="badge bg-info">Notice:</span> When attempting to render any elements that
+    build upon any data retrieved from the database,
+    <span class="mark">
+        <strong>
+            always remember to test for nullability in the markup section.
+        </strong>
+    </span>Otherwise, you will most likely get a <dfn>System.NullReferenceException.</dfn>
+    Also make sure to <span class="mark"><strong>never instantiate</strong></span> the
+    collection field or the conditional block becomes useless because it tests for
+    nullability.
+</p>
+<p>
+    Go to the MovieCreate routable component and wrap the MovieForm instance in a
+    conditional block that tests the _availableGenres field for nullability before
+    attempting to execute any code logic:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/51-movie-create-null-test.png"
+         alt="MovieForm instance wrapped in conditional statement." />
+</div>
+<p>
+    <span class="badge bg-primary">Task:</span> Create a new Movie object and use the
+    SQL Server Object Explorer to visually confirm that it was presisted into the
+    database table. Make sure you add Genre and Actor items to the Movie object and that
+    their relationships are persisted to the <dfn>linking table</dfn> in the database.
+</p>
+<p>
+    <span class="badge bg-dark">Step One:</span> Go to the MovieCreate routable component
+    and add a Movie object:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/70-create-don-jon.png"
+         alt="CreateMovie routable component." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Two:</span> Verifiy the Network tab of the web
+    browser's developer tools:
+</p>
+<div class="image-lesson mb-3">
+    <img src="Images/09-ConsumingApi/71-network-tab.png"
+         alt="Network tab of the developer tools." />
+</div>
+<p>
+    <span class="badge bg-dark">Step Three:</span> Configure the MovieCreate routable
+    component to redirect the user to the MovieBulletin routable component. But first,
+    let's refresh our memory with the structure of the route for the MovieBulletin
+    component:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/52-movie-bulletin.png"
+         alt="MovieBulletin component." />
+</div>
+<p>
+    As we can see, the MovieBulletin route has 4 segments. Two of which are parameters
+    that must be satisfied. It expects the Movie.Id and Movie.Title of the object that
+    will eventually be rendered. Satisfy the MovieBulletin parameters by passing them
+    as arguments in the MovieCreate component when redirecting the user after the Movie
+    object was successfully inserted to the database:
+</p>
+<div class="image-lesson mb-3">
+    <img src="images/09-ConsumingApi/53-movie-create-redirect.png"
+         alt="MovieCreate redirects to MovieBulletin if successful." />
+</div>
+<p>
+    Success! The application is now capable of creating new Movie objects and persisting
+    them to the database including its related data entities of type Genre and Person. It
+    also uploads its Poster image to an Azure storage service and persists into the
+    database the URL with the location that points to the storage container to access the
+    poster.
+</p>
+<h4>Outline to add new functionality for a specific data entity type</h4>
+<ol>
+    <li>
+        Create an
+        Application/Shared/<span style="color:darkviolet">EntityDtos</span>/<dfn>EntityNameDto</dfn>
+        to encapsulate the property values that can be directly related to one or more
+        properties of the data entity type to filter.
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/IRepositories/IEntityName interface to
+        expose the specific functionality (method) to the Application/Client and establish
+        a contract (or protocol) for the new feature.
+    </li>
+    <li>
+        Use the Application/Server-Api/Repositories/EfEntityName class to implement the
+        newly exposed functionality. This is the application's business logic responsible
+        for building the Linq queries and operations that act on the model (data entity).
+        It mediates between the data source layer (Application/Server-Api/DataStore) and
+        the RESTful API service (Application/Sever-Api).
+    </li>
+    <li>
+        Use the Application/Client/ApiServices/ApiManager/ApiEntityName class to implement 
+        the newly exposed functionality. This is the applicaiton's layer responsible for
+        creating the Http requests/responses that serialize-deserialize the data and
+        build the endpoint's route template (route to the appropriate controller action).
+    </li>
+    <li>
+        Use the Application/Server-Api/Controllers/EntiyNameController to create the
+        action (controller method) responsible for responding to the HttpRequest produced
+        in last step. It mediates between the client layer (Application/Client) and the
+        business logic layer (Application/Server-Api/Repositories).
+    </li>
+    <li>
+        Inject an instance of the IApiService to a Razor component to consume the recently
+        added functionality.
+    </li>
+</ol>
+<div class="alert alert-info" role="alert">
+    <p style="margin: 0; padding: 0; color: rgb(71, 68, 68); font-size: .90rem">
+        On rare occassions, it might also be required to extend the
+        Application/Client/ApiServices/ApiManager/IApiConnector interface and its
+        implementation (ApiConnector class).
+    </p>
+</div>
+<p>
+    This was the case in the example for this lesson where we give the application the
+    capability to add new Movie objects that include their related data. We had to create
+    an overload of the IApiConnector/InvokePostAsync() generic method capable of handling
+    two different types. One for its formal input parameter and one for its return type.
+</p>
