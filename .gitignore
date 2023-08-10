@@ -11,6 +11,7 @@ Miscellaneous/
 ## https://stackoverflow.com/questions/936249/how-to-stop-tracking-and-ignore-changes-to-a-file-in-git
 BlazorMovies/Server/appsettings.json
 BlazorMovies/Server/appsettings.Development.json
+BlazorMovies/Server/web.config
 
 # User-specific files
 *.rsuser
