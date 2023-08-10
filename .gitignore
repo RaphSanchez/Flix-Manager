@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+## Excludes the directory (must not be tracked or indexed to work)
+## https://youtu.be/qSnjgEU6VwQ
+Miscellaneous/
+
 # User-specific files
 *.rsuser
 *.suo
