@@ -35,6 +35,15 @@ namespace BlazorMovies.Client.Shared
         [Inject]
         private IApiService ApiService { get; set; } = null!;
 
+        /// <summary>
+        /// Theoretically would be more appropriate to use the OnAfterRender
+        /// lifecycle method but for some reason it prevents loading the
+        /// application in iOS (iPhone).
+        ///
+        /// WARNNING!!! Do not use OnAfterRenderAsync because the application
+        /// will not load in iOS devices.
+        /// </summary>
+        /// <returns></returns>
         protected override async Task OnInitializedAsync()
         {
             try

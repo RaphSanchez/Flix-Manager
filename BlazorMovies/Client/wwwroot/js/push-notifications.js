@@ -20,7 +20,7 @@ async function getStatusNotificationPermission() {
     // Detects whether the current browser supports Push Notifications
     // https://codelabs.developers.google.com/codelabs/push-notifications/#2
     if ('PushManager' in window) {
-        console.log('Web browser supports web push notifications!');
+        /*console.log('Web browser supports web push notifications!');*/
 
         // Permission status.
         const permissionStatus = Notification.permission;
