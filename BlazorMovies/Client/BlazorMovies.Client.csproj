@@ -37,7 +37,7 @@
 		<ProjectReference Include="..\..\Weather\Weather.csproj" />
 		<ProjectReference Include="..\Shared\BlazorMovies.Shared.csproj" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 		<Folder Include="wwwroot\Images\11-Filters\" />
 		<Folder Include="wwwroot\Images\12-update-complex-data\" />
@@ -73,6 +73,7 @@
 	<ItemGroup>
 		<BlazorWebAssemblyLazyLoad Include="Weather.dll" />
 	</ItemGroup>
+
 
 	<ItemGroup>
 		<None Include="..\..\.editorconfig" Link=".editorconfig" />
